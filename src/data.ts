@@ -348,6 +348,152 @@ const ELEMENT_OVERRIDES: Record<number, Partial<ChemicalElement>> = {
   }
 };
 
+// Helper functions for Orbiter Expanded Scientific Knowledge Universe
+function getOxidationStates(num: number, category: ElementCategory, group: number): number[] {
+  if (category === 'noble-gas') return [0];
+  if (category === 'alkali-metal') return [1];
+  if (category === 'alkaline-earth') return [2];
+  if (category === 'halogen') return [-1, 1, 3, 5, 7];
+  if (num === 8) return [-2, -1]; // Oxygen
+  if (num === 1) return [-1, 1]; // Hydrogen
+  if (num === 7) return [-3, -2, -1, 1, 2, 3, 4, 5]; // Nitrogen
+  if (num === 6) return [-4, -3, -2, -1, 1, 2, 3, 4]; // Carbon
+  if (category === 'transition-metal') {
+    if (num === 26) return [2, 3, 6]; // Iron
+    if (num === 29) return [1, 2]; // Copper
+    if (num === 79) return [1, 3]; // Gold
+    if (num === 80) return [1, 2]; // Mercury
+    return [2, 3, 4];
+  }
+  if (category === 'lanthanide') return [3, 4];
+  if (category === 'actinide') return [3, 4, 5, 6];
+  return [1, 2, 3, 4];
+}
+
+function getConductivityStyle(num: number, category: ElementCategory, state: string): string {
+  if (num === 79) return 'Superb electrical and thermal conductor (4.1 × 10⁷ S/m). Highly resistant to oxidation.';
+  if (num === 29) return 'Exceptional electrical conductivity (5.9 × 10⁷ S/m). The global standard for wiring.';
+  if (category === 'noble-gas') return 'Insulator (0 S/m under standard conditions). Conducts beautifully via ionized plasma glow under high electric fields.';
+  if (category === 'alkali-metal') return 'High electrical and heat conductivity typical of extremely reactive elements.';
+  if (category === 'transition-metal') return 'Excellent thermal and electrical conductivity due to free-flowing sea of valence d-electrons.';
+  if (category === 'metalloid') return 'Semi-conductive (conducts selectively based on temperature, doping levels, and light absorption).';
+  if (state === 'gas' || category === 'reactive-nonmetal') return 'Extremely poor thermal and electrical conductor; acts as a highly effective insulator.';
+  return 'Moderate electrical conductibility of metallic post-transition alloys.';
+}
+
+function getNameOriginInfo(num: number, symbol: string, name: string): string {
+  if (num === 1) return "From the Greek word 'hydro' (water) and 'genes' (creator), representing its ability to form water upon oxidation.";
+  if (num === 2) return "From 'Helios', the Greek God of the Sun, since it was first discovered spectroscopically in solar flares before Earth.";
+  if (num === 3) return "From the Greek word 'lithos' (stone), reflecting its discovery inside solid mineral ores rather than plant ash.";
+  if (num === 6) return "Derived from the Latin word 'carbo' (coal or charcoal), referring to its ancient uses and elemental carbon fuels.";
+  if (num === 7) return "From the Greek 'nitron' (native soda) and 'genes' (forming), as it was found in nitric compounds.";
+  if (num === 8) return "From the Greek 'oxys' (acid) and 'genes' (creator), because Antoine Lavoisier incorrectly believed it was an indispensable part of all acids.";
+  if (num === 10) return "Derived from 'neos', the Greek word for 'new', reflecting its exciting discovery as a newly isolated atmospheric noble gas.";
+  if (num === 26) return "From the Anglo-Saxon 'iren'. The classical symbol 'Fe' comes from the Latin 'ferrum', indicating strength and iron craftsmanship.";
+  if (num === 79) return "From the Sanskrit 'jval' (to shine), and the Anglo-Saxon 'gold'. The chemical symbol 'Au' is from the Latin 'aurum' (shining dawn).";
+  if (num === 80) return "Named after the swift Roman messenger planet Mercury. Symbol 'Hg' is from 'hydrargyrum' (Greek for silver water / quicksilver).";
+  if (num === 92) return "Named in honor of the recently discovered planet Uranus by German chemist Martin Klaproth in 1789.";
+  
+  // Dynamic fallback based on category
+  if (num >= 93) return `Named after astronomical bodies, deep classical mythologies, or world-class nuclear laboratories following its synthetic isolation.`;
+  return `Derived from classical Latin or Greek roots which refer to its distinctive chemical properties, color, or the localized mineral ores of its discovery.`;
+}
+
+function getCosmicRelevance(num: number, symbol: string, category: ElementCategory): string {
+  if (num === 1) return "The absolute primordial seed of the Cosmos. Created in massive quantities during the Hot Big Bang, it drives the nuclear furnace of every active main-sequence star.";
+  if (num === 2) return "Born primarily during Big Bang nucleosynthesis, second only to Hydrogen. It serves as the primary byproduct of ongoing stellar fusion and is highly stable.";
+  if (num === 6) return "Synthesized inside giant red stars via the triple-alpha process. It represents the central element of the biological universe and planetary soils.";
+  if (num === 8) return "The third most abundant element in the universe. Produced by massive stars at the end of the helium burning cycle, and a crucial component of planetary crusts.";
+  if (num === 26) return "The nuclear endpoint of stellar nucleosynthesis. Synthesizing heavier elements than Iron requires net energy input, triggering catastrophic stellar collapses (Supernovae).";
+  if (num === 92) return "Synthesized during rapid neutron capture (r-process) in cataclysmic collisions of binary neutron stars (Kilonovae) and hypernovae.";
+  
+  if (category === 'noble-gas') return "Represents primordial elements or stellar fusion byproducts that remain highly gaseous and concentrated in planetary atmospheres and nebulas.";
+  if (category === 'actinide' || num > 83) return "Exclusively generated via intense r-process neutron capture in neutron star merger events, seeding stellar nurseries with radioactive isotopes.";
+  if (category === 'lanthanide') return "Synthesized primarily via successive stellar s-process slow neutron captures in giant stars or cataclysmic stellar supernova deaths.";
+  return "Synthesized via cosmic-ray spallation or fusion sequences in stars, gradually distributed across interstellar gas clouds and solid planetesimals.";
+}
+
+function getBiologicalRelevance(num: number, symbol: string, category: ElementCategory): string {
+  if (num === 1) return "Abundant in all living organisms as part of water, cellular fluids, proteins, DNA, carbohydrates, and lipids.";
+  if (num === 6) return "The fundamental structural backbone of all organic molecules. Life as we know it is entirely carbon-based, storing and accessing chemical energy in carbon chains!";
+  if (num === 7) return "A key constituent of amino acids (proteins), nucleic acids (DNA and RNA), and crucial bio-energetic transfer molecules.";
+  if (num === 8) return "The essential electron acceptor in aerobic metabolic respiration, driving adenosine triphosphate (ATP) synthesis to power complex multicellular life.";
+  if (num === 15) return "An essential component of the structural DNA/RNA backbone and the cellular energy driver, adenosine triphosphate (ATP).";
+  if (num === 20) return "Crucial for physical structural support in skeletal bones/teeth, and a fundamental messenger in cellular muscle contractions.";
+  if (num === 26) return "The mechanical center of hemoglobin proteins, binding and transferring atmospheric oxygen molecule packages throughout human blood vessels.";
+  if (num === 80 || num === 82) return "Has absolutely no biological function and is extremely toxic. Interferes with neurological signaling, causing brain and cellular degradation.";
+  if (category === 'alkali-metal' && (num === 11 || num === 19)) return "Provides the vital electrochemical ion gradient (sodium-potassium pump) needed for neurotransmitter signaling and cardiac rhythms.";
+  if (category === 'actinide' || num > 84) return "Presents extreme radioactive biological hazards. Emission of alpha/beta particles destroys cellular double-stranded DNA structures.";
+  return "Utilized as a minor trace element or cofactor in complex enzymatic reactions, or has no known biological role but is generally non-toxic at natural quantities.";
+}
+
+function getNuclearProperties(num: number, symbol: string, mass: number, state: string): string {
+  if (num === 1) return "Three isotopes exist of which Protium (¹H) represents 99.98% of natural abundance. Deuterium (²H) and Tritium (³H) are rare and radioactive respectively.";
+  if (num === 6) return "Possesses two highly stable isotopes: Carbon-12 and Carbon-13. Carbon-14 is an unstable radioactive cosmogenic isotope used for dating historic biological remains up to 50,000 years.";
+  if (num === 92) return "Highly radioactive nuclear fuel. Naturally contains 0.72% Uranium-235 (fissionable in nuclear chain reactions) and 99.27% Uranium-238 (which requires neutron capture to breed plutonium).";
+  if (num >= 84 || state === 'synthetic') return `Unstable and highly radioactive. Contains no stable isotopes; undergoes spontaneous decay via alpha/beta particle paths or spontaneous fission.`;
+  return `Highly stable nuclear configuration with ${Math.ceil(mass - num)} neutrons bound tightly to ${num} protons by the strong nuclear force. Resists nuclear fission.`;
+}
+
+function getOrbitalBreakdown(num: number, config: string): string {
+  if (num === 1) return "1s¹ orbital shell. Contains a single unpaired valence electron with spin-up orientation.";
+  if (num === 2) return "1s² orbital shell. Fully closed spherical shell; holds two electrons with anti-parallel spins.";
+  return `Valence electron shell configurations represented by ${config}. Outer electrons fill orbitals orderly based on Hund's Rule and Pauli Exclusion principles.`;
+}
+
+function getApplications(num: number, name: string): { industrial: string; technology: string; medical: string; spaceAndEnergy: string } {
+  if (num === 1) return {
+    industrial: "Ammonia synthesis via Haber-Bosch process for fertilizers.",
+    technology: "Semiconductor manufacture atmosphere purging.",
+    medical: "Therapeutic hydrogen breathing gases for systemic inflammation selective therapy.",
+    spaceAndEnergy: "Heavy thrust rocket fuel propellant (liquid H₂ with liquid O₂)."
+  };
+  if (num === 2) return {
+    industrial: "Purging welding shields and leak detection tracer systems.",
+    technology: "Superconducting magnet cooling in particle colliders.",
+    medical: "Heliox ventilation gases for patients in severe respiratory distress.",
+    spaceAndEnergy: "Cryogenic pressurant for rocket fuel tanks and space structures."
+  };
+  if (num === 6) return {
+    industrial: "Hardened steel smelting carbon coke and raw composite structures.",
+    technology: "Graphene, carbon nanotubes, and lightweight conductive grids.",
+    medical: "Activated charcoal for acute patient poisoning emergency treatments.",
+    spaceAndEnergy: "Carbon-carbon heat shielding tiles for atmospheric atmospheric re-entry spacecraft."
+  };
+  if (num === 8) return {
+    industrial: "Smelting oxy-fuel furnaces and blast furnaces for metal refining.",
+    technology: "Assisting oxide plasma treatments in electronic manufacturing.",
+    medical: "Intensive care resuscitation oxygen masks and mechanical ventilators.",
+    spaceAndEnergy: "Primary fuel oxidizer for space shuttle boosters and long-range rockets."
+  };
+  if (num === 26) return {
+    industrial: "Structural steel, beams, reinforcement bars, and load-bearing metal alloy machinery.",
+    technology: "Electromagnetic induction transformer cores and magnetic media storage.",
+    medical: "Iron-dextran nutritional infusions for severe microcytic anemia therapy.",
+    spaceAndEnergy: "Thermal shield structural frames and heavy magnetic containment valves."
+  };
+  if (num === 79) return {
+    industrial: "Rust-proof luxury items, electroplating protective layers, and currency holdings.",
+    technology: "Highly reliable corrosion-proof micro-contacts in advanced microchips.",
+    medical: "Gold-salt medicinal gels for joint inflammation and radioisotope cancer tracking seeds.",
+    spaceAndEnergy: "Gold-coated thin polymer solar foils reflecting harsh solar infrared radiation."
+  };
+  if (num === 92) return {
+    industrial: "Heavy radiation shielding weights and high-density counterweights in ships.",
+    technology: "High-yield research reactors generating specialized medicine isotopes.",
+    medical: "Uranium radiation sources used for historical therapeutic target ablation.",
+    spaceAndEnergy: "Thermal-fission nuclear power drives, atomic spacecraft designs, and nuclear ships."
+  };
+  
+  // Custom fallback categories according to element properties
+  return {
+    industrial: `Used widely in chemical production catalysis, raw alloy additives, or specialized manufacturing agents for ${name}-based compounds.`,
+    technology: `Embedded selectively inside advanced sensor housings, specialty light transmitters, or structural micro-chips.`,
+    medical: `Employed in diagnostic imaging chemical markers, trace nutritional cofactors, or specialized laboratory assays.`,
+    spaceAndEnergy: `Used in lightweight thermal protection mixtures, highly specific electrical sensors, or high-temperature structural alloy segments.`
+  };
+}
+
 // Generates elements data with high physical accuracy and beautiful custom visuals
 export const ELEMENTS_DATA: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, name, mass, category, period, group, state]) => {
   const shells = getAtomicShells(num);
@@ -375,7 +521,7 @@ export const ELEMENTS_DATA: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, 
           particleStyle: 'nebula',
           energyBehavior: num === 1 ? 'fusion' : 'lattice',
           lightingStyle: 'glowing',
-          environmentFeel: `${name} Ambient Mist Field`,
+          environmentFeel: `${name} Ambient Field`,
           motionStyle: num === 6 ? 'structured' : 'floating'
         };
       case 'noble-gas':
@@ -503,7 +649,20 @@ export const ELEMENTS_DATA: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, 
     ionizationEnergy: rawOverride.ionizationEnergy || `${(900 - num * 2).toFixed(0)} kJ/mol`,
     realWorldUses: rawOverride.realWorldUses || ['Industrial Alloys', 'Laboratory Research', 'Material Enhancers'],
     reactivity: rawOverride.reactivity || (category === 'noble-gas' ? 'Inert' : num % 3 === 0 ? 'High' : 'Moderate'),
-    visual: getVisualConfig()
+    visual: getVisualConfig(),
+
+    // Expanded Knowledge Universe Fields
+    protons: num,
+    electrons: num,
+    neutrons: Math.round(mass) - num,
+    oxidationStates: getOxidationStates(num, category, group),
+    conductivity: getConductivityStyle(num, category, state),
+    nameOrigin: getNameOriginInfo(num, symbol, name),
+    cosmicRelevance: getCosmicRelevance(num, symbol, category),
+    biologicalRelevance: getBiologicalRelevance(num, symbol, category),
+    nuclearProperties: getNuclearProperties(num, symbol, mass, state),
+    orbitalBreakdown: getOrbitalBreakdown(num, config),
+    applications: getApplications(num, name)
   };
 });
 

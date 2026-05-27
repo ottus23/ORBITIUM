@@ -51,6 +51,24 @@ export interface ChemicalElement {
   realWorldUses: string[];
   reactivity: string;
   visual: VisualConfig;
+
+  // Massively Expanded Scientific Properties
+  protons: number;
+  neutrons: number;
+  electrons: number;
+  oxidationStates: number[];
+  conductivity: string;
+  nameOrigin: string;
+  cosmicRelevance: string;
+  biologicalRelevance: string;
+  nuclearProperties: string;
+  orbitalBreakdown: string;
+  applications: {
+    industrial: string;
+    technology: string;
+    medical: string;
+    spaceAndEnergy: string;
+  };
 }
 
 export type TableLayoutMode = 'grid' | 'spiral' | 'sphere' | 'scatter';
