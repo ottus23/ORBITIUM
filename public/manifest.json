@@ -1,0 +1,10 @@
+{
+  "name": "ORBITIUM",
+  "short_name": "ORBITIUM",
+  "description": "Cinematic 3D Chemistry Universe",
+  "theme_color": "#050816",
+  "background_color": "#050816",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/"
+}

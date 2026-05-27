@@ -1,6 +1,6 @@
 {
-  "name": "Orbitium",
-  "description": "A high-end cinematic 3D interactive periodic table and atomic exploration platform.",
+  "name": "ORBITIUM",
+  "description": "Cinematic 3D Chemistry Universe",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
