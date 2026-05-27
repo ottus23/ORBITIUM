@@ -20,7 +20,9 @@ import {
   CheckCircle2, 
   ArrowRight,
   TrendingUp,
-  Globe
+  Globe,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
@@ -31,6 +33,10 @@ interface HolographicUIProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
   onChangeLayoutMode: (mode: TableLayoutMode) => void;
+  appMode: 'explorer' | 'bond_lab' | 'timeline';
+  onChangeAppMode: (mode: 'explorer' | 'bond_lab' | 'timeline') => void;
+  timelineYear: number;
+  onChangeTimelineYear: (year: number | ((prev: number) => number)) => void;
   simulationSpeed: number;
   onSetSimulationSpeed: (speed: number) => void;
   reactiveIntensity: number;
@@ -51,6 +57,10 @@ export default function HolographicUI({
   onSelectElement,
   layoutMode,
   onChangeLayoutMode,
+  appMode,
+  onChangeAppMode,
+  timelineYear,
+  onChangeTimelineYear,
   simulationSpeed,
   onSetSimulationSpeed,
   reactiveIntensity,
@@ -67,48 +77,146 @@ export default function HolographicUI({
   const [reactionStage, setReactionStage] = useState<'idle' | 'mixing' | 'stable'>('idle');
   const [reactionCountDown, setReactionCountDown] = useState(0);
   const [activeTab, setActiveTab] = useState<'overview' | 'atomic' | 'properties' | 'cosmic_bio' | 'applications'>('overview');
+  
+  // Custom states for audio and timeline
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlayingTimeline, setIsPlayingTimeline] = useState(false);
+  const [liveDistance, setLiveDistance] = useState<number | null>(null);
 
   // Reset tab when element changes
   useEffect(() => {
     setActiveTab('overview');
   }, [selectedElement]);
 
+  // Audio setup bindings
+  useEffect(() => {
+    if (isObsEntered) {
+      import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+        OrbitiumAudio.setMute(isMuted);
+      });
+    }
+  }, [isMuted, isObsEntered]);
+
+  // Audio transitions on element selection
+  useEffect(() => {
+    if (isObsEntered && appMode === 'explorer') {
+      import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+        OrbitiumAudio.transitionToElement(selectedElement);
+      });
+    }
+  }, [selectedElement, isObsEntered, appMode]);
+
+  // Handle auto timeline progression
+  useEffect(() => {
+    if (!isPlayingTimeline || appMode !== 'timeline') return;
+
+    const interval = setInterval(() => {
+      onChangeTimelineYear((prev) => {
+        let next = prev;
+        if (prev < 1500) {
+          next += 120; // Fast-forward through prehistoric centuries
+        } else if (prev < 1850) {
+          next += 5;
+        } else if (prev < 1950) {
+          next += 2;
+        } else {
+          next += 1;
+        }
+
+        if (next >= 2026) {
+          setIsPlayingTimeline(false);
+          return 2026;
+        }
+        return next;
+      });
+    }, 120);
+
+    return () => clearInterval(interval);
+  }, [isPlayingTimeline, appMode, onChangeTimelineYear]);
+
+  // Listen to 3D scene reactive distance updates via lightweight custom DOM events
+  useEffect(() => {
+    const handleDist = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && typeof customEvent.detail.distance === 'number') {
+        setLiveDistance(customEvent.detail.distance);
+      }
+    };
+    const handleStage = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        if (customEvent.detail.stage === 'stable') {
+          setReactionStage('stable');
+          onSetReactiveIntensity(1.5);
+        } else if (customEvent.detail.stage === 'mixing') {
+          setReactionStage('mixing');
+        } else if (customEvent.detail.stage === 'idle') {
+          setReactionStage('idle');
+        }
+      }
+    };
+
+    window.addEventListener('tether-distance', handleDist);
+    window.addEventListener('reaction-stage', handleStage);
+    return () => {
+      window.removeEventListener('tether-distance', handleDist);
+      window.removeEventListener('reaction-stage', handleStage);
+    };
+  }, [onSetReactiveIntensity]);
+
+  // Enter world and unlock Web Audio API securely
+  const handleEnterWorld = () => {
+    onEnterObs();
+    import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+      OrbitiumAudio.init();
+      // Initially, transition to empty state to kick-off atmospheric pad drone
+      OrbitiumAudio.transitionToElement(null);
+    });
+  };
+
   // Trigger Reaction Lifecycle animation
   const handleReactionInit = (re: ReactionConfig) => {
     onTriggerReaction(re);
-    setReactionStage('mixing');
-    onSetReactiveIntensity(4.0); // Crank up kinetic disturbances
-    setReactionCountDown(3);
+    setReactionStage('idle'); // The user must click and drag them, not immediate!
+    onSetReactiveIntensity(1.2); 
     
-    // Automatically walk user to first element in the reaction
-    const firstReactant = ELEMENTS_DATA.find(e => e.symbol === re.reactants[0]);
-    if (firstReactant) {
-      onSelectElement(firstReactant);
-    }
+    // Dispatch event to 3D scene to spawn reactants left & right
+    window.dispatchEvent(new CustomEvent('load-reactants', { detail: { reaction: re } }));
   };
-
-  useEffect(() => {
-    if (reactionStage === 'mixing' && reactionCountDown > 0) {
-      const timer = setTimeout(() => {
-        setReactionCountDown(prev => prev - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (reactionStage === 'mixing' && reactionCountDown === 0) {
-      setReactionStage('stable');
-      onSetReactiveIntensity(1.55); // Settle chemical state
-    }
-  }, [reactionStage, reactionCountDown]);
 
   const handleCancelReaction = () => {
     setReactionStage('idle');
     onTriggerReaction(null);
+    setLiveDistance(null);
     onSetReactiveIntensity(1.0);
+    window.dispatchEvent(new CustomEvent('reset-reactor', {}));
   };
 
-  // Safe category retrieval
   const getCatMeta = (cat: string) => {
     return CATEGORY_COLORS[cat] || { hex: '#00E5FF', label: cat, description: '' };
   };
+
+  // Historical milestones helper
+  const epochs = [
+    { name: 'Antiquity', year: -5000, desc: 'Metals used in early civilizations.' },
+    { name: 'Alchemical', year: 1650, desc: 'Early Scientific isolations.' },
+    { name: 'Pneumatic', year: 1775, desc: 'Isolations of major oxygen/gases.' },
+    { name: 'Electrolytic', year: 1810, desc: 'Humphry Davy alkali isolated cores.' },
+    { name: 'Nuclear Age', year: 1945, desc: 'Synthesized synthetic transuranics.' },
+    { name: 'Modern', year: 2026, desc: 'Complete modern 118 grid lattice.' },
+  ];
+
+  // Discovery period description helper
+  const getPeriodDescription = (y: number) => {
+    if (y <= -500) return "Class metals and items processed by ancient civilizations (Carbon, Copper, Gold, Iron, Silver, Sulfur).";
+    if (y <= 1700) return "Post-classical metallurgy and early alchemical isolations (Phosphorus, Arsenic).";
+    if (y <= 1800) return "Antoine Lavoisier defines modern elements. Gaseous element separation (Hydrogen, Nitrogen, Oxygen, Chlorine).";
+    if (y <= 1900) return "Humphry Davy isolates alkali metals, Dmitri Mendeleev forms the table, Noble Gases extracted (Sodium, Helium, Argon).";
+    return "Quantum physics and synchrotron synthesis of superheavy radioactive cyclotronic elements (Plutonium, Oganesson).";
+  };
+
+  // Total elements discovered at this point
+  const totalDiscoveredCount = ELEMENTS_DATA.filter(e => e.year <= timelineYear).length;
 
   return (
     <div id="orbitium-hud-root" className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6 z-10 font-sans text-[#EAF2FF]">
@@ -147,7 +255,7 @@ export default function HolographicUI({
 
             <button
               id="btn-enter"
-              onClick={onEnterObs}
+              onClick={handleEnterWorld}
               className="px-8 py-3.5 bg-[#070B14] border border-[#00E5FF] text-[#00E5FF] text-xs font-bold tracking-[0.2em] rounded-sm hover:bg-[#00E5FF]/10 hover:shadow-[0_0_25px_rgba(0,229,255,0.25)] transition-all duration-300 uppercase cursor-pointer flex items-center gap-3 active:scale-95"
             >
               NAVIGATE THE ATOMIC COSMOS <ArrowRight className="w-4 h-4" />
@@ -165,9 +273,9 @@ export default function HolographicUI({
       {/* =======================================================
           TOP LAYER NAVIGATION AND BRANDING
           ======================================================= */}
-      <header className="w-full flex justify-between items-start pointer-events-auto">
+      <header className="w-full flex flex-col md:flex-row justify-between items-center md:items-start gap-4 pointer-events-auto z-40">
         {/* Logo and Tagline */}
-        <div id="orb-hud-brand" className="flex items-center gap-3">
+        <div id="orb-hud-brand" className="flex items-center gap-3 self-start">
           <div 
             onClick={() => onSelectElement(null)}
             className="w-10 h-10 rounded-sm border border-[#00E5FF]/20 flex items-center justify-center bg-[#0B1020]/80 backdrop-blur-md cursor-pointer hover:border-[#00E5FF]/60 hover:shadow-[0_0_15px_rgba(0,229,255,0.15)] transition-all"
@@ -180,13 +288,56 @@ export default function HolographicUI({
           </div>
         </div>
 
-        {/* Dynamic status widgets */}
-        <div className="hidden md:flex gap-4 font-mono text-[10px]">
-          <div className="px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
-            <span className="text-[#00FFB3] uppercase">● OBSERVATORY:</span> SECURE
+        {/* Center App Mode Toggles */}
+        {isObsEntered && (
+          <div className="flex gap-1.5 p-1 bg-[#0A0D1A]/85 border border-[#00E5FF]/20 rounded-md shadow-[0_0_20px_rgba(0,229,255,0.1)] items-center backdrop-blur-md">
+            {[
+              { id: 'explorer', label: 'Explorer', icon: Compass },
+              { id: 'bond_lab', label: '3D Bond Reactor', icon: Flame },
+              { id: 'timeline', label: 'Timeline History', icon: TrendingUp }
+            ].map((tab) => {
+              const IconComp = tab.icon;
+              const isActive = appMode === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onChangeAppMode(tab.id as any)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[9px] font-mono uppercase tracking-widest font-extrabold border transition-all duration-300 cursor-pointer rounded-sm ${
+                    isActive
+                      ? 'bg-[#00E5FF]/20 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                      : 'bg-transparent border-transparent text-[#EAF2FF]/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <IconComp className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
-            <span className="text-[#00E5FF] uppercase">STABILITY:</span> 99.98%
+        )}
+
+        {/* Dynamic status widgets and audio node toggle */}
+        <div className="flex gap-3 font-mono text-[10px] self-end md:self-start">
+          {isObsEntered && (
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className={`px-3 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-2 cursor-pointer transition-all ${
+                isMuted
+                  ? 'bg-red-950/20 border-red-500/40 text-red-400'
+                  : 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] hover:border-[#00E5FF]'
+              }`}
+              title={isMuted ? "Unmute cosmic synthesizer engine" : "Mute cosmic synthesizer engine"}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              <span>{isMuted ? "SYNTH MUTED" : "COSMIC SYNTH"}</span>
+            </button>
+          )}
+
+          <div className="hidden lg:flex px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
+            <span className="text-[#00FFB3] uppercase">● OBS:</span> STABLE
+          </div>
+          <div className="hidden lg:flex px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
+            <span className="text-[#00E5FF] uppercase">CORES:</span> 118
           </div>
         </div>
       </header>
@@ -195,170 +346,310 @@ export default function HolographicUI({
           MAIN INTERACTION HUD OVERLAYS (Left / Right / Middle)
           ======================================================= */}
       <main className="flex-1 my-4 flex flex-col md:flex-row gap-6 relative justify-between items-stretch">
-        
-        {/* LEFT HUD: CONTROLS & LAYOUT SWITCHER */}
+               {/* LEFT HUD: CONTROLS & LAYOUT SWITCHER */}
         {isObsEntered && !selectedElement && (
-          <div id="left-hud-controls" className="w-full md:w-72 flex flex-col justify-start gap-4 pointer-events-auto">
-            {/* Card Layout switcher */}
-            <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
-              <div className="text-[10px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center gap-2">
-                <Layers className="w-4.5 h-4.5" /> COSMIC FIELD LAYOUT
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {(['grid', 'spiral', 'sphere', 'scatter'] as TableLayoutMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => onChangeLayoutMode(mode)}
-                    className={`py-2 px-2 text-[10px] uppercase tracking-wider font-extrabold border transition-all cursor-pointer ${
-                      layoutMode === mode
-                        ? 'bg-[#00E5FF]/15 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.1)]'
-                        : 'bg-[#0B1020]/50 border-white/10 text-[#EAF2FF]/60 hover:border-white/20 hover:text-[#EAF2FF]'
-                    }`}
-                  >
-                    {mode === 'grid' && 'COSMIC GRIDMAP'}
-                    {mode === 'spiral' && 'STELLAR HELIX'}
-                    {mode === 'sphere' && 'ATOMIC STAR SYSTEM'}
-                    {mode === 'scatter' && 'NEBULA DRIFT'}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] text-[#EAF2FF]/50 leading-relaxed font-light mt-1">
-                Select layout to adjust spatial structure. Elements self-reorganize dynamically.
-              </p>
-            </div>
-
-            {/* Slider parameters panel */}
-            <div className="cyber-panel p-4 rounded-sm flex flex-col gap-4 shadow-lg">
-              <div className="text-[10px] font-mono uppercase text-[#7C4DFF] tracking-widest flex items-center gap-2">
-                <Sliders className="w-4.5 h-4.5" /> WAVEFIELD MODULATION
-              </div>
-
-              {/* Slider 1: Simulation Speed */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
-                  <span className="uppercase">TIME COUPLING:</span>
-                  <span className="text-[#00E5FF]">{simulationSpeed.toFixed(1)}X</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="3"
-                  step="0.1"
-                  value={simulationSpeed}
-                  onChange={(e) => onSetSimulationSpeed(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00E5FF]"
-                />
-              </div>
-
-              {/* Slider 2: Reactive intensity */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
-                  <span className="uppercase">KINETIC ENERGY:</span>
-                  <span className="text-[#00FFB3]">{reactiveIntensity.toFixed(2)}x</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2.5"
-                  step="0.05"
-                  value={reactiveIntensity}
-                  onChange={(e) => onSetReactiveIntensity(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
-                />
-              </div>
-
-              {/* Dynamic Adaptive Quality & Performance Stabilization */}
-              <div className="w-full h-[1px] bg-white/10 my-1" />
-
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center text-[10px] font-mono">
-                  <span className="text-[#EAF2FF]/60 uppercase">DIAGNOSTICS:</span>
-                  <span className={`font-black tracking-widest ${currentFps >= 50 ? 'text-[#00FFB3]' : 'text-[#FFD54F]'}`}>
-                    {currentFps} FPS
-                  </span>
+          <div id="left-hud-controls" className="w-full md:w-72 flex flex-col justify-start gap-4 pointer-events-auto z-40">
+            
+            {/* 1. ATOMIC EXPLORER PANEL CONTROLS */}
+            {appMode === 'explorer' && (
+              <>
+                {/* Card Layout switcher */}
+                <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
+                  <div className="text-[10px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center gap-2">
+                    <Layers className="w-4.5 h-4.5" /> COSMIC FIELD LAYOUT
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {(['grid', 'spiral', 'sphere', 'scatter'] as TableLayoutMode[]).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => onChangeLayoutMode(mode)}
+                        className={`py-2 px-2 text-[10px] uppercase tracking-wider font-extrabold border transition-all cursor-pointer ${
+                          layoutMode === mode
+                            ? 'bg-[#00E5FF]/15 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.1)]'
+                            : 'bg-[#0B1020]/50 border-white/10 text-[#EAF2FF]/60 hover:border-white/20 hover:text-[#EAF2FF]'
+                        }`}
+                      >
+                        {mode === 'grid' && 'COSMIC GRIDMAP'}
+                        {mode === 'spiral' && 'STELLAR HELIX'}
+                        {mode === 'sphere' && 'ATOMIC STAR SYSTEM'}
+                        {mode === 'scatter' && 'NEBULA DRIFT'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-[#EAF2FF]/50 leading-relaxed font-light mt-1">
+                    Select layout to adjust spatial structure. Elements self-reorganize dynamically.
+                  </p>
                 </div>
 
-                <button
-                  onClick={() => onChangeAdaptiveQuality(!adaptiveQuality)}
-                  className={`w-full py-1.5 px-2 text-[10px] font-extrabold uppercase tracking-widest border transition-all cursor-pointer flex justify-between items-center bg-[#070B14] ${
-                    adaptiveQuality
-                      ? 'border-[#00E5FF]/40 text-[#00E5FF] hover:border-[#00E5FF]/70'
-                      : 'border-white/10 text-[#EAF2FF]/40 hover:border-white/20'
-                  }`}
-                >
-                  <span>ADAPTIVE STABILIZATION:</span>
-                  <span className="font-extrabold text-xs">{adaptiveQuality ? 'ON' : 'OFF'}</span>
-                </button>
+                {/* Slider parameters panel */}
+                <div className="cyber-panel p-4 rounded-sm flex flex-col gap-4 shadow-lg">
+                  <div className="text-[10px] font-mono uppercase text-[#7C4DFF] tracking-widest flex items-center gap-2">
+                    <Sliders className="w-4.5 h-4.5" /> WAVEFIELD MODULATION
+                  </div>
 
-                {adaptiveQuality && (
-                  <div className="flex items-center gap-1.5 mt-0.5 px-2 py-1 rounded bg-black/40 text-[9px] font-mono border border-white/5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLowPerfMode ? 'bg-[#FF9100] animate-pulse' : 'bg-[#00FFB3]'}`} />
-                    <span className={isLowPerfMode ? 'text-[#FF9100]' : 'text-[#EAF2FF]/50'}>
-                      {isLowPerfMode ? 'OPTIMIZED STABILIZATION ACTIVE' : 'AURA FLOW: MAX INTENSITY'}
-                    </span>
+                  {/* Slider 1: Simulation Speed */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
+                      <span className="uppercase">TIME COUPLING:</span>
+                      <span className="text-[#00E5FF]">{simulationSpeed.toFixed(1)}X</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="3"
+                      step="0.1"
+                      value={simulationSpeed}
+                      onChange={(e) => onSetSimulationSpeed(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00E5FF]"
+                    />
+                  </div>
+
+                  {/* Slider 2: Reactive intensity */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
+                      <span className="uppercase">KINETIC ENERGY:</span>
+                      <span className="text-[#00FFB3]">{reactiveIntensity.toFixed(2)}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.5"
+                      step="0.05"
+                      value={reactiveIntensity}
+                      onChange={(e) => onSetReactiveIntensity(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
+                    />
+                  </div>
+
+                  {/* Dynamic Adaptive Quality & Performance Stabilization */}
+                  <div className="w-full h-[1px] bg-white/10 my-1" />
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-[#EAF2FF]/60 uppercase">DIAGNOSTICS:</span>
+                      <span className={`font-black tracking-widest ${currentFps >= 50 ? 'text-[#00FFB3]' : 'text-[#FFD54F]'}`}>
+                        {currentFps} FPS
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => onChangeAdaptiveQuality(!adaptiveQuality)}
+                      className={`w-full py-1.5 px-2 text-[10px] font-extrabold uppercase tracking-widest border transition-all cursor-pointer flex justify-between items-center bg-[#070B14] ${
+                        adaptiveQuality
+                          ? 'border-[#00E5FF]/40 text-[#00E5FF] hover:border-[#00E5FF]/70'
+                          : 'border-white/10 text-[#EAF2FF]/40 hover:border-white/20'
+                      }`}
+                    >
+                      <span>ADAPTIVE STABILIZATION:</span>
+                      <span className="font-extrabold text-xs">{adaptiveQuality ? 'ON' : 'OFF'}</span>
+                    </button>
+
+                    {adaptiveQuality && (
+                      <div className="flex items-center gap-1.5 mt-0.5 px-2 py-1 rounded bg-black/40 text-[9px] font-mono border border-white/5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isLowPerfMode ? 'bg-[#FF9100] animate-pulse' : 'bg-[#00FFB3]'}`} />
+                        <span className={isLowPerfMode ? 'text-[#FF9100]' : 'text-[#EAF2FF]/50'}>
+                          {isLowPerfMode ? 'OPTIMIZED STABILIZATION ACTIVE' : 'AURA FLOW: MAX INTENSITY'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Reaction Lab Drawer */}
+                <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
+                  <div className="text-[10px] font-mono uppercase text-[#00FFB3] tracking-widest flex items-center gap-2">
+                    <Flame className="w-4.5 h-4.5 text-[#00FFB3]" /> REACTION SYNTHESIZER
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-1 max-h-48 overflow-y-auto pr-1">
+                    {REACTION_CONFIGS.map((re, rIdx) => (
+                      <div 
+                        key={rIdx} 
+                        className="p-2.5 bg-white/5 border border-white/10 rounded-sm flex flex-col justify-between items-start gap-1 hover:border-white/25 transition-colors group"
+                      >
+                        <div className="flex justify-between w-full items-center">
+                          <span className="text-[11px] font-extrabold text-[#EAF2FF]/90 group-hover:text-[#00E5FF] transition-colors">{re.productFormula}</span>
+                          <span className="text-[8px] font-mono px-1.5 py-0.5 borer rounded bg-[#070B14] text-[#EAF2FF]/40">{re.visualType.toUpperCase()}</span>
+                        </div>
+                        <div className="text-[10px] text-[#EAF2FF]/50">{re.productName}</div>
+                        
+                        <button
+                          onClick={() => handleReactionInit(re)}
+                          className="mt-1.5 w-full py-1 bg-[#0A0D1A] border border-white/15 hover:border-[#00FFB3] hover:text-[#00FFB3] text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center text-[#EAF2FF]/70"
+                        >
+                          SYNTHESIZE
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 2. DISCOVERY TIMELINE PANEL CONTROLS */}
+            {appMode === 'timeline' && (
+              <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
+                <div className="text-[11px] font-mono uppercase text-[#00FFB3] tracking-widest flex items-center gap-2">
+                  <TrendingUp className="w-4.5 h-4.5 text-[#00FFB3]" /> CHRONO METRICS
+                </div>
+                
+                <div className="p-3 bg-[#0B1020]/80 border border-white/5 rounded-sm flex flex-col gap-1.5 mt-1">
+                  <div className="text-[9px] text-[#EAF2FF]/50 uppercase tracking-wider font-mono">SELECTED FOCUS YEAR:</div>
+                  <div className="text-xl font-bold text-[#00E5FF] font-mono">
+                    {timelineYear < 0 ? `${Math.abs(timelineYear)} BC` : `${timelineYear} AD`}
+                  </div>
+                  <div className="text-[11px] text-[#EAF2FF]/80 leading-normal font-light">
+                    {getPeriodDescription(timelineYear)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-sm text-center">
+                    <div className="text-lg font-bold font-mono text-[#00FFB3]">{totalDiscoveredCount}</div>
+                    <div className="text-[7.5px] text-[#EAF2FF]/40 font-mono uppercase tracking-widest">DISCOVERED</div>
+                  </div>
+                  <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-sm text-center">
+                    <div className="text-lg font-bold font-mono text-white/40">{118 - totalDiscoveredCount}</div>
+                    <div className="text-[7.5px] text-[#EAF2FF]/40 font-mono uppercase tracking-widest">UNDISCOVERED</div>
+                  </div>
+                </div>
+
+                <div className="text-[10px] font-mono text-[#EAF2FF]/40 mt-2 uppercase tracking-wider">
+                  QUICK PERIOD DECK:
+                </div>
+                <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
+                  {epochs.map((ep) => (
+                    <button
+                      key={ep.name}
+                      onClick={() => {
+                        onChangeTimelineYear(ep.year);
+                        setIsPlayingTimeline(false);
+                      }}
+                      className={`p-2 border rounded-sm flex items-center justify-between text-left cursor-pointer transition-all ${
+                        (ep.year <= timelineYear && (timelineYear === ep.year || (epochs.findIndex(e => e.name === ep.name) < epochs.length - 1 && timelineYear < epochs[epochs.findIndex(e => e.name === ep.name) + 1].year)))
+                          ? 'bg-[#00FFB3]/10 border-[#00FFB3] text-[#00FFB3]'
+                          : 'bg-[#070B14] border-white/10 text-[#EAF2FF]/70 hover:border-white/20'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-[9.5px] font-bold uppercase tracking-wider">{ep.name}</div>
+                        <div className="text-[8px] text-[#EAF2FF]/50 font-light truncate max-w-[150px]">{ep.desc}</div>
+                      </div>
+                      <span className="text-[9px] font-mono font-bold">
+                        {ep.year < 0 ? `${Math.abs(ep.year)} BC` : `${ep.year}`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. BOND REACTOR PANEL CONTROLS */}
+            {appMode === 'bond_lab' && (
+              <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
+                <div className="text-[10px] font-mono uppercase text-[#FF9100] tracking-widest flex items-center gap-2">
+                  <Flame className="w-4.5 h-4.5 text-[#FF9100]" /> 3D CHEMICAL LAB
+                </div>
+                
+                <p className="text-[11px] text-[#EAF2FF]/70 leading-relaxed font-light">
+                  Select a molecular formula from the synthesized registry below to construct the reactants in 3D, then drag them together to observe orbital bonding.
+                </p>
+
+                <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1 mt-1">
+                  {REACTION_CONFIGS.map((re, rIdx) => {
+                    const isSelected = activeReaction?.productFormula === re.productFormula;
+                    return (
+                      <button
+                        key={rIdx}
+                        onClick={() => handleReactionInit(re)}
+                        className={`p-2.5 rounded-sm flex flex-col justify-between items-start text-left gap-1 border transition-all cursor-pointer group ${
+                          isSelected 
+                            ? 'bg-[#FF9100]/10 border-[#FF9100] text-[#FF9100] shadow-[0_0_12px_rgba(255,145,0,0.15)]'
+                            : 'bg-white/5 border-white/10 text-[#EAF2FF]/70 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex justify-between w-full items-center">
+                          <span className="text-[11px] font-extrabold tracking-wider group-hover:text-[#FF9100] transition-colors">{re.productFormula}</span>
+                          <span className={`text-[7px] font-mono px-1 py-0.5 rounded ${
+                            re.visualType === 'covalent' ? 'bg-blue-900/30 text-blue-400' :
+                            re.visualType === 'ionic' ? 'bg-green-900/30 text-green-400' :
+                            'bg-red-900/30 text-red-500 font-extrabold'
+                          }`}>{re.visualType.toUpperCase()}</span>
+                        </div>
+                        <div className="text-[9.5px] font-mono leading-tight">{re.productName}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {activeReaction && (
+                  <div className="mt-2 p-3 bg-black/40 border border-[#FF9100]/20 rounded-sm flex flex-col gap-1.5 animate-fade-in font-mono text-[9px]">
+                    <div className="text-[8px] text-[#FF9100] uppercase tracking-wider font-extrabold">OBSERVATION FEED:</div>
+                    <div className="flex justify-between text-[#EAF2FF]/75">
+                      <span>REACTANT A:</span>
+                      <span className="font-bold text-[#00E5FF]">{activeReaction.reactants[0]}</span>
+                    </div>
+                    <div className="flex justify-between text-[#EAF2FF]/75">
+                      <span>REACTANT B:</span>
+                      <span className="font-bold text-[#EAF2FF]">{activeReaction.reactants[1]}</span>
+                    </div>
+                    <div className="w-full h-[1px] bg-white/15 my-0.5" />
+                    <div className="flex justify-between text-[#EAF2FF]/95">
+                      <span>LINK TELEMETRY:</span>
+                      <span className={`font-black uppercase ${liveDistance && liveDistance < 2.5 ? 'text-red-500 animate-pulse' : 'text-[#00FFB3]'}`}>
+                        {liveDistance ? `${liveDistance.toFixed(2)} Å` : 'AWAITING LOCK'}
+                      </span>
+                    </div>
+                    {liveDistance && (
+                      <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-0.5">
+                        <div 
+                          className={`h-full transition-all duration-100 ${liveDistance < 2.5 ? 'bg-red-500' : 'bg-[#00FFB3]'}`}
+                          style={{ width: `${Math.max(0, Math.min(100, (1 - (liveDistance / 12)) * 100))}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Reaction Lab Drawer */}
-            <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
-              <div className="text-[10px] font-mono uppercase text-[#00FFB3] tracking-widest flex items-center gap-2">
-                <Flame className="w-4.5 h-4.5 text-[#00FFB3]" /> REACTION SYNTHESIZER
-              </div>
-
-              <div className="flex flex-col gap-2 mt-1 max-h-48 overflow-y-auto pr-1">
-                {REACTION_CONFIGS.map((re, rIdx) => (
-                  <div 
-                    key={rIdx} 
-                    className="p-2.5 bg-white/5 border border-white/10 rounded-sm flex flex-col justify-between items-start gap-1 hover:border-white/25 transition-colors group"
-                  >
-                    <div className="flex justify-between w-full items-center">
-                      <span className="text-[11px] font-extrabold text-[#EAF2FF]/90 group-hover:text-[#00E5FF] transition-colors">{re.productFormula}</span>
-                      <span className="text-[8px] font-mono px-1.5 py-0.5 borer rounded bg-[#070B14] text-[#EAF2FF]/40">{re.visualType.toUpperCase()}</span>
-                    </div>
-                    <div className="text-[10px] text-[#EAF2FF]/50">{re.productName}</div>
-                    
-                    <button
-                      onClick={() => handleReactionInit(re)}
-                      className="mt-1.5 w-full py-1 bg-[#0A0D1A] border border-white/15 hover:border-[#00FFB3] hover:text-[#00FFB3] text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center text-[#EAF2FF]/70"
-                    >
-                      SYNTHESIZE
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* MIDDLE OVERLAY (Active reaction notifications/simulations) */}
         {isObsEntered && activeReaction && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 z-30 select-none">
-            {reactionStage === 'mixing' ? (
-              <div className="px-6 py-4 bg-[#0B1020]/90 border border-[#D500F9]/40 rounded-sm shadow-[0_0_30px_rgba(213,0,249,0.3)] backdrop-blur-lg flex flex-col items-center text-center max-w-sm pointer-events-auto">
-                <Activity className="w-8 h-8 text-[#D500F9] animate-bounce mb-2" />
-                <div className="text-xs font-black tracking-widest text-[#D500F9] uppercase">COLLISION SEQUENCE ACTIVE</div>
-                <div className="text-[28px] font-black font-mono text-[#EAF2FF] my-2">{reactionCountDown}s</div>
-                <p className="text-[11px] text-[#EAF2FF]/70">
-                  Synthesizing <span className="text-[#00FFB3] font-bold">{activeReaction.productFormula}</span>. Aligning orbitals and transferring valence energy particles.
+            {reactionStage === 'idle' ? (
+              <div className="px-6 py-4 bg-[#0B1020]/95 border border-[#FF9100]/50 rounded-sm shadow-[0_0_30px_rgba(255,145,0,0.25)] backdrop-blur-lg flex flex-col items-center text-center max-w-sm pointer-events-auto animate-fade-in">
+                <div className="w-10 h-10 border border-dashed border-[#FF9100]/60 rounded-full flex items-center justify-center animate-spin mb-2" style={{ animationDuration: '6s' }}>
+                  <Flame className="w-5 h-5 text-[#FF9100]" />
+                </div>
+                <div className="text-xs font-black tracking-widest text-[#FF9100] uppercase">REACTOR TETHER ACTIVE</div>
+                <p className="text-[10.5px] text-[#EAF2FF]/80 leading-relaxed mt-2">
+                  Atomic cores spawned in 3D electromagnetic grid. <span className="text-[#00FFB3] font-bold">Drag either reactant</span> across space into proximity to synthesize <span className="text-[#00E5FF] font-bold">{activeReaction.productFormula}</span>.
                 </p>
+                <button
+                  onClick={handleCancelReaction}
+                  className="mt-3.5 px-4 py-1.5 bg-red-950/20 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-widest text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer"
+                >
+                  DISMANTLE BEAMS
+                </button>
               </div>
             ) : reactionStage === 'stable' ? (
-              <div className="px-6 py-5 bg-[#0B1020]/90 border border-[#00FFB3]/40 rounded-sm shadow-[0_0_30px_rgba(0,255,179,0.3)] backdrop-blur-lg flex flex-col items-center text-center max-w-sm pointer-events-auto">
+              <div className="px-6 py-5 bg-[#0B1020]/95 border border-[#00FFB3]/50 rounded-sm shadow-[0_0_35px_rgba(0,255,179,0.3)] backdrop-blur-lg flex flex-col items-center text-center max-w-sm pointer-events-auto animate-fade-in">
                 <CheckCircle2 className="w-10 h-10 text-[#00FFB3] mb-2 animate-bounce" />
-                <div className="text-[10px] font-mono tracking-widest text-[#00FFB3] uppercase">INTEGRITY ENVELOPE SECURED</div>
-                <div className="text-lg font-bold text-[#EAF2FF] tracking-wider my-1 uppercase">{activeReaction.productName}</div>
-                <p className="text-[11px] text-[#EAF2FF]/70 leading-relaxed font-light mb-3">
+                <div className="text-[9px] font-mono tracking-widest text-[#00FFB3] uppercase font-black">SYNTHESIS ENVELOPE COMPLETED</div>
+                <div className="text-lg font-extrabold text-[#EAF2FF] tracking-wider my-1 uppercase">{activeReaction.productName}</div>
+                <div className="text-xs font-black font-mono text-[#00E5FF] px-2 py-0.5 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-sm mb-2">{activeReaction.productFormula}</div>
+                <p className="text-[10.5px] text-[#EAF2FF]/75 leading-relaxed font-light mb-4">
                   {activeReaction.description}
                 </p>
                 
                 <button
                   onClick={handleCancelReaction}
-                  className="px-6 py-1.5 bg-[#070B14] border border-[#00E5FF] hover:bg-[#00E5FF]/15 text-[10px] uppercase font-bold tracking-widest text-[#00E5FF] transition-all cursor-pointer rounded-sm"
+                  className="px-6 py-2 bg-[#070B14] border border-[#00FFB3] hover:bg-[#00FFB3]/15 text-[10px] uppercase font-mono font-bold tracking-widest text-[#00FFB3] transition-all cursor-pointer rounded-sm shadow-[0_0_10px_rgba(0,255,179,0.15)]"
                 >
-                  RESET LAB FIELD
+                  EJECT & REBOOT COILS
                 </button>
               </div>
             ) : null}
@@ -639,45 +930,114 @@ export default function HolographicUI({
       {/* =======================================================
           BOTTOM HOVER CARD AND SYSTEM INDICATORS
           ======================================================= */}
-      <footer className="w-full flex justify-between items-end select-none pointer-events-auto z-10">
+      {/* =======================================================
+          BOTTOM HOVER CARD AND SYSTEM INDICATORS
+          ======================================================= */}
+      <footer className="w-full flex flex-col gap-4 pointer-events-auto z-40 select-none">
         
-        {/* HOVER STATUS FIELD */}
-        {isObsEntered && !selectedElement && (
-          <div id="orb-hud-details-preview" className="px-4 py-3 bg-[#0B1020]/80 backdrop-blur-md border border-white/10 rounded-sm text-left max-w-sm md:max-w-md h-18 font-mono flex items-center justify-between gap-4">
-            {hoveredElement ? (
-              <div className="flex items-center gap-3 animate-fade-in">
-                <div className="w-10 h-10 border border-[#00E5FF]/40 bg-[#070B14] flex items-center justify-center text-md font-black italic select-none" style={{ borderColor: getCatMeta(hoveredElement.category).hex, color: getCatMeta(hoveredElement.category).hex }}>
-                  {hoveredElement.symbol}
-                </div>
-                <div>
-                  <div className="text-xs uppercase font-extrabold text-[#EAF2FF]">{hoveredElement.name} ({hoveredElement.number})</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#EAF2FF]/50 leading-tight">
-                    {getCatMeta(hoveredElement.category).label} | CONFIG: {hoveredElement.electronConfig}
-                  </div>
-                </div>
+        {/* TIMELINE SLIDER SCALED OVERLAY */}
+        {isObsEntered && appMode === 'timeline' && (
+          <div id="timeline-hud-scrubber" className="w-full max-w-4xl mx-auto px-5 py-4 bg-[#0B1020]/95 backdrop-blur-md border border-[#00FFB3]/30 rounded-md text-left font-mono flex flex-col gap-3 shadow-[0_0_30px_rgba(0,255,179,0.15)] animate-fade-in">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#00FFB3]" />
+                <span className="uppercase text-[#EAF2FF]/50 text-[10px] tracking-widest">CHRONO SEEKER CONSOLE:</span>
+                <span className="text-[#00FFB3] font-bold text-xs tracking-wider">{timelineYear < 0 ? `${Math.abs(timelineYear)} BC` : `${timelineYear} AD`}</span>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-[#EAF2FF]/30">
-                <Compass className="w-4.5 h-4.5 animate-pulse text-[#00E5FF]" />
-                <span className="text-[10px] uppercase tracking-widest">HOVER COSMIC ELEMENTS TO SCAN MOLECULAR STATE...</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsPlayingTimeline(!isPlayingTimeline)}
+                  className={`px-3 py-1 text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 rounded-sm cursor-pointer ${
+                    isPlayingTimeline
+                      ? 'bg-amber-500/20 border border-amber-400 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                      : 'bg-[#00FFB3]/10 border border-[#00FFB3]/35 text-[#00FFB3] hover:bg-[#00FFB3]/20'
+                  }`}
+                >
+                  {isPlayingTimeline ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                  <span>{isPlayingTimeline ? "PAUSE DRIFT" : "CHRONO DRIFT"}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onChangeTimelineYear(-5000);
+                    setIsPlayingTimeline(false);
+                  }}
+                  className="px-2 py-1 bg-white/5 border border-white/10 hover:border-white/30 text-[9px] font-bold uppercase rounded-sm cursor-pointer text-[#EAF2FF]"
+                  title="Reset timeline to deep antiquity"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
               </div>
-            )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="text-[9px] text-[#EAF2FF]/30 select-none whitespace-nowrap">ANCIENT BC</span>
+              <div className="flex-1 relative flex items-center">
+                <input
+                  type="range"
+                  min="-5000"
+                  max="2026"
+                  step="5"
+                  value={timelineYear}
+                  onChange={(e) => {
+                    onChangeTimelineYear(parseInt(e.target.value));
+                    setIsPlayingTimeline(false);
+                  }}
+                  className="w-full h-1.5 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
+                />
+              </div>
+              <span className="text-[9px] text-[#00FFB3] font-extrabold whitespace-nowrap">2026 AD (MODERN)</span>
+            </div>
+            
+            <div className="flex justify-between text-[7px] text-[#EAF2FF]/30 select-none uppercase tracking-widest font-bold">
+              <span>-5000 BC (Antiquity metals)</span>
+              <span>1700 (Alchemy age)</span>
+              <span>1800 (Gaseous separation)</span>
+              <span>1900 (Mendeleev Matrix)</span>
+              <span>1950 (Superheavy labs)</span>
+              <span>2026 AD (Modern physics)</span>
+            </div>
           </div>
         )}
 
-        {/* Selected element back indicator */}
-        {isObsEntered && selectedElement && (
-          <button
-            onClick={() => onSelectElement(null)}
-            className="px-4 py-2 bg-[#0B1020]/70 border border-white/15 hover:border-[#00E5FF] hover:text-[#00E5FF] font-mono text-[10px] tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer"
-          >
-            ← RETREAT TO COSMIC GRIDMAP
-          </button>
-        )}
+        <div className="w-full flex justify-between items-end select-none">
+          {/* HOVER STATUS FIELD */}
+          {!selectedElement && (
+            <div id="orb-hud-details-preview" className="px-4 py-3 bg-[#0B1020]/80 backdrop-blur-md border border-white/10 rounded-sm text-left max-w-sm md:max-w-md h-18 font-mono flex items-center justify-between gap-4">
+              {hoveredElement ? (
+                <div className="flex items-center gap-3 animate-fade-in">
+                  <div className="w-10 h-10 border border-[#00E5FF]/40 bg-[#070B14] flex items-center justify-center text-md font-black italic select-none" style={{ borderColor: getCatMeta(hoveredElement.category).hex, color: getCatMeta(hoveredElement.category).hex }}>
+                    {hoveredElement.symbol}
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase font-extrabold text-[#EAF2FF]">{hoveredElement.name} ({hoveredElement.number})</div>
+                    <div className="text-[9px] uppercase tracking-wider text-[#EAF2FF]/50 leading-tight">
+                      {getCatMeta(hoveredElement.category).label} | CONFIG: {hoveredElement.electronConfig}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-[#EAF2FF]/30">
+                  <Compass className="w-4.5 h-4.5 animate-pulse text-[#00E5FF]" />
+                  <span className="text-[10px] uppercase tracking-widest">HOVER COSMIC ELEMENTS TO SCAN MOLECULAR STATE...</span>
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* System Coordinates */}
-        <div className="hidden sm:block text-[9px] font-mono text-[#EAF2FF]/35 text-right tracking-widest lowercase">
-          sys.status(running: true) // frame_hz: 60.0
+          {/* Selected element back indicator */}
+          {selectedElement && (
+            <button
+              onClick={() => onSelectElement(null)}
+              className="px-4 py-2 bg-[#0B1020]/70 border border-white/15 hover:border-[#00E5FF] hover:text-[#00E5FF] font-mono text-[10px] tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer"
+            >
+              ← RETREAT TO COSMIC GRIDMAP
+            </button>
+          )}
+
+          {/* System Coordinates */}
+          <div className="hidden sm:block text-[9px] font-mono text-[#EAF2FF]/35 text-right tracking-widest lowercase">
+            sys.status(running: true) // frame_hz: {currentFps}.0
+          </div>
         </div>
       </footer>
     </div>

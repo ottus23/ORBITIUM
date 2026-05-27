@@ -13,6 +13,10 @@ export default function App() {
   const [hoveredElement, setHoveredElement] = useState<ChemicalElement | null>(null);
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('grid');
   
+  // Custom Application Modes
+  const [appMode, setAppMode] = useState<'explorer' | 'bond_lab' | 'timeline'>('explorer');
+  const [timelineYear, setTimelineYear] = useState<number>(2026);
+  
   // Wavefield Modulations Settings
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1.2);
   const [reactiveIntensity, setReactiveIntensity] = useState<number>(1.0);
@@ -44,6 +48,8 @@ export default function App() {
         onSelectElement={setSelectedElement}
         onHoverElement={setHoveredElement}
         layoutMode={layoutMode}
+        appMode={appMode}
+        timelineYear={timelineYear}
         simulationSpeed={simulationSpeed}
         reactiveIntensity={reactiveIntensity}
         isObsEntered={isObsEntered}
@@ -60,6 +66,19 @@ export default function App() {
         onSelectElement={setSelectedElement}
         layoutMode={layoutMode}
         onChangeLayoutMode={setLayoutMode}
+        appMode={appMode}
+        onChangeAppMode={(mode) => {
+          setAppMode(mode);
+          // If switching model, perform cleanups
+          if (mode !== 'explorer') {
+            setSelectedElement(null);
+          }
+          if (mode !== 'bond_lab') {
+            setActiveReaction(null);
+          }
+        }}
+        timelineYear={timelineYear}
+        onChangeTimelineYear={setTimelineYear}
         simulationSpeed={simulationSpeed}
         onSetSimulationSpeed={setSimulationSpeed}
         reactiveIntensity={reactiveIntensity}

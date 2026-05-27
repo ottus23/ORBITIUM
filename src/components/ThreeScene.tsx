@@ -15,6 +15,8 @@ interface ThreeSceneProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   onHoverElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
+  appMode: 'explorer' | 'bond_lab' | 'timeline';
+  timelineYear: number;
   simulationSpeed: number;
   reactiveIntensity: number;
   isObsEntered: boolean;
@@ -30,6 +32,8 @@ export default function ThreeScene({
   onSelectElement,
   onHoverElement,
   layoutMode,
+  appMode,
+  timelineYear,
   simulationSpeed,
   reactiveIntensity,
   isObsEntered,
@@ -45,6 +49,8 @@ export default function ThreeScene({
     selectedElement,
     hoveredElement,
     layoutMode,
+    appMode,
+    timelineYear,
     simulationSpeed,
     reactiveIntensity,
     isObsEntered,
@@ -59,6 +65,8 @@ export default function ThreeScene({
       selectedElement,
       hoveredElement,
       layoutMode,
+      appMode,
+      timelineYear,
       simulationSpeed,
       reactiveIntensity,
       isObsEntered,
@@ -71,6 +79,8 @@ export default function ThreeScene({
     selectedElement,
     hoveredElement,
     layoutMode,
+    appMode,
+    timelineYear,
     simulationSpeed,
     reactiveIntensity,
     isObsEntered,
@@ -500,6 +510,187 @@ export default function ThreeScene({
     let currentRotX = 0;
     let currentRotY = 0;
 
+    // Reactant drag controls & status
+    let reactantA: THREE.Group | null = null;
+    let reactantB: THREE.Group | null = null;
+    let draggedReactant: THREE.Group | null = null;
+    let activeBondModeReaction: ReactionConfig | null = null;
+
+    // Fusion visual assets
+    let fusionShockwave: THREE.Mesh | null = null;
+    let sparkPoints: THREE.Points | null = null;
+    let sparkSpeeds: Float32Array | null = null;
+    let sparkDirections: Float32Array | null = null;
+    let isReactionStable = false;
+
+    const createReactantAtom = (symbol: string, colorHex: string) => {
+      const group = new THREE.Group();
+      
+      // Core glowing sphere representing nucleus
+      const coreGeom = new THREE.SphereGeometry(1.4, 16, 16);
+      const coreMat = new THREE.MeshPhongMaterial({
+        color: new THREE.Color(colorHex),
+        emissive: new THREE.Color(colorHex).multiplyScalar(0.45),
+        transparent: true,
+        opacity: 0.9,
+        shininess: 70
+      });
+      const coreMesh = new THREE.Mesh(coreGeom, coreMat);
+      group.add(coreMesh);
+
+      // Ring structure
+      const ringGeom = new THREE.RingGeometry(2.1, 2.18, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorHex),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.35
+      });
+      const ring = new THREE.Mesh(ringGeom, ringMat);
+      ring.rotation.x = Math.PI / 2.5; // stylish tilt
+      group.add(ring);
+
+      // Outer electron whizzer ball
+      const elGeom = new THREE.SphereGeometry(0.24, 8, 8);
+      const elMat = new THREE.MeshBasicMaterial({ color: '#EAF2FF' });
+      const electron = new THREE.Mesh(elGeom, elMat);
+      group.add(electron);
+
+      // Element billboard flat text symbol Card
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, 128, 128);
+        ctx.fillStyle = '#050816EE';
+        ctx.beginPath();
+        ctx.arc(64, 64, 52, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = colorHex;
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        ctx.font = 'bold 50px monospace';
+        ctx.fillStyle = '#EAF2FF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(symbol, 64, 64);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      const symbolMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.0, 2.0),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+      );
+      symbolMesh.position.z = 1.6;
+      group.add(symbolMesh);
+
+      group.userData = {
+        symbol,
+        colorHex,
+        electron,
+        ring,
+        symbolMesh
+      };
+
+      return group;
+    };
+
+    const spawnReactants = (re: ReactionConfig) => {
+      // Clean up previous reactants if they exist
+      if (reactantA) scene.remove(reactantA);
+      if (reactantB) scene.remove(reactantB);
+      if (fusionShockwave) scene.remove(fusionShockwave);
+      if (sparkPoints) scene.remove(sparkPoints);
+
+      isReactionStable = false;
+
+      // Find color configurations
+      const colorA = CATEGORY_COLORS[ELEMENTS_DATA.find(e => e.symbol === re.reactants[0])?.category || 'text']?.hex || '#00E5FF';
+      const colorB = CATEGORY_COLORS[ELEMENTS_DATA.find(e => e.symbol === re.reactants[1])?.category || 'text']?.hex || '#D500F9';
+
+      reactantA = createReactantAtom(re.reactants[0], colorA);
+      reactantB = createReactantAtom(re.reactants[1], colorB);
+
+      // Set initial spaced positions (Left & Right)
+      reactantA.position.set(-8.5, 0, 0);
+      reactantB.position.set(8.5, 0, 0);
+
+      scene.add(reactantA);
+      scene.add(reactantB);
+
+      // Create a gorgeous fusion shockwave sphere (initially scale 0 and invisible)
+      const shockwaveGeom = new THREE.SphereGeometry(4.0, 32, 32);
+      const shockwaveMat = new THREE.MeshBasicMaterial({
+        color: '#FFFFFF',
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      fusionShockwave = new THREE.Mesh(shockwaveGeom, shockwaveMat);
+      scene.add(fusionShockwave);
+
+      // Create explosive reaction sparks/particles
+      const sparkCount = 120;
+      const sparkGeom = new THREE.BufferGeometry();
+      const sparkPosArray = new Float32Array(sparkCount * 3);
+      sparkSpeeds = new Float32Array(sparkCount);
+      sparkDirections = new Float32Array(sparkCount * 3);
+
+      for (let s = 0; s < sparkCount; s++) {
+        sparkPosArray[s * 3] = 0;
+        sparkPosArray[s * 3 + 1] = 0;
+        sparkPosArray[s * 3 + 2] = 0;
+
+        sparkSpeeds[s] = 4.0 + Math.random() * 12.0;
+
+        // Random vector output
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        sparkDirections[s * 3] = Math.sin(phi) * Math.cos(theta);
+        sparkDirections[s * 3 + 1] = Math.cos(phi);
+        sparkDirections[s * 3 + 2] = Math.sin(phi) * Math.sin(theta);
+      }
+
+      sparkGeom.setAttribute('position', new THREE.BufferAttribute(sparkPosArray, 3));
+      const sparkMat = new THREE.PointsMaterial({
+        size: 0.42,
+        color: new THREE.Color(colorA).lerp(new THREE.Color(colorB), 0.5),
+        map: createCircularParticleTexture(),
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      sparkPoints = new THREE.Points(sparkGeom, sparkMat);
+      scene.add(sparkPoints);
+
+      activeBondModeReaction = re;
+
+      // Dispatch initial distance
+      window.dispatchEvent(new CustomEvent('tether-distance', { detail: { distance: 17.0 } }));
+      window.dispatchEvent(new CustomEvent('reaction-stage', { detail: { stage: 'idle' } }));
+    };
+
+    const handleResetReactor = () => {
+      if (reactantA) reactantA.position.set(-8.5, 0, 0);
+      if (reactantB) reactantB.position.set(8.5, 0, 0);
+      if (reactantA) reactantA.visible = true;
+      if (reactantB) reactantB.visible = true;
+      isReactionStable = false;
+      if (fusionShockwave) {
+        fusionShockwave.visible = false;
+        fusionShockwave.scale.set(0.01, 0.01, 0.01);
+      }
+      if (sparkPoints) {
+        sparkPoints.visible = false;
+      }
+      // Notify back to UI
+      window.dispatchEvent(new CustomEvent('reaction-stage', { detail: { stage: 'idle' } }));
+    };
+    window.addEventListener('reset-reactor', handleResetReactor);
+
     // Interactive Camera Parallax & Elastic buoyancy
     let currentParallaxX = 0;
     let currentParallaxY = 0;
@@ -752,6 +943,31 @@ export default function ThreeScene({
 
     // --- EVENT HANDLERS ---
     const handleMouseDown = (e: MouseEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      mouse2D.set(x, y);
+
+      const currentProps = propsRef.current;
+      if (currentProps.appMode === 'bond_lab' && reactantA && reactantB && !isReactionStable) {
+        raycaster.setFromCamera(mouse2D, camera);
+        const intersects = raycaster.intersectObjects([reactantA, reactantB], true);
+        if (intersects.length > 0) {
+          isDragging = true;
+          let ancestor: THREE.Object3D | null = intersects[0].object;
+          while (ancestor && ancestor !== reactantA && ancestor !== reactantB) {
+            ancestor = ancestor.parent;
+          }
+          if (ancestor === reactantA || ancestor === reactantB) {
+            draggedReactant = ancestor as THREE.Group;
+            import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+              OrbitiumAudio.triggerReactionSynth(activeBondModeReaction);
+            });
+            return;
+          }
+        }
+      }
+
       isDragging = true;
       previousMouseX = e.clientX;
       previousMouseY = e.clientY;
@@ -766,7 +982,22 @@ export default function ThreeScene({
       lastMouseMoveTime = clock.getElapsedTime();
       mouseActive = true;
 
+      const currentProps = propsRef.current;
       if (isDragging) {
+        if (currentProps.appMode === 'bond_lab' && draggedReactant && !isReactionStable) {
+          raycaster.setFromCamera(mouse2D, camera);
+          const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+          const projectPoint = new THREE.Vector3();
+          raycaster.ray.intersectPlane(planeZ, projectPoint);
+
+          draggedReactant.position.set(
+            Math.max(-20, Math.min(20, projectPoint.x)),
+            Math.max(-12, Math.min(12, projectPoint.y)),
+            0
+          );
+          return;
+        }
+
         // Drag rotation camera control
         const deltaX = e.clientX - previousMouseX;
         const deltaY = e.clientY - previousMouseY;
@@ -787,6 +1018,7 @@ export default function ThreeScene({
 
     const handleMouseUp = () => {
       isDragging = false;
+      draggedReactant = null;
     };
 
     const updateMouseFromTouch = (touch: Touch) => {
@@ -800,15 +1032,51 @@ export default function ThreeScene({
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
+        updateMouseFromTouch(e.touches[0]);
+        const currentProps = propsRef.current;
+        if (currentProps.appMode === 'bond_lab' && reactantA && reactantB && !isReactionStable) {
+          raycaster.setFromCamera(mouse2D, camera);
+          const intersects = raycaster.intersectObjects([reactantA, reactantB], true);
+          if (intersects.length > 0) {
+            isDragging = true;
+            let ancestor: THREE.Object3D | null = intersects[0].object;
+            while (ancestor && ancestor !== reactantA && ancestor !== reactantB) {
+              ancestor = ancestor.parent;
+            }
+            if (ancestor === reactantA || ancestor === reactantB) {
+              draggedReactant = ancestor as THREE.Group;
+              import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                OrbitiumAudio.triggerReactionSynth(activeBondModeReaction);
+              });
+              return;
+            }
+          }
+        }
+
         isDragging = true;
         previousMouseX = e.touches[0].clientX;
         previousMouseY = e.touches[0].clientY;
-        updateMouseFromTouch(e.touches[0]);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 1 && isDragging) {
+        updateMouseFromTouch(e.touches[0]);
+        const currentProps = propsRef.current;
+        if (currentProps.appMode === 'bond_lab' && draggedReactant && !isReactionStable) {
+          raycaster.setFromCamera(mouse2D, camera);
+          const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+          const projectPoint = new THREE.Vector3();
+          raycaster.ray.intersectPlane(planeZ, projectPoint);
+
+          draggedReactant.position.set(
+            Math.max(-20, Math.min(20, projectPoint.x)),
+            Math.max(-12, Math.min(12, projectPoint.y)),
+            0
+          );
+          return;
+        }
+
         const deltaX = e.touches[0].clientX - previousMouseX;
         const deltaY = e.touches[0].clientY - previousMouseY;
 
@@ -818,12 +1086,12 @@ export default function ThreeScene({
 
         previousMouseX = e.touches[0].clientX;
         previousMouseY = e.touches[0].clientY;
-        updateMouseFromTouch(e.touches[0]);
       }
     };
 
     const handleTouchEnd = () => {
       isDragging = false;
+      draggedReactant = null;
     };
 
     // Element Click Selection Raycast
@@ -1159,8 +1427,9 @@ export default function ThreeScene({
         const targetQ = new THREE.Quaternion().setFromEuler(ci.targetRotation);
         ci.mesh.quaternion.slerp(targetQ, layoutLerpFactor);
 
-        // Hover forward thrust inside grid matrices
-        const isCurrentlyHovered = hoveredMesh && (hoveredMesh === ci.mesh || hoveredMesh.parent === ci.mesh);
+        // Hover forward thrust inside grid matrices based on discovery status
+        const isDiscovered = currentProps.appMode !== 'timeline' || ci.element.year <= currentProps.timelineYear;
+        const isCurrentlyHovered = isDiscovered && hoveredMesh && (hoveredMesh === ci.mesh || hoveredMesh.parent === ci.mesh);
         const outlineMat = ci.glowOutline.material as THREE.LineBasicMaterial;
         
         if (isCurrentlyHovered && !currentProps.selectedElement && currentProps.isObsEntered) {
@@ -1170,27 +1439,161 @@ export default function ThreeScene({
           outlineMat.opacity = 0.95 + Math.sin(elapsed * 9) * 0.05;
           ci.glowOutline.scale.set(1.12, 1.12, 1.12);
         } else {
-          outlineMat.opacity = 0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08;
+          outlineMat.opacity = isDiscovered ? (0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08) : 0.01;
           ci.glowOutline.scale.set(1.05, 1.05, 1.05);
 
-          if (ci.element.category === 'actinide') {
+          if (isDiscovered && ci.element.category === 'actinide') {
             const flicker = Math.random() > 0.88 ? 0.9 : 0.35;
             outlineMat.opacity = flicker;
           }
         }
 
-        // Apply general grid fading & dynamic frustum/visibility culling for non-active elements
-        if (currentProps.selectedElement) {
+        // Apply general grid fading, hide during Bond Lab, and fade undiscovered elements
+        if (currentProps.appMode === 'bond_lab') {
+          ci.material.opacity += (0.01 - ci.material.opacity) * 0.2;
+          ci.glowOutline.visible = false;
+          ci.mesh.visible = ci.material.opacity > 0.02;
+        } else if (currentProps.selectedElement) {
           const isSelected = ci.element.number === currentProps.selectedElement.number;
           ci.material.opacity += ((isSelected ? 1.0 : 0.0) - ci.material.opacity) * 0.15;
           ci.glowOutline.visible = isSelected;
           ci.mesh.visible = ci.material.opacity > 0.02;
         } else {
-          ci.mesh.visible = true;
-          ci.material.opacity += (0.9 - ci.material.opacity) * 0.15;
-          ci.glowOutline.visible = true;
+          if (!isDiscovered) {
+            ci.material.opacity += (0.04 - ci.material.opacity) * 0.2;
+            ci.glowOutline.visible = false;
+            ci.mesh.visible = ci.material.opacity > 0.01;
+          } else {
+            ci.mesh.visible = true;
+            ci.material.opacity += (0.9 - ci.material.opacity) * 0.15;
+            ci.glowOutline.visible = true;
+          }
         }
       });
+
+      // 3B. Reactant & Fusion collision loop in Bond Lab mode
+      if (currentProps.appMode !== 'bond_lab') {
+        if (reactantA) reactantA.visible = false;
+        if (reactantB) reactantB.visible = false;
+        if (fusionShockwave) fusionShockwave.visible = false;
+        if (sparkPoints) sparkPoints.visible = false;
+      } else {
+        // Safe check to spawn reactants if empty or config changed
+        if (currentProps.activeReaction && activeBondModeReaction?.productFormula !== currentProps.activeReaction.productFormula) {
+          spawnReactants(currentProps.activeReaction);
+        }
+
+        if (reactantA && reactantB) {
+          reactantA.visible = !isReactionStable;
+          reactantB.visible = !isReactionStable;
+
+          // Spin orbits
+          const ringA = reactantA.userData.ring as THREE.Mesh;
+          const ringB = reactantB.userData.ring as THREE.Mesh;
+          if (ringA) ringA.rotation.z += 0.012 * simMultiplier;
+          if (ringB) ringB.rotation.z += 0.015 * simMultiplier;
+
+          // Move electrons on orbits
+          const electronA = reactantA.userData.electron as THREE.Mesh;
+          const electronB = reactantB.userData.electron as THREE.Mesh;
+          const angleA = elapsed * 3.5 * simMultiplier;
+          const angleB = -elapsed * 4.0 * simMultiplier;
+          if (electronA) {
+            electronA.position.set(Math.cos(angleA) * 2.1, Math.sin(angleA) * 2.1, 0);
+            electronA.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2.5);
+          }
+          if (electronB) {
+            electronB.position.set(Math.cos(angleB) * 2.1, Math.sin(angleB) * 2.1, 0);
+            electronB.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2.5);
+          }
+
+          // Face element indicators towards center
+          const billboardA = reactantA.userData.symbolMesh as THREE.Mesh;
+          const billboardB = reactantB.userData.symbolMesh as THREE.Mesh;
+          if (billboardA) billboardA.lookAt(camera.position);
+          if (billboardB) billboardB.lookAt(camera.position);
+
+          // Proximity collision detection
+          if (!isReactionStable) {
+            const dist = reactantA.position.distanceTo(reactantB.position);
+            
+            if (frameCount % 3 === 0) {
+              window.dispatchEvent(new CustomEvent('tether-distance', { detail: { distance: dist } }));
+            }
+
+            // Sync with procedural audio synthesizer frequency
+            import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+              OrbitiumAudio.updateTetherProximity(dist);
+            });
+
+            // GATED COLLISION METRIC
+            if (dist < 2.3) {
+              isReactionStable = true;
+              reactantA.visible = false;
+              reactantB.visible = false;
+
+              cameraTargetX = 0;
+              cameraTargetY = 0;
+
+              // Center reaction explosion shockwave
+              const midPoint = new THREE.Vector3().addVectors(reactantA.position, reactantB.position).multiplyScalar(0.5);
+              if (fusionShockwave) {
+                fusionShockwave.position.copy(midPoint);
+                fusionShockwave.visible = true;
+                (fusionShockwave.material as THREE.MeshBasicMaterial).opacity = 1.0;
+                fusionShockwave.scale.set(0.1, 0.1, 0.1);
+              }
+
+              if (sparkPoints) {
+                sparkPoints.position.copy(midPoint);
+                sparkPoints.visible = true;
+                (sparkPoints.material as THREE.PointsMaterial).opacity = 1.0;
+                const sparAttr = sparkPoints.geometry.attributes.position as THREE.BufferAttribute;
+                const sArr = sparAttr.array as Float32Array;
+                for (let si = 0; si < sArr.length; si++) sArr[si] = 0;
+                sparAttr.needsUpdate = true;
+              }
+
+              // Event dispatch to reset UI overlays
+              window.dispatchEvent(new CustomEvent('reaction-stage', { detail: { stage: 'stable' } }));
+
+              // Play explosive collision sound from Web Audio synthesizer
+              import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                OrbitiumAudio.triggerReactionFusingRelease();
+              });
+            }
+          }
+        }
+      }
+
+      // 3C. Sparks & shockwaves particle animation logic
+      if (fusionShockwave && fusionShockwave.visible) {
+        fusionShockwave.scale.addScalar(15.0 * delta * simMultiplier);
+        (fusionShockwave.material as THREE.MeshBasicMaterial).opacity -= 1.8 * delta * simMultiplier;
+        if ((fusionShockwave.material as THREE.MeshBasicMaterial).opacity <= 0) {
+          fusionShockwave.visible = false;
+        }
+      }
+
+      if (sparkPoints && sparkPoints.visible) {
+        const sparAttr = sparkPoints.geometry.attributes.position as THREE.BufferAttribute;
+        const sArr = sparAttr.array as Float32Array;
+        for (let si = 0; si < sArr.length / 3; si++) {
+          const speed = sparkSpeeds ? sparkSpeeds[si] : 5.0;
+          const dirX = sparkDirections ? sparkDirections[si * 3] : 0;
+          const dirY = sparkDirections ? sparkDirections[si * 3 + 1] : 1;
+          const dirZ = sparkDirections ? sparkDirections[si * 3 + 2] : 0;
+
+          sArr[si * 3] += dirX * speed * delta * simMultiplier;
+          sArr[si * 3 + 1] += dirY * speed * delta * simMultiplier;
+          sArr[si * 3 + 2] += dirZ * speed * delta * simMultiplier;
+        }
+        sparAttr.needsUpdate = true;
+        (sparkPoints.material as THREE.PointsMaterial).opacity -= 1.4 * delta * simMultiplier;
+        if ((sparkPoints.material as THREE.PointsMaterial).opacity <= 0) {
+          sparkPoints.visible = false;
+        }
+      }
 
       // Report current hovered element upward to standard React state
       if (propsRef.current.isObsEntered) {
