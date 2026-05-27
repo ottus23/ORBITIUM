@@ -1432,21 +1432,39 @@ export default function ThreeScene({
         const isCurrentlyHovered = isDiscovered && hoveredMesh && (hoveredMesh === ci.mesh || hoveredMesh.parent === ci.mesh);
         const outlineMat = ci.glowOutline.material as THREE.LineBasicMaterial;
         
+        let targetScale = 1.05;
+        let targetOpacity = isDiscovered ? (0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08) : 0.01;
+        let emissiveIntensity = 1.0;
+
         if (isCurrentlyHovered && !currentProps.selectedElement && currentProps.isObsEntered) {
           currentHoveredElement = ci.element;
           
           ci.mesh.translateZ(0.65);
-          outlineMat.opacity = 0.95 + Math.sin(elapsed * 9) * 0.05;
-          ci.glowOutline.scale.set(1.12, 1.12, 1.12);
+          emissiveIntensity = 1.6 + 0.45 * Math.sin(elapsed * 12);
+          targetScale = 1.15 + 0.02 * Math.sin(elapsed * 12);
+          targetOpacity = 0.95 + Math.sin(elapsed * 12) * 0.05;
         } else {
-          outlineMat.opacity = isDiscovered ? (0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08) : 0.01;
-          ci.glowOutline.scale.set(1.05, 1.05, 1.05);
+          targetScale = 1.05;
+          targetOpacity = isDiscovered ? (0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08) : 0.01;
+          emissiveIntensity = 1.0;
 
           if (isDiscovered && ci.element.category === 'actinide') {
             const flicker = Math.random() > 0.88 ? 0.9 : 0.35;
-            outlineMat.opacity = flicker;
+            targetOpacity = flicker;
           }
         }
+
+        // Apply smooth scale transition using frame-rate independent elements lerping
+        const scaleLerpFactor = Math.min(1.0, 12.0 * delta);
+        ci.glowOutline.scale.x += (targetScale - ci.glowOutline.scale.x) * scaleLerpFactor;
+        ci.glowOutline.scale.y += (targetScale - ci.glowOutline.scale.y) * scaleLerpFactor;
+        ci.glowOutline.scale.z += (targetScale - ci.glowOutline.scale.z) * scaleLerpFactor;
+
+        // Apply animated emissive glow intensity color multiplier
+        const categoryConfig = CATEGORY_COLORS[ci.element.category] || { hex: '#00E5FF' };
+        const baseColor = new THREE.Color(categoryConfig.hex);
+        outlineMat.color.copy(baseColor).multiplyScalar(emissiveIntensity);
+        outlineMat.opacity += (targetOpacity - outlineMat.opacity) * scaleLerpFactor;
 
         // Apply general grid fading, hide during Bond Lab, and fade undiscovered elements
         if (currentProps.appMode === 'bond_lab') {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Atom, 
   Layers, 
@@ -82,6 +82,49 @@ export default function HolographicUI({
   const [isMuted, setIsMuted] = useState(false);
   const [isPlayingTimeline, setIsPlayingTimeline] = useState(false);
   const [liveDistance, setLiveDistance] = useState<number | null>(null);
+
+  // New ref for element-detail-sidebar
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic cybernetic pulsing requestAnimationFrame cycle for the sidebar border
+  useEffect(() => {
+    if (!selectedElement) return;
+
+    let animId: number;
+    const startTime = performance.now();
+
+    const animate = (time: number) => {
+      const elapsed = (time - startTime) / 1000;
+      // Cycles border alpha from 0.15 to 0.45 utilizing a smooth sine frequency
+      const sinVal = Math.sin(elapsed * 4.5);
+      const alpha = 0.15 + ((sinVal + 1) / 2) * 0.3;
+
+      if (sidebarRef.current) {
+        const catHex = getCatMeta(selectedElement.category).hex;
+        const cleanHex = catHex.replace('#', '');
+        let r = 0, g = 0, b = 0;
+        if (cleanHex.length === 3) {
+          r = parseInt(cleanHex[0] + cleanHex[0], 16);
+          g = parseInt(cleanHex[1] + cleanHex[1], 16);
+          b = parseInt(cleanHex[2] + cleanHex[2], 16);
+        } else if (cleanHex.length === 6) {
+          r = parseInt(cleanHex.substring(0, 2), 16);
+          g = parseInt(cleanHex.substring(2, 4), 16);
+          b = parseInt(cleanHex.substring(4, 6), 16);
+        }
+        sidebarRef.current.style.borderColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        sidebarRef.current.style.boxShadow = `0 0 25px rgba(${r}, ${g}, ${b}, ${alpha * 0.35})`;
+      }
+
+      animId = requestAnimationFrame(animate);
+    };
+
+    animId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [selectedElement]);
 
   // Reset tab when element changes
   useEffect(() => {
@@ -658,7 +701,7 @@ export default function HolographicUI({
 
         {/* RIGHT HUD: SELECTED ELEMENT DETAILS */}
         {isObsEntered && selectedElement && (
-          <div id="element-detail-sidebar" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-between shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)]">
+          <div ref={sidebarRef} id="element-detail-sidebar" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-between shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)]">
             {/* Custom cybernetic overlay grids for detailed visual */}
             <div className="absolute top-0 right-0 p-1 flex gap-1 bg-[#070B14]/40 border-l border-b border-white/10 text-[8px] font-mono tracking-widest text-[#EAF2FF]/30 lowercase">
               sys.view_node()
