@@ -190,6 +190,54 @@ export default function ThreeScene({
     const atmosphericPlasma = new THREE.Points(plasmaGeometry, plasmaMaterial);
     scene.add(atmosphericPlasma);
 
+    // --- 3C. INTERACTIVE COSMIC GRID FILAMENTS (Periodic Connections) ---
+    const periodicConnections: [number, number][] = [];
+    ELEMENTS_DATA.forEach((el, index) => {
+      // Periodic neighbors
+      const nextInPeriod = ELEMENTS_DATA.findIndex(other => other.number === el.number + 1 && other.period === el.period);
+      if (nextInPeriod !== -1) {
+        periodicConnections.push([index, nextInPeriod]);
+      }
+      // Group neighbors
+      const nextInGroup = ELEMENTS_DATA.findIndex(other => other.group === el.group && other.period === el.period + 1);
+      if (nextInGroup !== -1) {
+        periodicConnections.push([index, nextInGroup]);
+      }
+    });
+
+    const networkGeom = new THREE.BufferGeometry();
+    const networkPos = new Float32Array(periodicConnections.length * 2 * 3);
+    networkGeom.setAttribute('position', new THREE.BufferAttribute(networkPos, 3));
+    const networkMat = new THREE.LineBasicMaterial({
+      color: '#00E5FF',
+      transparent: true,
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending
+    });
+    const networkLines = new THREE.LineSegments(networkGeom, networkMat);
+    scene.add(networkLines);
+
+    const hoverNetworkGeom = new THREE.BufferGeometry();
+    const hoverNetworkPos = new Float32Array(32 * 2 * 3); // Max 32 connections highlight
+    hoverNetworkGeom.setAttribute('position', new THREE.BufferAttribute(hoverNetworkPos, 3));
+    const hoverNetworkMat = new THREE.LineBasicMaterial({
+      color: '#FFFFFF',
+      transparent: true,
+      opacity: 0.0,
+      linewidth: 3,
+      blending: THREE.AdditiveBlending
+    });
+    const hoverNetworkLines = new THREE.LineSegments(hoverNetworkGeom, hoverNetworkMat);
+    scene.add(hoverNetworkLines);
+
+    // Adaptive fog and ambient lighting variables
+    const defaultFogHex = '#070B14';
+    const defaultAmbientHex = '#0B1020';
+    
+    const targetFogColor = new THREE.Color(defaultFogHex);
+    const currentFogColor = new THREE.Color(defaultFogHex);
+    const targetAmbientColor = new THREE.Color(defaultAmbientHex);
+
     // --- 4. PLANAR ATMOSPHERIC LAB GRID System ---
     const gridHelperY = new THREE.GridHelper(100, 50, '#00E5FF', '#0B1020');
     gridHelperY.position.set(0, -25, 0);
@@ -337,6 +385,38 @@ export default function ThreeScene({
     
     let activeElectrons: ExtendedElectron[] = [];
 
+    // --- 6B. ELEMENT WORLDS ENVIRONMENT GROUP ---
+    const elementWorldGroup = new THREE.Group();
+    atomGroup.add(elementWorldGroup);
+    
+    let activeWorldAnimate: ((elapsed: number, delta: number, simMultiplier: number) => void) | null = null;
+    
+    const clearElementWorld = () => {
+      activeWorldAnimate = null;
+      while (elementWorldGroup.children.length > 0) {
+        const child = elementWorldGroup.children[0];
+        elementWorldGroup.remove(child);
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          if (child.material instanceof THREE.Material) {
+            child.material.dispose();
+          } else if (Array.isArray(child.material)) {
+            child.material.forEach((m: any) => m.dispose());
+          }
+        } else if (child instanceof THREE.Points) {
+          child.geometry.dispose();
+          if (child.material instanceof THREE.Material) {
+            child.material.dispose();
+          }
+        } else if (child instanceof THREE.Line) {
+          child.geometry.dispose();
+          if (child.material instanceof THREE.Material) {
+            child.material.dispose();
+          }
+        }
+      }
+    };
+
     // --- INTERACTION / DRAG CONTROLS ---
     let isDragging = false;
     let previousMouseX = 0;
@@ -442,6 +522,9 @@ export default function ThreeScene({
     };
 
     const updateSelectedElementAtom = (el: ChemicalElement) => {
+      // Clear previous world
+      clearElementWorld();
+
       // Clear previous orbits & electrons
       activeElectrons.forEach(e => {
         scene.remove(e.mesh);
@@ -478,6 +561,417 @@ export default function ThreeScene({
           node.material = nucleusMaterial;
         }
       });
+
+      // Configure beautiful atmospheric environmental lights/fog based on element symbol/category!
+      if (el.symbol === 'H') {
+        // HYDROGEN: Cosmic gas clouds, blue energy fog, fusion atmosphere
+        targetFogColor.set('#040d1e');
+        targetAmbientColor.set('#041630');
+        
+        // Build H environment: 2 perpendicular orbiting torus rings
+        const torusGeom1 = new THREE.TorusGeometry(3.2, 0.05, 8, 48);
+        const torusMat1 = new THREE.MeshBasicMaterial({
+          color: '#00E5FF',
+          transparent: true,
+          opacity: 0.35,
+          wireframe: true,
+          blending: THREE.AdditiveBlending
+        });
+        const torus1 = new THREE.Mesh(torusGeom1, torusMat1);
+        torus1.rotation.x = Math.PI / 4;
+        elementWorldGroup.add(torus1);
+
+        const torusGeom2 = new THREE.TorusGeometry(3.2, 0.03, 8, 48);
+        const torusMat2 = new THREE.MeshBasicMaterial({
+          color: '#7C4DFF',
+          transparent: true,
+          opacity: 0.25,
+          wireframe: true,
+          blending: THREE.AdditiveBlending
+        });
+        const torus2 = new THREE.Mesh(torusGeom2, torusMat2);
+        torus2.rotation.y = Math.PI / 4;
+        elementWorldGroup.add(torus2);
+
+        // Swarming fast-rotating particles (fusion fuel effect)
+        const fSeedsCount = 50;
+        const fGeom = new THREE.BufferGeometry();
+        const fPositions = new Float32Array(fSeedsCount * 3);
+        const fSpeeds = new Float32Array(fSeedsCount);
+        const fRadii = new Float32Array(fSeedsCount);
+        const fAngles = new Float32Array(fSeedsCount);
+        
+        for (let i = 0; i < fSeedsCount; i++) {
+          fAngles[i] = Math.random() * Math.PI * 2;
+          fRadii[i] = 2.0 + Math.random() * 2.5;
+          fSpeeds[i] = 1.0 + Math.random() * 2.0;
+          
+          fPositions[i * 3] = Math.cos(fAngles[i]) * fRadii[i];
+          fPositions[i * 3 + 1] = (Math.random() - 0.5) * 1.5;
+          fPositions[i * 3 + 2] = Math.sin(fAngles[i]) * fRadii[i];
+        }
+        fGeom.setAttribute('position', new THREE.BufferAttribute(fPositions, 3));
+        const fMat = new THREE.PointsMaterial({
+          size: 0.65,
+          color: '#00E5FF',
+          map: createCircularParticleTexture(),
+          transparent: true,
+          opacity: 0.85,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const fusionPoints = new THREE.Points(fGeom, fMat);
+        elementWorldGroup.add(fusionPoints);
+
+        activeWorldAnimate = (time, dt, sm) => {
+          torus1.rotation.z += 0.4 * dt * sm;
+          torus2.rotation.z -= 0.3 * dt * sm;
+          
+          const posAttr = fusionPoints.geometry.attributes.position as THREE.BufferAttribute;
+          for (let i = 0; i < fSeedsCount; i++) {
+            fAngles[i] += fSpeeds[i] * dt * 1.5 * sm;
+            const dynamicRadius = fRadii[i] + Math.sin(time * 2.5 + i) * 0.3;
+            
+            posAttr.setX(i, Math.cos(fAngles[i]) * dynamicRadius);
+            posAttr.setY(i, Math.sin(time * 1.8 + i) * 0.4);
+            posAttr.setZ(i, Math.sin(fAngles[i]) * dynamicRadius);
+          }
+          posAttr.needsUpdate = true;
+        };
+
+      } else if (el.symbol === 'C') {
+        // CARBON: Crystal structures, molecular geometry, dark industrial depth
+        targetFogColor.set('#05070a');
+        targetAmbientColor.set('#0b0e12');
+        
+        // Structured Buckyball / fullerene wireframe
+        const buckyGeom = new THREE.IcosahedronGeometry(3.5, 1);
+        const buckyMat = new THREE.MeshBasicMaterial({
+          color: '#00FFB3',
+          transparent: true,
+          opacity: 0.4,
+          wireframe: true,
+        });
+        const bucky = new THREE.Mesh(buckyGeom, buckyMat);
+        elementWorldGroup.add(bucky);
+
+        // Nodes at vertex coordinates
+        const nodeGeom = new THREE.BufferGeometry();
+        const posArr = buckyGeom.attributes.position.clone() as THREE.BufferAttribute;
+        nodeGeom.setAttribute('position', posArr);
+        const nodeMat = new THREE.PointsMaterial({
+          size: 0.5,
+          color: '#FFFFFF',
+          map: createCircularParticleTexture(),
+          transparent: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const nodePoints = new THREE.Points(nodeGeom, nodeMat);
+        elementWorldGroup.add(nodePoints);
+
+        // Hexagonal/Diamond octahedron lattice inner skeleton
+        const latticeGeom = new THREE.OctahedronGeometry(2.0, 0);
+        const latticeMat = new THREE.MeshBasicMaterial({
+          color: '#7C4DFF',
+          transparent: true,
+          opacity: 0.2,
+          wireframe: true,
+        });
+        const lattice = new THREE.Mesh(latticeGeom, latticeMat);
+        elementWorldGroup.add(lattice);
+
+        activeWorldAnimate = (time, dt, sm) => {
+          bucky.rotation.y += 0.012 * sm;
+          bucky.rotation.x += 0.006 * sm;
+          nodePoints.rotation.y = bucky.rotation.y;
+          nodePoints.rotation.x = bucky.rotation.x;
+          
+          lattice.rotation.y -= 0.008 * sm;
+          lattice.rotation.z += 0.015 * sm;
+          
+          const pulse = 1.0 + Math.sin(time * 2.0) * 0.04;
+          bucky.scale.set(pulse, pulse, pulse);
+          nodePoints.scale.set(pulse, pulse, pulse);
+        };
+
+      } else if (el.symbol === 'Ne' || el.category === 'noble-gas') {
+        // NEON & NOBLE GASES: Glowing plasma, colorful energy clouds, electric atmosphere
+        targetFogColor.set(el.symbol === 'He' ? '#12051e' : (el.symbol === 'Ne' ? '#200407' : '#051820'));
+        targetAmbientColor.set(el.symbol === 'He' ? '#1a062e' : (el.symbol === 'Ne' ? '#2e070d' : '#072430'));
+
+        const glowColor = el.symbol === 'He' ? '#E1BEE7' : (el.symbol === 'Ne' ? '#FF5252' : '#00FFB3');
+        const secondaryGlowColor = el.symbol === 'He' ? '#7C4DFF' : (el.symbol === 'Ne' ? '#FF9100' : '#4DD0E1');
+
+        // Concentric expanding plasma clouds
+        const pSphereG1 = new THREE.SphereGeometry(3.0, 24, 24);
+        const pSphereM1 = new THREE.MeshBasicMaterial({
+          color: glowColor,
+          transparent: true,
+          opacity: 0.12,
+          blending: THREE.AdditiveBlending,
+        });
+        const pSphere1 = new THREE.Mesh(pSphereG1, pSphereM1);
+        elementWorldGroup.add(pSphere1);
+
+        const pSphereG2 = new THREE.SphereGeometry(2.2, 24, 24);
+        const pSphereM2 = new THREE.MeshBasicMaterial({
+          color: secondaryGlowColor,
+          transparent: true,
+          opacity: 0.2,
+          blending: THREE.AdditiveBlending,
+        });
+        const pSphere2 = new THREE.Mesh(pSphereG2, pSphereM2);
+        elementWorldGroup.add(pSphere2);
+
+        // Electric sparks / lightning bolts discharging
+        const sparkLines: THREE.Line[] = [];
+        const sparkCount = 6;
+        const sparkSegs = 5;
+        for (let s = 0; s < sparkCount; s++) {
+          const sGeom = new THREE.BufferGeometry();
+          const pts = [];
+          for (let seg = 0; seg < sparkSegs; seg++) {
+            pts.push(new THREE.Vector3(0,0,0));
+          }
+          sGeom.setFromPoints(pts);
+          const sMat = new THREE.LineBasicMaterial({
+            color: s % 2 === 0 ? glowColor : secondaryGlowColor,
+            transparent: true,
+            opacity: 0.8,
+            linewidth: 2,
+            blending: THREE.AdditiveBlending,
+          });
+          const line = new THREE.Line(sGeom, sMat);
+          elementWorldGroup.add(line);
+          sparkLines.push(line);
+        }
+
+        let sTimer = 0;
+        activeWorldAnimate = (time, dt, sm) => {
+          const pulse = 1.0 + Math.sin(time * 3.5) * 0.08;
+          pSphere1.scale.setScalar(pulse);
+          pSphere2.scale.setScalar(1.0 + Math.cos(time * 4) * 0.05);
+
+          sTimer -= dt * sm;
+          if (sTimer <= 0) {
+            sTimer = 0.06 + Math.random() * 0.08;
+            
+            sparkLines.forEach((line) => {
+              const posArr = new Float32Array(sparkSegs * 3);
+              const dir = new THREE.Vector3(
+                Math.random() * 2 - 1,
+                Math.random() * 2 - 1,
+                Math.random() * 2 - 1
+              ).normalize();
+              const radius = 2.2 + Math.random() * 1.5;
+
+              for (let i = 0; i < sparkSegs; i++) {
+                const frac = i / (sparkSegs - 1);
+                const pt = dir.clone().multiplyScalar(radius * frac);
+                if (i > 0 && i < sparkSegs - 1) {
+                  pt.x += (Math.random() - 0.5) * 0.4;
+                  pt.y += (Math.random() - 0.5) * 0.4;
+                  pt.z += (Math.random() - 0.5) * 0.4;
+                }
+                posArr[i * 3] = pt.x;
+                posArr[i * 3 + 1] = pt.y;
+                posArr[i * 3 + 2] = pt.z;
+              }
+              line.geometry.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+              line.geometry.attributes.position.needsUpdate = true;
+              (line.material as THREE.LineBasicMaterial).opacity = 0.3 + Math.random() * 0.6;
+            });
+          }
+        };
+
+      } else if (el.state === 'liquid' || el.symbol === 'Hg' || el.symbol === 'Br') {
+        // LIQUIDS (Bromine, Mercury): weightless fluid blobs pulsating organically
+        targetFogColor.set(el.symbol === 'Hg' ? '#080c10' : '#140602');
+        targetAmbientColor.set(el.symbol === 'Hg' ? '#111822' : '#220b05');
+
+        const mCount = 5;
+        const mMeshes: THREE.Mesh[] = [];
+        const mWeights: number[] = [];
+        const mRadii: number[] = [];
+        const mSpeeds: number[] = [];
+        const mAxes: THREE.Vector3[] = [];
+        const mAngles: number[] = [];
+
+        const subGeom = new THREE.SphereGeometry(0.4, 24, 24);
+        const subMat = new THREE.MeshPhongMaterial({
+          color: el.symbol === 'Hg' ? '#CFD8DC' : '#FF3D00',
+          emissive: el.symbol === 'Hg' ? '#37474F' : '#3E2723',
+          shininess: el.symbol === 'Hg' ? 100 : 70,
+          specular: '#FFFFFF',
+        });
+
+        for (let i = 0; i < mCount; i++) {
+          const m = new THREE.Mesh(subGeom, subMat);
+          elementWorldGroup.add(m);
+          mMeshes.push(m);
+          mWeights.push(0.6 + i * 0.12);
+          mRadii.push(2.5 + Math.random() * 1.2);
+          mSpeeds.push(1.0 + Math.random() * 1.5);
+          mAngles.push(Math.random() * Math.PI * 2);
+          mAxes.push(new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize());
+        }
+
+        activeWorldAnimate = (time, dt, sm) => {
+          mMeshes.forEach((mesh, idx) => {
+            mAngles[idx] += mSpeeds[idx] * dt * sm;
+            const r = mRadii[idx] + Math.sin(time * 2.0 + idx) * 0.25;
+            const ax = mAxes[idx];
+            const angle = mAngles[idx];
+
+            const pos = new THREE.Vector3(r * Math.sin(angle), 0, r * Math.cos(angle));
+            pos.applyAxisAngle(ax, angle * 0.15);
+            mesh.position.copy(pos);
+
+            const scaleW = mWeights[idx] * (1.0 + Math.sin(time * 3.0 + idx) * 0.15 + Math.cos(time * 5.5 + idx) * 0.05);
+            mesh.scale.set(scaleW, scaleW, scaleW);
+          });
+        };
+
+      } else if (el.category === 'actinide' || el.category === 'lanthanide' || el.number >= 89) {
+        // RADIOACTIVE ACTINIDES / RADIUM: Glowing radioactive decay alpha bursts
+        targetFogColor.set('#04180d');
+        targetAmbientColor.set('#062413');
+
+        // Expanding decay rays
+        const rCount = 10;
+        const rLines: THREE.Line[] = [];
+        const rPositions: THREE.Vector3[] = [];
+        const rDirs: THREE.Vector3[] = [];
+        const rSpeeds: number[] = [];
+        const rAges: number[] = [];
+        const rMaxAges: number[] = [];
+
+        for (let r = 0; r < rCount; r++) {
+          const rGeom = new THREE.BufferGeometry();
+          rGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2 * 3), 3));
+          const rMat = new THREE.LineBasicMaterial({
+            color: '#00FFB3',
+            transparent: true,
+            opacity: 0.9,
+            linewidth: 2,
+            blending: THREE.AdditiveBlending,
+          });
+          const line = new THREE.Line(rGeom, rMat);
+          elementWorldGroup.add(line);
+          rLines.push(line);
+
+          rPositions.push(new THREE.Vector3(0,0,0));
+          rDirs.push(new THREE.Vector3(0,0,0));
+          rSpeeds.push(6.0 + Math.random() * 10);
+          rAges.push(10); // trigger respawn immediately
+          rMaxAges.push(0.35 + Math.random() * 0.4);
+        }
+
+        // Swirled radioactive particle mist
+        const mistCount = 40;
+        const mistPos = new Float32Array(mistCount * 3);
+        const mistRadii = new Float32Array(mistCount);
+        const mistAngles = new Float32Array(mistCount);
+        const mistSpeeds = new Float32Array(mistCount);
+        for(let i=0; i<mistCount; i++) {
+          mistRadii[i] = 1.0 + Math.random() * 3.5;
+          mistAngles[i] = Math.random() * Math.PI * 2;
+          mistSpeeds[i] = 0.5 + Math.random() * 0.8;
+        }
+        const mistGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(mistPos, 3));
+        const mistPoints = new THREE.Points(mistGeom, new THREE.PointsMaterial({
+          size: 0.5,
+          color: '#CCFF90',
+          map: createCircularParticleTexture(),
+          transparent: true,
+          opacity: 0.65,
+          blending: THREE.AdditiveBlending
+        }));
+        elementWorldGroup.add(mistPoints);
+
+        activeWorldAnimate = (time, dt, sm) => {
+          // Mist rotation
+          const mPosAttr = mistPoints.geometry.attributes.position as THREE.BufferAttribute;
+          for (let i = 0; i < mistCount; i++) {
+            mistAngles[i] += mistSpeeds[i] * dt * sm;
+            const r = mistRadii[i] + Math.sin(time * 1.5 + i) * 0.25;
+            mPosAttr.setX(i, Math.cos(mistAngles[i]) * r);
+            mPosAttr.setY(i, Math.sin(time + i) * 0.6);
+            mPosAttr.setZ(i, Math.sin(mistAngles[i]) * r);
+          }
+          mPosAttr.needsUpdate = true;
+
+          // Process projectile rays
+          rLines.forEach((line, rIdx) => {
+            rAges[rIdx] += dt * sm;
+            if (rAges[rIdx] >= rMaxAges[rIdx]) {
+              rAges[rIdx] = 0.0;
+              rPositions[rIdx].set(0, 0, 0);
+              const u = Math.random() * 2 - 1;
+              const theta = Math.random() * Math.PI * 2;
+              const r = Math.sqrt(1 - u * u);
+              rDirs[rIdx].set(r * Math.cos(theta), u, r * Math.sin(theta)).normalize();
+              rSpeeds[rIdx] = 5.0 + Math.random() * 9.0;
+              rMaxAges[rIdx] = 0.25 + Math.random() * 0.35;
+            }
+
+            const step = rSpeeds[rIdx] * dt * sm;
+            const startPt = rPositions[rIdx].clone();
+            rPositions[rIdx].addScaledVector(rDirs[rIdx], step);
+            const endPt = rPositions[rIdx];
+
+            const lPos = line.geometry.attributes.position as THREE.BufferAttribute;
+            lPos.setX(0, startPt.x);
+            lPos.setY(0, startPt.y);
+            lPos.setZ(0, startPt.z);
+            lPos.setX(1, endPt.x);
+            lPos.setY(1, endPt.y);
+            lPos.setZ(1, endPt.z);
+            lPos.needsUpdate = true;
+
+            const life = rAges[rIdx] / rMaxAges[rIdx];
+            (line.material as THREE.LineBasicMaterial).opacity = Math.max(0, 1.0 - life) * 0.9;
+          });
+        };
+
+      } else {
+        // DEFAULT METALS / SYNTHETIC / CORE STRUCTURES: Concentric interlocking metallic/energy rings
+        targetFogColor.set(catColor.clone().multiplyScalar(0.04).getStyle());
+        targetAmbientColor.set(catColor.clone().multiplyScalar(0.12).getStyle());
+
+        const ringCount = 3;
+        const rings: THREE.Mesh[] = [];
+        const speedsR: number[] = [];
+
+        for (let i = 0; i < ringCount; i++) {
+          const rG = new THREE.TorusGeometry(3.0 + i * 1.5, 0.03, 8, 36);
+          const rM = new THREE.MeshBasicMaterial({
+            color: catColor,
+            transparent: true,
+            opacity: 0.15 + (1.0 - i * 0.25) * 0.25,
+            blending: THREE.AdditiveBlending,
+            wireframe: true,
+          });
+          const r = new THREE.Mesh(rG, rM);
+          r.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+          elementWorldGroup.add(r);
+          rings.push(r);
+          speedsR.push((0.1 + Math.random() * 0.15) * (i % 2 === 0 ? 1 : -1));
+        }
+
+        activeWorldAnimate = (time, dt, sm) => {
+          rings.forEach((r, idx) => {
+            r.rotation.x += speedsR[idx] * dt * sm;
+            r.rotation.y += speedsR[idx] * 0.5 * dt * sm;
+            r.rotation.z -= speedsR[idx] * 0.3 * dt * sm;
+
+            const glow = 1.0 + Math.sin(time * 2.0 + idx) * 0.04;
+            r.scale.set(glow, glow, glow);
+          });
+        };
+      }
 
       // Spawn electron rings based on real structural shells with varying inclinations
       const activeShells = el.shells; // e.g. [2, 8, 1]
@@ -555,7 +1049,7 @@ export default function ThreeScene({
             semiMinorAxis,
             quantumJumpTimer: 3 + Math.random() * 8, // seconds before a quick quantum hop!
             isJumping: false,
-            jumpRatio: 0,
+            jumpRatio: 0.0,
             baseColor: catColor.clone().addScalar(0.35),
             shellIndex: shellIdx,
             rotX,
@@ -704,6 +1198,10 @@ export default function ThreeScene({
         
         if (currentProps.selectedElement) {
           updateSelectedElementAtom(currentProps.selectedElement);
+        } else {
+          clearElementWorld();
+          targetFogColor.set(defaultFogHex);
+          targetAmbientColor.set(defaultAmbientHex);
         }
       }
 
@@ -773,6 +1271,76 @@ export default function ThreeScene({
       blueDirLight.position.set(-15 + mouse2D.x * 12, 20 - mouse2D.y * 10, 15);
       purpleDirLight.position.set(15 - mouse2D.x * 12, -15 + mouse2D.y * 10, 10);
       spotLight.position.set(mouse2D.x * 15, 25 - mouse2D.y * 5, 25 + Math.sin(elapsed) * 3);
+
+      // Interpolate adaptive background and atmospheric fog / ambient colors
+      currentFogColor.lerp(targetFogColor, 0.035);
+      ambientLight.color.lerp(targetAmbientColor, 0.035);
+
+      // Update network lines based on current card mesh positions
+      if (networkLines && networkLines.geometry.attributes.position) {
+        const netPosAttr = networkLines.geometry.attributes.position as THREE.BufferAttribute;
+        let netIdx = 0;
+        periodicConnections.forEach(([fromIdx, toIdx]) => {
+          const fromCard = elementCards[fromIdx];
+          const toCard = elementCards[toIdx];
+          if (fromCard && toCard) {
+            const p1 = fromCard.mesh.position;
+            const p2 = toCard.mesh.position;
+            
+            netPosAttr.setXYZ(netIdx, p1.x, p1.y, p1.z);
+            netPosAttr.setXYZ(netIdx + 1, p2.x, p2.y, p2.z);
+            netIdx += 2;
+          }
+        });
+        netPosAttr.needsUpdate = true;
+      }
+
+      // Highlights path of the active hovered element
+      if (hoverNetworkLines && hoverNetworkLines.geometry.attributes.position) {
+        const hoverPosAttr = hoverNetworkLines.geometry.attributes.position as THREE.BufferAttribute;
+        if (currentProps.hoveredElement && !currentProps.selectedElement) {
+          const hoverIdx = ELEMENTS_DATA.findIndex(e => e.number === currentProps.hoveredElement?.number);
+          if (hoverIdx !== -1 && elementCards[hoverIdx]) {
+            let segmentIdx = 0;
+            const connectedWithHover: number[] = [];
+            
+            periodicConnections.forEach(([fromIdx, toIdx]) => {
+              if (fromIdx === hoverIdx) {
+                connectedWithHover.push(toIdx);
+              } else if (toIdx === hoverIdx) {
+                connectedWithHover.push(fromIdx);
+              }
+            });
+
+            const p1 = elementCards[hoverIdx].mesh.position;
+            connectedWithHover.forEach(neighIdx => {
+              if (segmentIdx < 32 && elementCards[neighIdx]) {
+                const p2 = elementCards[neighIdx].mesh.position;
+                hoverPosAttr.setXYZ(segmentIdx * 2, p1.x, p1.y, p1.z);
+                hoverPosAttr.setXYZ(segmentIdx * 2 + 1, p2.x, p2.y, p2.z);
+                segmentIdx++;
+              }
+            });
+
+            // Pad remaining vertices to 0
+            for (let i = segmentIdx; i < 32; i++) {
+              hoverPosAttr.setXYZ(i * 2, p1.x, p1.y, p1.z);
+              hoverPosAttr.setXYZ(i * 2 + 1, p1.x, p1.y, p1.z);
+            }
+            hoverPosAttr.needsUpdate = true;
+            (hoverNetworkLines.material as THREE.LineBasicMaterial).opacity = 0.55 + Math.sin(elapsed * 5) * 0.15;
+            const catColorHex = CATEGORY_COLORS[currentProps.hoveredElement.category]?.hex || '#FFFFFF';
+            (hoverNetworkLines.material as THREE.LineBasicMaterial).color.set(catColorHex);
+          }
+        } else {
+          (hoverNetworkLines.material as THREE.LineBasicMaterial).opacity = 0.0;
+        }
+      }
+
+      // 2E. Animate custom element worlds
+      if (currentProps.selectedElement && activeWorldAnimate) {
+        activeWorldAnimate(elapsed, delta, simMultiplier);
+      }
 
       // Low frequency breathing of background & spotlight cores
       ambientLight.intensity = 1.35 + Math.sin(elapsed * 0.65) * 0.18;
@@ -1052,7 +1620,11 @@ export default function ThreeScene({
       atmosphericPlasma.rotation.y += 0.0014 * simMultiplier;
 
       // Soft breathing atmospheric depth background fog exp density
-      scene.fog = new THREE.FogExp2('#070B14', 0.012 + Math.sin(elapsed * 0.45) * 0.003);
+      if (scene.fog && scene.fog instanceof THREE.FogExp2) {
+        scene.fog.color.copy(currentFogColor);
+        scene.fog.density = 0.012 + Math.sin(elapsed * 0.45) * 0.003;
+      }
+      renderer.setClearColor(currentFogColor);
 
       // Render the scene!
       renderer.render(scene, camera);
@@ -1088,6 +1660,12 @@ export default function ThreeScene({
       plasmaMaterial.dispose();
       plasmaTexture.dispose();
       gridHelperY.geometry.dispose();
+      
+      networkLines.geometry.dispose();
+      networkMat.dispose();
+      hoverNetworkLines.geometry.dispose();
+      hoverNetworkMat.dispose();
+      clearElementWorld();
       
       elementCards.forEach(c => {
         c.mesh.geometry.dispose();

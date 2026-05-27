@@ -15,6 +15,17 @@ export type ElementCategory =
   | 'lanthanide'
   | 'actinide';
 
+export interface VisualConfig {
+  primaryColor: string;
+  secondaryGlowColor: string;
+  atmosphereType: 'gas' | 'crystal' | 'plasma' | 'liquid' | 'decay' | 'metal';
+  particleStyle: 'nebula' | 'stellar' | 'lightning' | 'droplet' | 'decay-ray' | 'ring';
+  energyBehavior: 'fusion' | 'lattice' | 'discharge' | 'fluid' | 'radioactive' | 'metallic';
+  lightingStyle: string;
+  environmentFeel: string;
+  motionStyle: 'floating' | 'structured' | 'electric' | 'oscillating' | 'decay' | 'interlocking';
+}
+
 export interface ChemicalElement {
   number: number;
   symbol: string;
@@ -33,6 +44,13 @@ export interface ChemicalElement {
   density: string;
   boilingPoint: string; // Kelvin or String
   meltingPoint: string; // Kelvin or String
+  
+  // New properties for Orbiter Core Element Data System
+  electronegativity: number | null;
+  ionizationEnergy: string;
+  realWorldUses: string[];
+  reactivity: string;
+  visual: VisualConfig;
 }
 
 export type TableLayoutMode = 'grid' | 'spiral' | 'sphere' | 'scatter';

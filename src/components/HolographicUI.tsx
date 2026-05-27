@@ -122,13 +122,13 @@ export default function HolographicUI({
             </h1>
             
             <p className="text-sm sm:text-base text-[#00E5FF] tracking-[0.3em] uppercase mb-8 font-medium">
-              3D QUANTUM ATOMIC EXPLORATORY
+              THE LIVING ATOMIC COSMOS
             </p>
 
             <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent mb-8" />
 
             <p className="text-[#EAF2FF]/70 text-sm sm:text-base leading-relaxed mb-10 max-w-lg font-light text-center">
-              Enter a living, highly interactive cinematic 3D universe of matter. Explore detailed electron shell configurations, manipulate space lattices, and simulate reactions in real-time.
+              Enter a navigable, immersive sub-atomic universe. Travel through the structure of matter, explore element galaxy systems, and discover the unique atmospheric environments of individual elements.
             </p>
 
             <button
@@ -136,7 +136,7 @@ export default function HolographicUI({
               onClick={onEnterObs}
               className="px-8 py-3.5 bg-[#070B14] border border-[#00E5FF] text-[#00E5FF] text-xs font-bold tracking-[0.2em] rounded-sm hover:bg-[#00E5FF]/10 hover:shadow-[0_0_25px_rgba(0,229,255,0.25)] transition-all duration-300 uppercase cursor-pointer flex items-center gap-3 active:scale-95"
             >
-              ENTER THE OBSERVATORY <ArrowRight className="w-4 h-4" />
+              NAVIGATE THE ATOMIC COSMOS <ArrowRight className="w-4 h-4" />
             </button>
 
             {/* Scientific credits */}
@@ -188,7 +188,7 @@ export default function HolographicUI({
             {/* Card Layout switcher */}
             <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
               <div className="text-[10px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center gap-2">
-                <Layers className="w-4.5 h-4.5" /> MATRIX STRUCTURING LAYOUT
+                <Layers className="w-4.5 h-4.5" /> COSMIC FIELD LAYOUT
               </div>
               
               <div className="grid grid-cols-2 gap-2 mt-2">
@@ -202,10 +202,10 @@ export default function HolographicUI({
                         : 'bg-[#0B1020]/50 border-white/10 text-[#EAF2FF]/60 hover:border-white/20 hover:text-[#EAF2FF]'
                     }`}
                   >
-                    {mode === 'grid' && 'FULL TABLE'}
-                    {mode === 'spiral' && 'DNA HELIX'}
-                    {mode === 'sphere' && 'ION SPHERE'}
-                    {mode === 'scatter' && 'SCATTER'}
+                    {mode === 'grid' && 'COSMIC GRIDMAP'}
+                    {mode === 'spiral' && 'STELLAR HELIX'}
+                    {mode === 'sphere' && 'ATOMIC STAR SYSTEM'}
+                    {mode === 'scatter' && 'NEBULA DRIFT'}
                   </button>
                 ))}
               </div>
@@ -378,6 +378,30 @@ export default function HolographicUI({
                   <span className="font-mono text-[8px] uppercase tracking-wider text-[#EAF2FF]/40">STATE (STANDARD):</span>
                   <span className="text-xs font-extrabold uppercase mt-0.5 tracking-wider" style={{ color: getCatMeta(selectedElement.category).hex }}>{selectedElement.state}</span>
                 </div>
+                <div className="p-2 bg-white/5 border border-white/5 rounded-sm flex flex-col">
+                  <span className="font-mono text-[8px] uppercase tracking-wider text-[#EAF2FF]/40">ELECTRONEGATIVITY:</span>
+                  <span className="text-xs font-bold font-mono mt-0.5">{selectedElement.electronegativity !== null && selectedElement.electronegativity !== undefined ? selectedElement.electronegativity.toFixed(2) : 'N/A'}</span>
+                </div>
+                <div className="p-2 bg-white/5 border border-white/5 rounded-sm flex flex-col">
+                  <span className="font-mono text-[8px] uppercase tracking-wider text-[#EAF2FF]/40">IONIZATION ENERGY:</span>
+                  <span className="text-xs font-bold font-mono mt-0.5">{selectedElement.ionizationEnergy}</span>
+                </div>
+                <div className="p-2 bg-white/5 border border-white/5 rounded-sm flex flex-col col-span-2">
+                  <span className="font-mono text-[8px] uppercase tracking-wider text-[#EAF2FF]/40">REACTIVITY SYSTEM:</span>
+                  <span className="text-xs font-semibold font-mono mt-0.5 text-[#FFD600] uppercase tracking-widest">{selectedElement.reactivity}</span>
+                </div>
+              </div>
+
+              {/* Real World Uses */}
+              <div className="mb-4">
+                <span className="font-mono text-[8px] uppercase tracking-widest text-[#EAF2FF]/40 block mb-1.5">REAL-WORLD SCIENTIFIC USES:</span>
+                <div className="flex flex-wrap gap-1">
+                  {selectedElement.realWorldUses && selectedElement.realWorldUses.map((use, uIdx) => (
+                    <span key={uIdx} className="text-[9px] font-mono px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[#EAF2FF]/80 hover:bg-white/10 transition-colors">
+                      {use}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               {/* Orbits / Shell slider display */}
@@ -395,6 +419,38 @@ export default function HolographicUI({
                   ))}
                 </div>
                 <span className="text-[10px] font-mono text-[#EAF2FF]/40">Configuration: <span className="text-[#EAF2FF]/95 font-bold">{selectedElement.electronConfig}</span></span>
+              </div>
+
+              {/* ORBITIUM VISUAL SYSTEM CONFIG */}
+              <div className="p-3 bg-[#0B1020]/60 border border-white/10 rounded-sm flex flex-col gap-2 mb-4 relative overflow-hidden">
+                <div className="absolute -right-6 -bottom-6 w-16 h-16 rounded-full opacity-10 blur-xl transition-all" style={{ backgroundColor: selectedElement.visual.primaryColor }}></div>
+                
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#00E5FF] flex items-center gap-1.5 border-b border-white/10 pb-1.5 mb-1">
+                  <Sparkles className="w-4 h-4 text-[#00E5FF]" /> ORBITIUM VISUAL SIGNATURE
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px] font-mono">
+                  <div>
+                    <span className="text-[#EAF2FF]/30 block text-[8px] uppercase">ATMOSPHERE:</span>
+                    <span className="text-[#00E5FF] uppercase font-bold">{selectedElement.visual.atmosphereType}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#EAF2FF]/30 block text-[8px] uppercase">PARTICLES:</span>
+                    <span className="text-[#EAF2FF]/95 uppercase font-medium">{selectedElement.visual.particleStyle}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#EAF2FF]/30 block text-[8px] uppercase">ENERGY:</span>
+                    <span className="text-[#EAF2FF]/95 uppercase font-medium">{selectedElement.visual.energyBehavior}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#EAF2FF]/30 block text-[8px] uppercase">MOTION STYLE:</span>
+                    <span className="text-[#EAF2FF]/95 uppercase font-medium">{selectedElement.visual.motionStyle}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[#EAF2FF]/30 block text-[8px] uppercase font-mono">ENVIRONMENT FEEL:</span>
+                    <span className="text-[#00FFB3] text-[9.5px] uppercase font-extrabold tracking-tight">{selectedElement.visual.environmentFeel}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Fun science fact */}
@@ -442,7 +498,7 @@ export default function HolographicUI({
             ) : (
               <div className="flex items-center gap-2 text-[#EAF2FF]/30">
                 <Compass className="w-4.5 h-4.5 animate-pulse text-[#00E5FF]" />
-                <span className="text-[10px] uppercase tracking-widest">HOVER ORBITAL CARDS TO SCAN STATE METRICS...</span>
+                <span className="text-[10px] uppercase tracking-widest">HOVER COSMIC ELEMENTS TO SCAN MOLECULAR STATE...</span>
               </div>
             )}
           </div>
@@ -454,7 +510,7 @@ export default function HolographicUI({
             onClick={() => onSelectElement(null)}
             className="px-4 py-2 bg-[#0B1020]/70 border border-white/15 hover:border-[#00E5FF] hover:text-[#00E5FF] font-mono text-[10px] tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer"
           >
-            ← RETREAT TO ORBITAL FIELD MAP
+            ← RETREAT TO COSMIC GRIDMAP
           </button>
         )}
 
