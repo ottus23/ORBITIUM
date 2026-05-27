@@ -27,7 +27,7 @@ export function buildProceduralAtomWorld(
 
   if (atmosphere === 'gas' || el.symbol === 'H') {
     // GAS/NEBULA ATMOSPHERE: Swirling gas rings, orbital core winds, and gas clouds
-    const torusGeom1 = new THREE.TorusGeometry(3.2, 0.04, 8, 48);
+    const torusGeom1 = new THREE.TorusGeometry(3.2, 0.04, 4, 28);
     const torusMat1 = new THREE.MeshBasicMaterial({
       color: visualPrimary,
       transparent: true,
@@ -39,7 +39,7 @@ export function buildProceduralAtomWorld(
     torus1.rotation.x = Math.PI / 4;
     elementWorldGroup.add(torus1);
 
-    const torusGeom2 = new THREE.TorusGeometry(3.2, 0.025, 8, 48);
+    const torusGeom2 = new THREE.TorusGeometry(3.2, 0.025, 4, 28);
     const torusMat2 = new THREE.MeshBasicMaterial({
       color: visualSecondary,
       transparent: true,
@@ -99,7 +99,7 @@ export function buildProceduralAtomWorld(
 
   } else if (atmosphere === 'plasma' || el.category === 'noble-gas') {
     // PLASMA/DISCHARGE FIELD: Concentric highly energetic shells with high tension electric sparks
-    const pSphereG1 = new THREE.SphereGeometry(3.0, 24, 24);
+    const pSphereG1 = new THREE.SphereGeometry(3.0, 14, 14);
     const pSphereM1 = new THREE.MeshBasicMaterial({
       color: visualPrimary,
       transparent: true,
@@ -110,7 +110,7 @@ export function buildProceduralAtomWorld(
     const pSphere1 = new THREE.Mesh(pSphereG1, pSphereM1);
     elementWorldGroup.add(pSphere1);
 
-    const pSphereG2 = new THREE.SphereGeometry(2.0, 24, 24);
+    const pSphereG2 = new THREE.SphereGeometry(2.0, 14, 14);
     const pSphereM2 = new THREE.MeshBasicMaterial({
       color: visualSecondary,
       transparent: true,
@@ -243,7 +243,7 @@ export function buildProceduralAtomWorld(
     const mAxes: THREE.Vector3[] = [];
     const mAngles: number[] = [];
 
-    const subGeom = new THREE.SphereGeometry(0.38, 24, 24);
+    const subGeom = new THREE.SphereGeometry(0.38, 12, 12);
     const subMat = new THREE.MeshPhongMaterial({
       color: visualPrimary,
       emissive: visualSecondary.clone().multiplyScalar(0.25),
@@ -384,7 +384,7 @@ export function buildProceduralAtomWorld(
     const speedsR: number[] = [];
 
     for (let i = 0; i < ringCount; i++) {
-      const rG = new THREE.TorusGeometry(3.0 + i * 1.5, 0.035, 8, 40);
+      const rG = new THREE.TorusGeometry(3.0 + i * 1.5, 0.035, 4, 24);
       const rM = new THREE.MeshBasicMaterial({
         color: visualPrimary,
         transparent: true,

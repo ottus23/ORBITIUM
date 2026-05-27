@@ -302,12 +302,15 @@ export default function ThreeScene({
 
     const elementCards: CardMeshInfo[] = [];
 
+    // Shared reusable geometries to minimize WebGL allocations and memory usage on startup
+    const sharedCardGeom = new THREE.PlaneGeometry(1.8, 2.3);
+    const sharedEdgeConfigGeom = new THREE.EdgesGeometry(sharedCardGeom);
+
     // Pre-draw standard assets for elements on dynamic CanvasTextures
     ELEMENTS_DATA.forEach((el, idx) => {
       const categoryConfig = CATEGORY_COLORS[el.category] || { hex: '#00E5FF' };
       const cardTexture = createCardTexture(el, categoryConfig.hex);
       
-      const cardGeom = new THREE.PlaneGeometry(1.8, 2.3);
       const cardMat = new THREE.MeshBasicMaterial({
         map: cardTexture,
         side: THREE.DoubleSide,
@@ -315,60 +318,19 @@ export default function ThreeScene({
         opacity: 0.9,
       });
 
-      const cardMesh = new THREE.Mesh(cardGeom, cardMat);
+      const cardMesh = new THREE.Mesh(sharedCardGeom, cardMat);
       
       // Wireframe futuristic glow bounding box
-      const edgeGeom = new THREE.EdgesGeometry(cardGeom);
       const edgeMat = new THREE.LineBasicMaterial({
         color: new THREE.Color(categoryConfig.hex),
         linewidth: 2,
         transparent: true,
         opacity: 0.4,
       });
-      const glowOutline = new THREE.LineSegments(edgeGeom, edgeMat);
+      const glowOutline = new THREE.LineSegments(sharedEdgeConfigGeom, edgeMat);
       glowOutline.scale.set(1.05, 1.05, 1.05);
       glowOutline.position.z = 0.01;
       cardMesh.add(glowOutline);
-
-      // Spinning micro orbits around elements to build a stellar network
-      const ringGeom1 = new THREE.RingGeometry(1.05, 1.07, 32);
-      const ringMat1 = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(categoryConfig.hex),
-        transparent: true,
-        opacity: 0.16,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending
-      });
-      const miniOrbit1 = new THREE.Mesh(ringGeom1, ringMat1);
-      miniOrbit1.name = 'miniOrbit1';
-      miniOrbit1.scale.set(1.08, 1.08, 1.08);
-      miniOrbit1.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-      cardMesh.add(miniOrbit1);
-
-      const ringGeom2 = new THREE.RingGeometry(1.22, 1.23, 32);
-      const ringMat2 = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(categoryConfig.hex),
-        transparent: true,
-        opacity: 0.1,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending
-      });
-      const miniOrbit2 = new THREE.Mesh(ringGeom2, ringMat2);
-      miniOrbit2.name = 'miniOrbit2';
-      miniOrbit2.scale.set(1.12, 1.12, 1.12);
-      miniOrbit2.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-      cardMesh.add(miniOrbit2);
-
-      const centerNodeGeom = new THREE.SphereGeometry(0.08, 8, 8);
-      const centerNodeMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(categoryConfig.hex),
-        transparent: true,
-        opacity: 0.75,
-        blending: THREE.AdditiveBlending
-      });
-      const centerNode = new THREE.Mesh(centerNodeGeom, centerNodeMat);
-      centerNode.position.z = -0.12;
-      cardMesh.add(centerNode);
 
       // Storing coordinates for multi-layouts
       const targetPos = new THREE.Vector3();
@@ -405,8 +367,7 @@ export default function ThreeScene({
     // Generate protons and neutrons inside nucleus
     const nucleons: THREE.Mesh[] = [];
     const nucleonCount = 38; // Rich energetic core clump
-    const protonGeom = new THREE.SphereGeometry(0.35, 16, 16);
-    const neutronGeom = new THREE.SphereGeometry(0.35, 16, 16);
+    const sharedNucleonGeom = new THREE.SphereGeometry(0.35, 8, 8); // Optimized segment count (8x8) and pooled for protons/neutrons
 
     const protonMat = new THREE.MeshPhongMaterial({
       color: '#7C4DFF',
@@ -424,7 +385,7 @@ export default function ThreeScene({
 
     for (let i = 0; i < nucleonCount; i++) {
       const isProton = Math.random() > 0.48;
-      const mesh = new THREE.Mesh(isProton ? protonGeom : protonGeom.clone(), isProton ? protonMat : neutronMat);
+      const mesh = new THREE.Mesh(sharedNucleonGeom, isProton ? protonMat : neutronMat);
       
       // Keep them clumped tightly in 3D sphere
       const r = Math.random() * 1.0;
@@ -450,7 +411,6 @@ export default function ThreeScene({
       angle: number;
       speed: number;
       trail: THREE.Line;
-      trailPoints: THREE.Vector3[];
       eccentricity: number;
       semiMinorAxis: number;
       quantumJumpTimer: number;
@@ -653,12 +613,15 @@ export default function ThreeScene({
       // Spawn electron rings based on real structural shells with varying inclinations
       const activeShells = el.shells; // e.g. [2, 8, 1]
       
+      // Shared optimized electron sphere geometry to reduce GPU memory and polygon counts
+      const sharedElectronGeom = new THREE.SphereGeometry(0.18, 8, 6);
+
       activeShells.forEach((eCount, shellIdx) => {
         const radius = 3.5 + shellIdx * 2.2;
         
-        // 1. Path ring geometry
+        // 1. Path ring geometry (reduced segments for high-DPI performance)
         const ringPoints: THREE.Vector3[] = [];
-        const segments = 120;
+        const segments = 64;
         
         // Tilt shell planes differently to make it look breathtakingly 3D (Rutherford models)
         const rotX = (shellIdx * 0.38) + 0.15;
@@ -683,23 +646,34 @@ export default function ThreeScene({
         shellGroup.add(pathRing);
 
         // 2. Generate whizzing electrons
-        const electronGeom = new THREE.SphereGeometry(0.18, 16, 16);
         const electronMat = new THREE.MeshBasicMaterial({
           color: catColor.clone().addScalar(0.35),
         });
 
         for (let ec = 0; ec < eCount; ec++) {
-          const elMesh = new THREE.Mesh(electronGeom, electronMat.clone());
+          const elMesh = new THREE.Mesh(sharedElectronGeom, electronMat.clone());
           const initialAngle = (ec / eCount) * Math.PI * 2;
           const speed = (0.012 / (shellIdx + 1)) * (0.85 + Math.random() * 0.3);
 
-          // Trail renderer
-          const trailPoints: THREE.Vector3[] = [];
-          const maxTrailPoints = 35;
+          // Generate physical parameters for customized elliptic Kepler mechanics
+          const eccentricity = 0.1 + (shellIdx * 0.04) + Math.random() * 0.05;
+          const semiMinorAxis = radius * Math.sqrt(1 - eccentricity * eccentricity);
+
+          // Calculate exact starting position
+          const initP = new THREE.Vector3(radius * Math.cos(initialAngle), 0, semiMinorAxis * Math.sin(initialAngle));
+          initP.applyAxisAngle(new THREE.Vector3(1, 0, 0), rotX);
+          initP.applyAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
+
+          // Precompute trail renderer with a statically pre-populated Float32Array to avoid frame drops
+          const maxTrailPoints = 25;
+          const trailGeom = new THREE.BufferGeometry();
+          const trailPositions = new Float32Array(maxTrailPoints * 3);
           for (let ti = 0; ti < maxTrailPoints; ti++) {
-            trailPoints.push(new THREE.Vector3(0, 0, 0));
+            trailPositions[ti * 3] = initP.x;
+            trailPositions[ti * 3 + 1] = initP.y;
+            trailPositions[ti * 3 + 2] = initP.z;
           }
-          const trailGeom = new THREE.BufferGeometry().setFromPoints(trailPoints);
+          trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
           
           const trailColor = catColor.clone();
           const trailMat = new THREE.LineBasicMaterial({
@@ -711,17 +685,12 @@ export default function ThreeScene({
           const trailLine = new THREE.Line(trailGeom, trailMat);
           scene.add(trailLine);
 
-          // Generate physical parameters for customized elliptic Kepler mechanics
-          const eccentricity = 0.1 + (shellIdx * 0.04) + Math.random() * 0.05;
-          const semiMinorAxis = radius * Math.sqrt(1 - eccentricity * eccentricity);
-
           activeElectrons.push({
             mesh: elMesh,
             shellRadius: radius,
             angle: initialAngle,
             speed,
             trail: trailLine,
-            trailPoints,
             eccentricity,
             semiMinorAxis,
             quantumJumpTimer: 3 + Math.random() * 8, // seconds before a quick quantum hop!
@@ -1065,13 +1034,15 @@ export default function ThreeScene({
           }
         }
 
-        // Apply general grid fading
+        // Apply general grid fading & dynamic frustum/visibility culling for non-active elements
         if (currentProps.selectedElement) {
           const isSelected = ci.element.number === currentProps.selectedElement.number;
-          ci.material.opacity += ((isSelected ? 1.0 : 0.0) - ci.material.opacity) * 0.1;
+          ci.material.opacity += ((isSelected ? 1.0 : 0.0) - ci.material.opacity) * 0.15;
           ci.glowOutline.visible = isSelected;
+          ci.mesh.visible = ci.material.opacity > 0.02;
         } else {
-          ci.material.opacity += (0.9 - ci.material.opacity) * 0.1;
+          ci.mesh.visible = true;
+          ci.material.opacity += (0.9 - ci.material.opacity) * 0.15;
           ci.glowOutline.visible = true;
         }
       });
@@ -1166,24 +1137,24 @@ export default function ThreeScene({
             (el.mesh.material as THREE.MeshBasicMaterial).color.copy(el.baseColor);
           }
 
-          // Update trail lines history
-          el.trailPoints.push(p.clone());
-          if (el.trailPoints.length > 25) {
-            el.trailPoints.shift();
+          // Highly optimized in-place trail updates avoiding allocations/GC thrashing
+          const posAttr = el.trail.geometry.attributes.position as THREE.BufferAttribute;
+          const array = posAttr.array as Float32Array;
+          const maxTrailPoints = posAttr.count;
+
+          // Shift coordinate indices down in GPU buffer array
+          for (let ti = 0; ti < maxTrailPoints - 1; ti++) {
+            array[ti * 3] = array[(ti + 1) * 3];
+            array[ti * 3 + 1] = array[(ti + 1) * 3 + 1];
+            array[ti * 3 + 2] = array[(ti + 1) * 3 + 2];
           }
 
-          // Push geometry matching buffer updates
-          const positionsArr = new Float32Array(el.trailPoints.length * 3);
-          el.trailPoints.forEach((point, pIdx) => {
-            positionsArr[pIdx * 3] = point.x;
-            positionsArr[pIdx * 3 + 1] = point.y;
-            positionsArr[pIdx * 3 + 2] = point.z;
-          });
+          // Append new coordinate at the tail end
+          array[(maxTrailPoints - 1) * 3] = p.x;
+          array[(maxTrailPoints - 1) * 3 + 1] = p.y;
+          array[(maxTrailPoints - 1) * 3 + 2] = p.z;
 
-          el.trail.geometry.setAttribute('position', new THREE.BufferAttribute(positionsArr, 3));
-          el.trail.geometry.computeBoundingSphere();
-          el.trail.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
-          el.trail.geometry.attributes.position.needsUpdate = true;
+          posAttr.needsUpdate = true;
           
           // Animate and fade the trail line visibility
           const trailMat = el.trail.material as THREE.LineBasicMaterial;
@@ -1203,7 +1174,7 @@ export default function ThreeScene({
       // 5. User cursor disturbance forces projected onto Z=0 workspace
       const cursor3D = new THREE.Vector3(mouse2D.x * 32, mouse2D.y * 22, 0);
 
-      // (A) BACKGROUND SPACE DUST PARALLAX FORCE FIELD
+      // (A) BACKGROUND SPACE DUST PARALLAX FORCE FIELD (Optimized Math.sqrt bypass)
       const posAttr = spaceDust.geometry.attributes.position as THREE.BufferAttribute;
       const count = posAttr.count;
       for (let j = 0; j < count; j++) {
@@ -1226,12 +1197,13 @@ export default function ThreeScene({
         const dx = currX - cursor3D.x;
         const dy = currY - cursor3D.y;
         const dz = currZ - cursor3D.z;
-        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const distSq = dx*dx + dy*dy + dz*dz;
 
         let targetX = bx;
         let targetY = baseNewY;
 
-        if (dist < 11.5) {
+        if (distSq < 132.25) { // 11.5 * 11.5 = 132.25
+          const dist = Math.sqrt(distSq);
           // Soft magnetic orbital vortex swirl
           const force = (11.5 - dist) / 11.5;
           const swirlDirection = (j % 2 === 0 ? 1 : -1);
@@ -1249,7 +1221,7 @@ export default function ThreeScene({
       posAttr.needsUpdate = true;
       spaceDust.rotation.y += 0.0007 * simMultiplier;
 
-      // (B) FOREGROUND ATMOSPHERIC PLASMA NEBULA FLUID FIELD
+      // (B) FOREGROUND ATMOSPHERIC PLASMA NEBULA FLUID FIELD (Optimized Math.sqrt bypass)
       const plasmaPosAttr = atmosphericPlasma.geometry.attributes.position as THREE.BufferAttribute;
       const plasmaCountActual = plasmaPosAttr.count;
       for (let j = 0; j < plasmaCountActual; j++) {
@@ -1275,12 +1247,13 @@ export default function ThreeScene({
         const dx = currX - cursor3D.x;
         const dy = currY - cursor3D.y;
         const dz = currZ - cursor3D.z;
-        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const distSq = dx*dx + dy*dy + dz*dz;
 
         let targetX = baseNewX;
         let targetY = baseNewY;
 
-        if (dist < 14) {
+        if (distSq < 196) { // 14 * 14 = 196
+          const dist = Math.sqrt(distSq);
           const force = (14 - dist) / 14;
           // Soft fluid repulsive shockwave
           const pushAngle = Math.atan2(dy, dx);
@@ -1345,16 +1318,16 @@ export default function ThreeScene({
       clearElementWorld();
       
       elementCards.forEach(c => {
-        c.mesh.geometry.dispose();
         c.material.map?.dispose();
         c.material.dispose();
-        c.glowOutline.geometry.dispose();
         (c.glowOutline.material as THREE.Material).dispose();
       });
 
-      protonGeom.dispose();
+      sharedCardGeom.dispose();
+      sharedEdgeConfigGeom.dispose();
+
+      sharedNucleonGeom.dispose();
       protonMat.dispose();
-      neutronGeom.dispose();
       neutronMat.dispose();
 
       activeElectrons.forEach(e => {
