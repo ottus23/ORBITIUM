@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import ThreeScene from './components/ThreeScene';
 import HolographicUI from './components/HolographicUI';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from './types';
@@ -61,6 +62,9 @@ export default function App() {
         activeReaction={activeReaction}
         onTriggerReaction={setActiveReaction}
       />
+      
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </div>
   );
 }
