@@ -19,6 +19,9 @@ interface ThreeSceneProps {
   reactiveIntensity: number;
   isObsEntered: boolean;
   activeReaction: ReactionConfig | null;
+  adaptiveQualityEnabled: boolean;
+  onLowPerfModeChange: (isLow: boolean) => void;
+  onFpsChange: (fps: number) => void;
 }
 
 export default function ThreeScene({
@@ -31,6 +34,9 @@ export default function ThreeScene({
   reactiveIntensity,
   isObsEntered,
   activeReaction,
+  adaptiveQualityEnabled,
+  onLowPerfModeChange,
+  onFpsChange,
 }: ThreeSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -43,6 +49,9 @@ export default function ThreeScene({
     reactiveIntensity,
     isObsEntered,
     activeReaction,
+    adaptiveQualityEnabled,
+    onLowPerfModeChange,
+    onFpsChange,
   });
 
   useEffect(() => {
@@ -54,8 +63,22 @@ export default function ThreeScene({
       reactiveIntensity,
       isObsEntered,
       activeReaction,
+      adaptiveQualityEnabled,
+      onLowPerfModeChange,
+      onFpsChange,
     };
-  }, [selectedElement, hoveredElement, layoutMode, simulationSpeed, reactiveIntensity, isObsEntered, activeReaction]);
+  }, [
+    selectedElement,
+    hoveredElement,
+    layoutMode,
+    simulationSpeed,
+    reactiveIntensity,
+    isObsEntered,
+    activeReaction,
+    adaptiveQualityEnabled,
+    onLowPerfModeChange,
+    onFpsChange,
+  ]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -384,6 +407,14 @@ export default function ThreeScene({
       specular: '#FFFFFF',
     });
 
+    const protonBasicMat = new THREE.MeshBasicMaterial({
+      color: '#7C4DFF',
+    });
+
+    const neutronBasicMat = new THREE.MeshBasicMaterial({
+      color: '#00FFB3',
+    });
+
     for (let i = 0; i < nucleonCount; i++) {
       const isProton = Math.random() > 0.48;
       const mesh = new THREE.Mesh(sharedNucleonGeom, isProton ? protonMat : neutronMat);
@@ -594,12 +625,16 @@ export default function ThreeScene({
       // Update Core Lights & Nucleus mesh emissions with visual primary
       coreLight.color.copy(visualPrimary);
 
-      const nucleusMaterial = new THREE.MeshPhongMaterial({
-        color: visualPrimary,
-        emissive: visualPrimary.clone().multiplyScalar(0.4),
-        shininess: 120,
-        specular: '#FFFFFF',
-      });
+      const nucleusMaterial = isLowPerfActive
+        ? new THREE.MeshBasicMaterial({
+            color: visualPrimary,
+          })
+        : new THREE.MeshPhongMaterial({
+            color: visualPrimary,
+            emissive: visualPrimary.clone().multiplyScalar(0.4),
+            shininess: 120,
+            specular: '#FFFFFF',
+          });
       
       nucleons.forEach((node, idx) => {
         if (idx % 2 === 0) {
@@ -844,6 +879,38 @@ export default function ThreeScene({
     let lastSelected: ChemicalElement | null = null;
     let lastLayout: TableLayoutMode = 'grid';
 
+    // Adaptive Quality state and dynamic adjustments helper
+    let isLowPerfActive = false;
+    let consecutiveLowFpsChecks = 0;
+    let consecutiveHighFpsChecks = 0;
+    let frameCount = 0;
+    let lastFpsUpdateTime = performance.now();
+
+    const applyQualityScaleDown = (isLow: boolean) => {
+      // Scale down particle counts inside geometries using setDrawRange
+      spaceDust.geometry.setDrawRange(0, isLow ? Math.floor(particleCount * 0.3) : particleCount);
+      atmosphericPlasma.geometry.setDrawRange(0, isLow ? Math.floor(plasmaCount * 0.3) : plasmaCount);
+      deepConstellation.geometry.setDrawRange(0, isLow ? Math.floor(farStarCount * 0.2) : farStarCount);
+
+      // Hide/reveal filaments to save draw calls and line shaders CPU cost
+      networkLines.visible = !isLow;
+
+      // Swap nucleon materials in the background nucleus to BasicMaterial
+      nucleons.forEach((node, idx) => {
+        node.material = isLow
+          ? (idx % 2 === 0 ? protonBasicMat : neutronBasicMat)
+          : (idx % 2 === 0 ? protonMat : neutronMat);
+      });
+
+      // Scale down pixel ratio to reduce GPU raster/pixel operations
+      renderer.setPixelRatio(isLow ? 1.0 : Math.min(window.devicePixelRatio, 2));
+
+      // Dim lighting intensities if scale down active to reduce heavy specular calculations
+      blueDirLight.intensity = isLow ? 1.0 : 2.5;
+      purpleDirLight.intensity = isLow ? 0.6 : 1.8;
+      spotLight.intensity = isLow ? 1.8 : 3.8;
+    };
+
     const renderLoop = () => {
       frameId = requestAnimationFrame(renderLoop);
 
@@ -852,6 +919,51 @@ export default function ThreeScene({
       
       const currentProps = propsRef.current;
       const simMultiplier = currentProps.simulationSpeed;
+
+      // Measure real-time FPS with hysteretic stabilization checks
+      frameCount++;
+      const currentTimer = performance.now();
+      if (currentTimer >= lastFpsUpdateTime + 1000) {
+        const currentMeasuredFps = Math.round((frameCount * 1000) / (currentTimer - lastFpsUpdateTime));
+        frameCount = 0;
+        lastFpsUpdateTime = currentTimer;
+
+        // Callback to update diagnostics overlay with genuine real-time values
+        currentProps.onFpsChange(currentMeasuredFps);
+
+        if (currentProps.adaptiveQualityEnabled) {
+          if (currentMeasuredFps < 50) {
+            consecutiveLowFpsChecks++;
+            consecutiveHighFpsChecks = 0;
+            if (consecutiveLowFpsChecks >= 3 && !isLowPerfActive) {
+              isLowPerfActive = true;
+              currentProps.onLowPerfModeChange(true);
+              applyQualityScaleDown(true);
+            }
+          } else {
+            if (currentMeasuredFps >= 54) {
+              consecutiveLowFpsChecks = 0;
+              if (isLowPerfActive) {
+                consecutiveHighFpsChecks++;
+                if (consecutiveHighFpsChecks >= 4) {
+                  isLowPerfActive = false;
+                  currentProps.onLowPerfModeChange(false);
+                  applyQualityScaleDown(false);
+                }
+              }
+            }
+          }
+        } else {
+          // If adaptive toggle is disabled, restore max quality
+          if (isLowPerfActive) {
+            isLowPerfActive = false;
+            currentProps.onLowPerfModeChange(false);
+            applyQualityScaleDown(false);
+          }
+          consecutiveLowFpsChecks = 0;
+          consecutiveHighFpsChecks = 0;
+        }
+      }
 
       // 1. Detect dynamic layout swaps or selection changes
       if (currentProps.layoutMode !== lastLayout || currentProps.selectedElement !== lastSelected) {

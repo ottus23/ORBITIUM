@@ -39,6 +39,10 @@ interface HolographicUIProps {
   onEnterObs: () => void;
   activeReaction: ReactionConfig | null;
   onTriggerReaction: (reaction: ReactionConfig | null) => void;
+  adaptiveQuality: boolean;
+  onChangeAdaptiveQuality: (active: boolean) => void;
+  isLowPerfMode: boolean;
+  currentFps: number;
 }
 
 export default function HolographicUI({
@@ -55,6 +59,10 @@ export default function HolographicUI({
   onEnterObs,
   activeReaction,
   onTriggerReaction,
+  adaptiveQuality,
+  onChangeAdaptiveQuality,
+  isLowPerfMode,
+  currentFps,
 }: HolographicUIProps) {
   const [reactionStage, setReactionStage] = useState<'idle' | 'mixing' | 'stable'>('idle');
   const [reactionCountDown, setReactionCountDown] = useState(0);
@@ -252,6 +260,39 @@ export default function HolographicUI({
                   onChange={(e) => onSetReactiveIntensity(parseFloat(e.target.value))}
                   className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
                 />
+              </div>
+
+              {/* Dynamic Adaptive Quality & Performance Stabilization */}
+              <div className="w-full h-[1px] bg-white/10 my-1" />
+
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center text-[10px] font-mono">
+                  <span className="text-[#EAF2FF]/60 uppercase">DIAGNOSTICS:</span>
+                  <span className={`font-black tracking-widest ${currentFps >= 50 ? 'text-[#00FFB3]' : 'text-[#FFD54F]'}`}>
+                    {currentFps} FPS
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => onChangeAdaptiveQuality(!adaptiveQuality)}
+                  className={`w-full py-1.5 px-2 text-[10px] font-extrabold uppercase tracking-widest border transition-all cursor-pointer flex justify-between items-center bg-[#070B14] ${
+                    adaptiveQuality
+                      ? 'border-[#00E5FF]/40 text-[#00E5FF] hover:border-[#00E5FF]/70'
+                      : 'border-white/10 text-[#EAF2FF]/40 hover:border-white/20'
+                  }`}
+                >
+                  <span>ADAPTIVE STABILIZATION:</span>
+                  <span className="font-extrabold text-xs">{adaptiveQuality ? 'ON' : 'OFF'}</span>
+                </button>
+
+                {adaptiveQuality && (
+                  <div className="flex items-center gap-1.5 mt-0.5 px-2 py-1 rounded bg-black/40 text-[9px] font-mono border border-white/5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isLowPerfMode ? 'bg-[#FF9100] animate-pulse' : 'bg-[#00FFB3]'}`} />
+                    <span className={isLowPerfMode ? 'text-[#FF9100]' : 'text-[#EAF2FF]/50'}>
+                      {isLowPerfMode ? 'OPTIMIZED STABILIZATION ACTIVE' : 'AURA FLOW: MAX INTENSITY'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

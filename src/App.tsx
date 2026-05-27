@@ -23,6 +23,11 @@ export default function App() {
   // Action reactions config
   const [activeReaction, setActiveReaction] = useState<ReactionConfig | null>(null);
 
+  // Adaptive Quality System
+  const [adaptiveQuality, setAdaptiveQuality] = useState<boolean>(true);
+  const [isLowPerfMode, setIsLowPerfMode] = useState<boolean>(false);
+  const [currentFps, setCurrentFps] = useState<number>(60);
+
   const handleEnterObs = () => {
     setIsObsEntered(true);
   };
@@ -43,6 +48,9 @@ export default function App() {
         reactiveIntensity={reactiveIntensity}
         isObsEntered={isObsEntered}
         activeReaction={activeReaction}
+        adaptiveQualityEnabled={adaptiveQuality}
+        onLowPerfModeChange={setIsLowPerfMode}
+        onFpsChange={setCurrentFps}
       />
 
       {/* Holographic HUD UI Overlays */}
@@ -60,6 +68,10 @@ export default function App() {
         onEnterObs={handleEnterObs}
         activeReaction={activeReaction}
         onTriggerReaction={setActiveReaction}
+        adaptiveQuality={adaptiveQuality}
+        onChangeAdaptiveQuality={setAdaptiveQuality}
+        isLowPerfMode={isLowPerfMode}
+        currentFps={currentFps}
       />
     </div>
   );
