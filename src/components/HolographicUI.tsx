@@ -99,6 +99,11 @@ export default function HolographicUI({
   return (
     <div id="orbitium-hud-root" className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6 z-10 font-sans text-[#EAF2FF]">
       
+      {/* Cinematic Quantum Radar Scanline */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="w-full h-[1.5px] bg-[#00E5FF]/25 shadow-[0_0_12px_rgba(0,229,255,0.7)] animate-scanline" />
+      </div>
+      
       {/* =======================================================
           LANDING OVERLAY (IfNotEntered)
           ======================================================= */}
@@ -179,9 +184,9 @@ export default function HolographicUI({
         
         {/* LEFT HUD: CONTROLS & LAYOUT SWITCHER */}
         {isObsEntered && !selectedElement && (
-          <div id="left-hud-controls" className="w-full md:w-72 flex flex-col justify-between gap-4 pointer-events-auto">
+          <div id="left-hud-controls" className="w-full md:w-72 flex flex-col justify-start gap-4 pointer-events-auto">
             {/* Card Layout switcher */}
-            <div className="bg-[#0B1020]/75 backdrop-blur-md border border-white/5 p-4 rounded-sm flex flex-col gap-3 shadow-lg">
+            <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
               <div className="text-[10px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center gap-2">
                 <Layers className="w-4.5 h-4.5" /> MATRIX STRUCTURING LAYOUT
               </div>
@@ -210,7 +215,7 @@ export default function HolographicUI({
             </div>
 
             {/* Slider parameters panel */}
-            <div className="bg-[#0B1020]/75 backdrop-blur-md border border-white/5 p-4 rounded-sm flex flex-col gap-4 shadow-lg">
+            <div className="cyber-panel p-4 rounded-sm flex flex-col gap-4 shadow-lg">
               <div className="text-[10px] font-mono uppercase text-[#7C4DFF] tracking-widest flex items-center gap-2">
                 <Sliders className="w-4.5 h-4.5" /> WAVEFIELD MODULATION
               </div>
@@ -251,7 +256,7 @@ export default function HolographicUI({
             </div>
 
             {/* Reaction Lab Drawer */}
-            <div className="bg-[#0B1020]/75 backdrop-blur-md border border-white/5 p-4 rounded-sm flex flex-col gap-3 shadow-lg">
+            <div className="cyber-panel p-4 rounded-sm flex flex-col gap-3 shadow-lg">
               <div className="text-[10px] font-mono uppercase text-[#00FFB3] tracking-widest flex items-center gap-2">
                 <Flame className="w-4.5 h-4.5 text-[#00FFB3]" /> REACTION SYNTHESIZER
               </div>
@@ -315,7 +320,7 @@ export default function HolographicUI({
 
         {/* RIGHT HUD: SELECTED ELEMENT DETAILS */}
         {isObsEntered && selectedElement && (
-          <div id="element-detail-sidebar" className="w-full md:w-85 ml-auto bg-[#0B1020]/80 backdrop-blur-md border border-white/5 p-4 sm:p-5 rounded-sm flex flex-col justify-between shadow-2xl relative select-none pointer-events-auto overflow-y-auto">
+          <div id="element-detail-sidebar" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-between shadow-2xl relative select-none pointer-events-auto overflow-y-auto">
             {/* Custom cybernetic overlay grids for detailed visual */}
             <div className="absolute top-0 right-0 p-1 flex gap-1 bg-[#070B14]/40 border-l border-b border-white/10 text-[8px] font-mono tracking-widest text-[#EAF2FF]/30 lowercase">
               sys.view_node()

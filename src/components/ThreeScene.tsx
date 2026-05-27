@@ -75,29 +75,30 @@ export default function ThreeScene({
     renderer.shadowMap.enabled = true;
     mountRef.current.appendChild(renderer.domElement);
 
-    // --- 2. LIGHTS ---
-    const ambientLight = new THREE.AmbientLight('#0B1020', 1.5);
+    // --- 2. LIGHTS & ATMOSPHERIC GLOW ---
+    const ambientLight = new THREE.AmbientLight('#0B1020', 1.8);
     scene.add(ambientLight);
 
-    const blueDirLight = new THREE.DirectionalLight('#00E5FF', 2.0);
+    const blueDirLight = new THREE.DirectionalLight('#00E5FF', 2.5);
     blueDirLight.position.set(-15, 20, 15);
     scene.add(blueDirLight);
 
-    const purpleDirLight = new THREE.DirectionalLight('#7C4DFF', 1.5);
+    const purpleDirLight = new THREE.DirectionalLight('#7C4DFF', 1.8);
     purpleDirLight.position.set(15, -15, 10);
     scene.add(purpleDirLight);
 
-    // Cosmic spot light focused on center
-    const spotLight = new THREE.SpotLight('#eaf2ff', 4.0, 100, Math.PI / 4, 0.5, 1.0);
+    // Cosmic spot light focused on center with fine angle
+    const spotLight = new THREE.SpotLight('#EAF2FF', 5.0, 120, Math.PI / 3.5, 0.6, 1.0);
     spotLight.position.set(0, 25, 25);
     scene.add(spotLight);
 
-    // --- 3. SPACE PARTICLES / COSMIC DUST ---
+    // --- 3. SPACE PARTICLES / COSMIC BACKGROUND DUST ---
     const particleCount = window.innerWidth < 768 ? 800 : 2500;
     const particleGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
     const speeds = new Float32Array(particleCount);
+    const baseDustPositions = new Float32Array(particleCount * 3); // To allow physical disturbance return state
 
     const dustColors = [
       new THREE.Color('#00E5FF'),
@@ -107,12 +108,14 @@ export default function ThreeScene({
     ];
 
     for (let i = 0; i < particleCount; i++) {
-      // Outer space field
       positions[i * 3] = (Math.random() - 0.5) * 120;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 90;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
 
-      // Assign a cosmic color
+      baseDustPositions[i * 3] = positions[i * 3];
+      baseDustPositions[i * 3 + 1] = positions[i * 3 + 1];
+      baseDustPositions[i * 3 + 2] = positions[i * 3 + 2];
+
       const color = dustColors[Math.floor(Math.random() * dustColors.length)];
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
@@ -124,7 +127,6 @@ export default function ThreeScene({
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-    // Custom shader material or simple glowing points for particles
     const particleTexture = createCircularParticleTexture();
     const particleMaterial = new THREE.PointsMaterial({
       size: 0.35,
@@ -139,7 +141,56 @@ export default function ThreeScene({
     const spaceDust = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(spaceDust);
 
-    // --- 4. GIANT PLANAR ATMOSPHERIC LAB GRID SYSTEM ---
+    // --- 3B. ATMOSPHERIC PLASMA FIELD (FOREGROUND NEBULA ECOSYSTEM) ---
+    const plasmaCount = window.innerWidth < 768 ? 150 : 450;
+    const plasmaGeometry = new THREE.BufferGeometry();
+    const plasmaPositions = new Float32Array(plasmaCount * 3);
+    const plasmaColors = new Float32Array(plasmaCount * 3);
+    const plasmaSpeeds = new Float32Array(plasmaCount);
+    const basePlasmaPositions = new Float32Array(plasmaCount * 3);
+
+    const plasmaColorsList = [
+      new THREE.Color('#FF007F'), // Hot quantum magenta
+      new THREE.Color('#00FFB3'), // Emerald core
+      new THREE.Color('#00E5FF'), // Celestial cyan
+      new THREE.Color('#7C4DFF'), // Electrifying violet
+    ];
+
+    for (let i = 0; i < plasmaCount; i++) {
+      plasmaPositions[i * 3] = (Math.random() - 0.5) * 75;
+      plasmaPositions[i * 3 + 1] = (Math.random() - 0.5) * 60;
+      plasmaPositions[i * 3 + 2] = (Math.random() - 0.5) * 45; // Foreground presence
+
+      basePlasmaPositions[i * 3] = plasmaPositions[i * 3];
+      basePlasmaPositions[i * 3 + 1] = plasmaPositions[i * 3 + 1];
+      basePlasmaPositions[i * 3 + 2] = plasmaPositions[i * 3 + 2];
+
+      const color = plasmaColorsList[Math.floor(Math.random() * plasmaColorsList.length)];
+      plasmaColors[i * 3] = color.r;
+      plasmaColors[i * 3 + 1] = color.g;
+      plasmaColors[i * 3 + 2] = color.b;
+
+      plasmaSpeeds[i] = 0.02 + Math.random() * 0.06;
+    }
+
+    plasmaGeometry.setAttribute('position', new THREE.BufferAttribute(plasmaPositions, 3));
+    plasmaGeometry.setAttribute('color', new THREE.BufferAttribute(plasmaColors, 3));
+
+    const plasmaTexture = createCircularParticleTexture();
+    const plasmaMaterial = new THREE.PointsMaterial({
+      size: 1.25,
+      map: plasmaTexture,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const atmosphericPlasma = new THREE.Points(plasmaGeometry, plasmaMaterial);
+    scene.add(atmosphericPlasma);
+
+    // --- 4. PLANAR ATMOSPHERIC LAB GRID System ---
     const gridHelperY = new THREE.GridHelper(100, 50, '#00E5FF', '#0B1020');
     gridHelperY.position.set(0, -25, 0);
     gridHelperY.material.opacity = 0.12;
@@ -220,7 +271,7 @@ export default function ThreeScene({
     const nucleusGroup = new THREE.Group();
     atomGroup.add(nucleusGroup);
 
-    const coreLight = new THREE.PointLight('#EAF2FF', 5.0, 30);
+    const coreLight = new THREE.PointLight('#EAF2FF', 6.0, 35);
     coreLight.position.set(0, 0, 0);
     atomGroup.add(coreLight);
 
@@ -233,14 +284,14 @@ export default function ThreeScene({
     const protonMat = new THREE.MeshPhongMaterial({
       color: '#7C4DFF',
       emissive: '#4A148C',
-      shininess: 90,
+      shininess: 95,
       specular: '#FFFFFF',
     });
     
     const neutronMat = new THREE.MeshPhongMaterial({
       color: '#00FFB3',
       emissive: '#004D40',
-      shininess: 80,
+      shininess: 85,
       specular: '#FFFFFF',
     });
 
@@ -266,16 +317,25 @@ export default function ThreeScene({
     const shellGroup = new THREE.Group();
     atomGroup.add(shellGroup);
 
-    interface ElectronParticle {
+    interface ExtendedElectron {
       mesh: THREE.Mesh;
       shellRadius: number;
       angle: number;
       speed: number;
       trail: THREE.Line;
       trailPoints: THREE.Vector3[];
+      eccentricity: number;
+      semiMinorAxis: number;
+      quantumJumpTimer: number;
+      isJumping: boolean;
+      jumpRatio: number;
+      baseColor: THREE.Color;
+      shellIndex: number;
+      rotX: number;
+      rotZ: number;
     }
     
-    let activeElectrons: ElectronParticle[] = [];
+    let activeElectrons: ExtendedElectron[] = [];
 
     // --- INTERACTION / DRAG CONTROLS ---
     let isDragging = false;
@@ -288,6 +348,10 @@ export default function ThreeScene({
     let rotYTarget = 0;
     let currentRotX = 0;
     let currentRotY = 0;
+
+    // Interactive Camera Parallax & Elastic buoyancy
+    let currentParallaxX = 0;
+    let currentParallaxY = 0;
 
     // Raycasting for cards hover and click
     const raycaster = new THREE.Raycaster();
@@ -415,7 +479,7 @@ export default function ThreeScene({
         }
       });
 
-      // Spawn electron rings based on real structural shells
+      // Spawn electron rings based on real structural shells with varying inclinations
       const activeShells = el.shells; // e.g. [2, 8, 1]
       
       activeShells.forEach((eCount, shellIdx) => {
@@ -426,12 +490,12 @@ export default function ThreeScene({
         const segments = 120;
         
         // Tilt shell planes differently to make it look breathtakingly 3D (Rutherford models)
-        const rotX = (shellIdx * 0.4) + 0.15;
-        const rotZ = (shellIdx * -0.3) - 0.1;
+        const rotX = (shellIdx * 0.38) + 0.15;
+        const rotZ = (shellIdx * -0.28) - 0.1;
 
         for (let i = 0; i <= segments; i++) {
           const theta = (i / segments) * Math.PI * 2;
-          const p = new THREE.Vector3(radius * Math.cos(theta), 0, radius * Math.sin(theta));
+          const p = new THREE.Vector3(radius * Math.cos(theta), 0, (radius * 0.9) * Math.sin(theta));
           p.applyAxisAngle(new THREE.Vector3(1, 0, 0), rotX);
           p.applyAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
           ringPoints.push(p);
@@ -450,17 +514,17 @@ export default function ThreeScene({
         // 2. Generate whizzing electrons
         const electronGeom = new THREE.SphereGeometry(0.18, 16, 16);
         const electronMat = new THREE.MeshBasicMaterial({
-          color: catColor.clone().addScalar(0.3),
+          color: catColor.clone().addScalar(0.35),
         });
 
         for (let ec = 0; ec < eCount; ec++) {
-          const elMesh = new THREE.Mesh(electronGeom, electronMat);
+          const elMesh = new THREE.Mesh(electronGeom, electronMat.clone());
           const initialAngle = (ec / eCount) * Math.PI * 2;
-          const speed = (0.015 / (shellIdx + 1)) * (0.8 + Math.random() * 0.4);
+          const speed = (0.012 / (shellIdx + 1)) * (0.85 + Math.random() * 0.3);
 
           // Trail renderer
           const trailPoints: THREE.Vector3[] = [];
-          const maxTrailPoints = 30;
+          const maxTrailPoints = 35;
           for (let ti = 0; ti < maxTrailPoints; ti++) {
             trailPoints.push(new THREE.Vector3(0, 0, 0));
           }
@@ -476,6 +540,10 @@ export default function ThreeScene({
           const trailLine = new THREE.Line(trailGeom, trailMat);
           scene.add(trailLine);
 
+          // Generate physical parameters for customized elliptic Kepler mechanics
+          const eccentricity = 0.1 + (shellIdx * 0.04) + Math.random() * 0.05;
+          const semiMinorAxis = radius * Math.sqrt(1 - eccentricity * eccentricity);
+
           activeElectrons.push({
             mesh: elMesh,
             shellRadius: radius,
@@ -483,6 +551,15 @@ export default function ThreeScene({
             speed,
             trail: trailLine,
             trailPoints,
+            eccentricity,
+            semiMinorAxis,
+            quantumJumpTimer: 3 + Math.random() * 8, // seconds before a quick quantum hop!
+            isJumping: false,
+            jumpRatio: 0,
+            baseColor: catColor.clone().addScalar(0.35),
+            shellIndex: shellIdx,
+            rotX,
+            rotZ
           });
           
           scene.add(elMesh);
@@ -522,7 +599,7 @@ export default function ThreeScene({
         previousMouseY = e.clientY;
       } else {
         // Ambient cursor parallax hover drift calculations
-        cameraYOffsetTarget = y * 4;
+        cameraYOffsetTarget = y * 2.5;
       }
     };
 
@@ -630,13 +707,13 @@ export default function ThreeScene({
         }
       }
 
-      // 2. Fly camera toward detailed targets or table modes
+      // 2. Cinematic weightless floating and panning drone camera response
       let cameraTargetZ = 42;
       let cameraTargetY = 0;
       let cameraTargetX = 0;
 
       if (!currentProps.isObsEntered) {
-        // Cinematic rotating landing view perspective
+        // Welcoming rotating cosmic sweep
         cameraTargetZ = 52;
         cameraTargetY = 12;
         cameraTargetX = Math.sin(elapsed * 0.12) * 22;
@@ -644,16 +721,14 @@ export default function ThreeScene({
         rotYTarget = elapsed * 0.05;
         rotXTarget = -0.15;
       } else if (currentProps.selectedElement) {
-        // Detailed Atom mode centering
-        cameraTargetX = 5.0; // Offset camera to display holographic sidebar neatly
-        cameraTargetY = 0;
+        // Detailed Atom view focusing, camera offset to handle HUD neatness
+        cameraTargetX = 4.8; 
+        cameraTargetY = -0.2;
         cameraTargetZ = 16.5 + currentProps.selectedElement.shells.length * 1.5;
         
-        // Zero out user table rotation on detailed focus
         rotXTarget *= 0.95;
         rotYTarget *= 0.95;
       } else {
-        // Tables screen heights based on Layout mode
         if (currentProps.layoutMode === 'spiral') {
           cameraTargetZ = 30;
           cameraTargetY = 2;
@@ -666,18 +741,42 @@ export default function ThreeScene({
         }
       }
 
-      // Slerp dragging rotations
+      // Drag calculations slerp
       currentRotX += (rotXTarget - currentRotX) * 0.08;
       currentRotY += (rotYTarget - currentRotY) * 0.08;
 
-      // Slerp coordinates
-      camera.position.x += (cameraTargetX - camera.position.x) * 0.08;
-      camera.position.y += (cameraTargetY + cameraYOffsetTarget - camera.position.y) * 0.08;
-      camera.position.z += (cameraTargetZ - camera.position.z) * 0.08;
+      // Cinematic buoyancy drift offsets (lissajous shapes for alive zero-G perspective)
+      const buoyancyX = Math.sin(elapsed * 0.35) * 1.2;
+      const buoyancyY = Math.cos(elapsed * 0.28) * 0.8;
+      const buoyancyZ = Math.sin(elapsed * 0.18) * 0.6;
 
-      // Rotations matrices configuration
+      // Elastic cursor parallax
+      const targetParallaxX = mouse2D.x * 3.5;
+      const targetParallaxY = mouse2D.y * 2.2;
+      currentParallaxX += (targetParallaxX - currentParallaxX) * 0.06;
+      currentParallaxY += (targetParallaxY - currentParallaxY) * 0.06;
+
+      // Apply integrated slerp positioning
+      camera.position.x += (cameraTargetX + buoyancyX + currentParallaxX - camera.position.x) * 0.07;
+      camera.position.y += (cameraTargetY + buoyancyY + currentParallaxY + cameraYOffsetTarget - camera.position.y) * 0.07;
+      camera.position.z += (cameraTargetZ + buoyancyZ - camera.position.z) * 0.07;
+
+      // Point camera cinematic look
+      const cameraLookTarget = new THREE.Vector3(currentProps.selectedElement ? 3.0 : 0, 0, 0);
+      camera.lookAt(cameraLookTarget);
+
+      // Slerp structures rotations
       cardGroup.rotation.x = currentRotX;
       cardGroup.rotation.y = currentRotY;
+
+      // Responsive directional/ambient lights tilt
+      blueDirLight.position.set(-15 + mouse2D.x * 12, 20 - mouse2D.y * 10, 15);
+      purpleDirLight.position.set(15 - mouse2D.x * 12, -15 + mouse2D.y * 10, 10);
+      spotLight.position.set(mouse2D.x * 15, 25 - mouse2D.y * 5, 25 + Math.sin(elapsed) * 3);
+
+      // Low frequency breathing of background & spotlight cores
+      ambientLight.intensity = 1.35 + Math.sin(elapsed * 0.65) * 0.18;
+      spotLight.intensity = 3.8 + Math.sin(elapsed * 1.25) * 0.6 + Math.cos(elapsed * 2.8) * 0.3;
 
       // 3. Move and float each element card
       raycaster.setFromCamera(mouse2D, camera);
@@ -691,40 +790,37 @@ export default function ThreeScene({
       let currentHoveredElement: ChemicalElement | null = null;
 
       elementCards.forEach((ci) => {
-        // Weights & slerp motion vectors
         ci.mesh.position.lerp(ci.targetPosition, 0.08);
         
         // Dynamic weightless floating float calculations
-        const floatFactor = Math.sin(elapsed * 1.5 + ci.floatOffset) * 0.15;
+        const floatFactor = Math.sin(elapsed * 1.5 + ci.floatOffset) * 0.14;
         ci.mesh.position.y += floatFactor * (currentProps.selectedElement ? 0.0 : 1.0);
 
         // Smoothly rotate cards towards targeted layout angle
         const targetQ = new THREE.Quaternion().setFromEuler(ci.targetRotation);
         ci.mesh.quaternion.slerp(targetQ, 0.08);
 
-        // Hover responsive effects (push Z out on hover, glow highlight)
+        // Hover forward thrust inside grid matrices
         const isCurrentlyHovered = hoveredMesh && (hoveredMesh === ci.mesh || hoveredMesh.parent === ci.mesh);
         const outlineMat = ci.glowOutline.material as THREE.LineBasicMaterial;
         
         if (isCurrentlyHovered && !currentProps.selectedElement && currentProps.isObsEntered) {
           currentHoveredElement = ci.element;
           
-          // Hover forward thrust
-          ci.mesh.translateZ(0.6);
-          outlineMat.opacity = 0.9 + Math.sin(elapsed * 10) * 0.1;
+          ci.mesh.translateZ(0.65);
+          outlineMat.opacity = 0.95 + Math.sin(elapsed * 9) * 0.05;
           ci.glowOutline.scale.set(1.12, 1.12, 1.12);
         } else {
-          outlineMat.opacity = 0.35 + Math.sin(elapsed * 2 + ci.floatOffset) * 0.1;
+          outlineMat.opacity = 0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08;
           ci.glowOutline.scale.set(1.05, 1.05, 1.05);
 
-          // Render radioactive unstable flickers
           if (ci.element.category === 'actinide') {
-            const flicker = Math.random() > 0.88 ? 0.95 : 0.32;
+            const flicker = Math.random() > 0.88 ? 0.9 : 0.35;
             outlineMat.opacity = flicker;
           }
         }
 
-        // Apply general visibility fading
+        // Apply general grid fading
         if (currentProps.selectedElement) {
           const isSelected = ci.element.number === currentProps.selectedElement.number;
           ci.material.opacity += ((isSelected ? 1.0 : 0.0) - ci.material.opacity) * 0.1;
@@ -742,53 +838,97 @@ export default function ThreeScene({
         }
       }
 
-      // 4. Animate Atom Elements
+      // 4. Animate Core Quantum Atom Elements
       if (currentProps.selectedElement) {
         atomGroup.visible = true;
         
-        // Nucleus organic rotation
+        // Nucleus organic eccentric rotation
         nucleusGroup.rotation.y += 0.012 * simMultiplier;
         nucleusGroup.rotation.z += 0.007 * simMultiplier;
         
-        // Pulsate nucleons slightly to look "alive"
-        const pulse = 1.0 + Math.sin(elapsed * 8) * 0.04;
-        nucleusGroup.scale.set(pulse, pulse, pulse);
+        // Pulsating respiration core based on kinetic energy setting
+        const breatheFactor = Math.sin(elapsed * 2.8) * 0.04 + Math.sin(elapsed * 14.0) * 0.015 * currentProps.reactiveIntensity;
+        const coreScale = 1.0 + breatheFactor;
+        nucleusGroup.scale.set(coreScale, coreScale, coreScale);
+
+        // Jitter protons & neutrons with nuclear energetic kinetic Brownian noise
+        const jitterForce = currentProps.activeReaction ? 0.09 * currentProps.reactiveIntensity : 0.015;
+        nucleons.forEach((mesh, index) => {
+          mesh.position.x += (Math.random() - 0.5) * jitterForce;
+          mesh.position.y += (Math.random() - 0.5) * jitterForce;
+          mesh.position.z += (Math.random() - 0.5) * jitterForce;
+          
+          // Tight magnetic pull back to center
+          mesh.position.multiplyScalar(0.95);
+        });
+
+        // Pulsate PointLight source inside nucleus
+        coreLight.intensity = (6.0 + Math.sin(elapsed * 8.0) * 2.5) * (1.0 + currentProps.reactiveIntensity * 0.3);
 
         // Update orbits and electron trail rings
         activeElectrons.forEach((el) => {
-          // Progress angular orbiting position
-          el.angle += el.speed * simMultiplier;
-          
-          // Electron positions calculations respecting Bohr matrices
-          const radius = el.shellRadius;
-          const shellIdx = Math.round((radius - 3.5) / 2.2);
-          const rotX = (shellIdx * 0.4) + 0.15;
-          const rotZ = (shellIdx * -0.3) - 0.1;
+          // Progress orbits using Kepler's angle velocity (fast pericenter, slow apocenter)
+          const e = el.eccentricity;
+          const speedScalar = Math.pow(1.0 + e * Math.cos(el.angle), 2);
+          el.angle += el.speed * simMultiplier * speedScalar;
 
-          const p = new THREE.Vector3(radius * Math.cos(el.angle), 0, radius * Math.sin(el.angle));
-          
-          // Apply reaction unstable distortions
-          if (currentProps.activeReaction) {
-            const distort = (Math.random() - 0.5) * currentProps.reactiveIntensity * 0.35;
-            p.addScalar(distort);
+          // Quantum Jump State handling
+          if (!el.isJumping) {
+            el.quantumJumpTimer -= delta * simMultiplier;
+            if (el.quantumJumpTimer <= 0) {
+              el.isJumping = true;
+              el.jumpRatio = 0.0;
+            }
+          } else {
+            el.jumpRatio += delta * 1.5 * simMultiplier;
+            if (el.jumpRatio >= 1.0) {
+              el.isJumping = false;
+              el.quantumJumpTimer = 4 + Math.random() * 9;
+              el.jumpRatio = 0.0;
+            }
           }
 
-          p.applyAxisAngle(new THREE.Vector3(1, 0, 0), rotX);
-          p.applyAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
+          // Elliptic shell distances
+          const rxBase = el.shellRadius;
+          const ryBase = el.semiMinorAxis;
 
-          // Update Electron Mesh spot
+          // Compute custom excitation wave jump radius
+          const orbitJumpMultiplier = el.isJumping ? Math.sin(el.jumpRatio * Math.PI) * 3.2 : 0.0;
+          
+          // Reaction kinetic shell vibrations
+          const ringWobble = currentProps.activeReaction 
+            ? Math.sin(elapsed * 15.0 + el.angle * 2.0) * 0.18 * currentProps.reactiveIntensity
+            : Math.sin(elapsed * 3.5 + el.angle) * 0.02;
+
+          const rx = rxBase + orbitJumpMultiplier + ringWobble;
+          const ry = ryBase + orbitJumpMultiplier + ringWobble;
+
+          const p = new THREE.Vector3(rx * Math.cos(el.angle), 0, ry * Math.sin(el.angle));
+
+          // Apply unique tilted matrices
+          p.applyAxisAngle(new THREE.Vector3(1, 0, 0), el.rotX);
+          p.applyAxisAngle(new THREE.Vector3(0, 0, 1), el.rotZ);
+
+          // Position matching
           el.mesh.position.copy(p);
 
-          // Update trail lines points history
+          // Energetic color flares during quantum excitation
+          if (el.isJumping) {
+            el.mesh.scale.setScalar(1.0 + Math.sin(el.jumpRatio * Math.PI) * 1.5);
+            (el.mesh.material as THREE.MeshBasicMaterial).color.set('#FFF176'); // glowing bright gold-yellow
+          } else {
+            el.mesh.scale.setScalar(1.0);
+            (el.mesh.material as THREE.MeshBasicMaterial).color.copy(el.baseColor);
+          }
+
+          // Update trail lines history
           el.trailPoints.push(p.clone());
           if (el.trailPoints.length > 25) {
             el.trailPoints.shift();
           }
 
-          // Force upload back to geometry
-          const trailColor = new THREE.Color(CATEGORY_COLORS[currentProps.selectedElement!.category]?.hex || '#00E5FF');
+          // Push geometry matching buffer updates
           const positionsArr = new Float32Array(el.trailPoints.length * 3);
-          
           el.trailPoints.forEach((point, pIdx) => {
             positionsArr[pIdx * 3] = point.x;
             positionsArr[pIdx * 3 + 1] = point.y;
@@ -799,30 +939,124 @@ export default function ThreeScene({
           el.trail.geometry.computeBoundingSphere();
           el.trail.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
           el.trail.geometry.attributes.position.needsUpdate = true;
+          
+          // Animate and fade the trail line visibility
+          const trailMat = el.trail.material as THREE.LineBasicMaterial;
+          if (el.isJumping) {
+            trailMat.color.set('#FFD54F');
+            trailMat.opacity = 0.85;
+          } else {
+            trailMat.color.copy(el.baseColor);
+            trailMat.opacity = 0.42;
+          }
         });
 
       } else {
         atomGroup.visible = false;
       }
 
-      // 5. Animate Galactic background cosmic dust particles
+      // 5. User cursor disturbance forces projected onto Z=0 workspace
+      const cursor3D = new THREE.Vector3(mouse2D.x * 32, mouse2D.y * 22, 0);
+
+      // (A) BACKGROUND SPACE DUST PARALLAX FORCE FIELD
       const posAttr = spaceDust.geometry.attributes.position as THREE.BufferAttribute;
       const count = posAttr.count;
       for (let j = 0; j < count; j++) {
-        let py = posAttr.getY(j);
-        
-        // Slow float descent
-        py -= speeds[j] * 0.1 * simMultiplier;
-        if (py < -45) {
-          py = 45; // Recycle particle on height
+        const bx = baseDustPositions[j * 3];
+        const by = baseDustPositions[j * 3 + 1];
+        const bz = baseDustPositions[j * 3 + 2];
+
+        let currX = posAttr.getX(j);
+        let currY = posAttr.getY(j);
+        let currZ = posAttr.getZ(j);
+
+        // Constant weightless downwards fall
+        let baseNewY = by - speeds[j] * 0.08 * simMultiplier;
+        if (baseNewY < -45) {
+          baseNewY = 45;
         }
-        posAttr.setY(j, py);
+        baseDustPositions[j * 3 + 1] = baseNewY; // Retain falling base
+
+        // Compute cursor proximity forces
+        const dx = currX - cursor3D.x;
+        const dy = currY - cursor3D.y;
+        const dz = currZ - cursor3D.z;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        let targetX = bx;
+        let targetY = baseNewY;
+
+        if (dist < 11.5) {
+          // Soft magnetic orbital vortex swirl
+          const force = (11.5 - dist) / 11.5;
+          const swirlDirection = (j % 2 === 0 ? 1 : -1);
+          const swirlAngle = Math.atan2(dy, dx) + 0.35 * swirlDirection * force;
+          const expandRadius = dist + 2.0 * force * (1.0 + currentProps.reactiveIntensity * 0.5);
+
+          targetX = cursor3D.x + Math.cos(swirlAngle) * expandRadius;
+          targetY = cursor3D.y + Math.sin(swirlAngle) * expandRadius;
+        }
+
+        // Standard slerping back to equilibrium or swirl coordinates
+        posAttr.setX(j, currX + (targetX - currX) * 0.08);
+        posAttr.setY(j, currY + (targetY - currY) * 0.08);
       }
       posAttr.needsUpdate = true;
-      spaceDust.rotation.y += 0.001 * simMultiplier;
+      spaceDust.rotation.y += 0.0007 * simMultiplier;
+
+      // (B) FOREGROUND ATMOSPHERIC PLASMA NEBULA FLUID FIELD
+      const plasmaPosAttr = atmosphericPlasma.geometry.attributes.position as THREE.BufferAttribute;
+      const plasmaCountActual = plasmaPosAttr.count;
+      for (let j = 0; j < plasmaCountActual; j++) {
+        const bx = basePlasmaPositions[j * 3];
+        const by = basePlasmaPositions[j * 3 + 1];
+        const bz = basePlasmaPositions[j * 3 + 2];
+
+        let currX = plasmaPosAttr.getX(j);
+        let currY = plasmaPosAttr.getY(j);
+        let currZ = plasmaPosAttr.getZ(j);
+
+        // Sinusoidal plasma swaying float
+        let baseNewY = by - plasmaSpeeds[j] * 0.05 * simMultiplier;
+        if (baseNewY < -30) {
+          baseNewY = 30;
+        }
+        // Horizontal breathe sway
+        let baseNewX = bx + Math.sin(elapsed * 0.8 + j) * 0.05;
+        basePlasmaPositions[j * 3] = baseNewX;
+        basePlasmaPositions[j * 3 + 1] = baseNewY;
+
+        // Proximity calculation
+        const dx = currX - cursor3D.x;
+        const dy = currY - cursor3D.y;
+        const dz = currZ - cursor3D.z;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        let targetX = baseNewX;
+        let targetY = baseNewY;
+
+        if (dist < 14) {
+          const force = (14 - dist) / 14;
+          // Soft fluid repulsive shockwave
+          const pushAngle = Math.atan2(dy, dx);
+          const pushDistance = dist + 3.8 * force * (1.0 + currentProps.reactiveIntensity * 0.3);
+
+          targetX = cursor3D.x + Math.cos(pushAngle) * pushDistance;
+          targetY = cursor3D.y + Math.sin(pushAngle) * pushDistance;
+        }
+
+        plasmaPosAttr.setX(j, currX + (targetX - currX) * 0.07);
+        plasmaPosAttr.setY(j, currY + (targetY - currY) * 0.07);
+      }
+      plasmaPosAttr.needsUpdate = true;
+      atmosphericPlasma.rotation.y += 0.0014 * simMultiplier;
+
+      // Soft breathing atmospheric depth background fog exp density
+      scene.fog = new THREE.FogExp2('#070B14', 0.012 + Math.sin(elapsed * 0.45) * 0.003);
 
       // Render the scene!
       renderer.render(scene, camera);
+
     };
 
     renderLoop();
@@ -850,6 +1084,9 @@ export default function ThreeScene({
       spaceDust.geometry.dispose();
       particleMaterial.dispose();
       particleTexture.dispose();
+      atmosphericPlasma.geometry.dispose();
+      plasmaMaterial.dispose();
+      plasmaTexture.dispose();
       gridHelperY.geometry.dispose();
       
       elementCards.forEach(c => {
