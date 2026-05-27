@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { ELEMENTS_DATA, CATEGORY_COLORS } from '../data';
+import { buildProceduralAtomWorld } from '../utils/atomWorldGenerator';
 
 interface ThreeSceneProps {
   selectedElement: ChemicalElement | null;
@@ -190,6 +191,44 @@ export default function ThreeScene({
     const atmosphericPlasma = new THREE.Points(plasmaGeometry, plasmaMaterial);
     scene.add(atmosphericPlasma);
 
+    // --- 3B-2. DEEP SPACE CONSTELLATION MAP (FAR BACKGROUND NEBULA LAB) ---
+    const farStarCount = 180;
+    const farStarGeometry = new THREE.BufferGeometry();
+    const farStarPositions = new Float32Array(farStarCount * 3);
+    const farStarBasePos = new Float32Array(farStarCount * 3);
+    
+    for (let i = 0; i < farStarCount; i++) {
+      // Distribute stars in a huge, far sphere shell
+      const r = 130 + Math.random() * 80;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+      
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = r * Math.cos(phi);
+      const z = -90 - Math.random() * 110; // pushed deep in the distance
+      
+      farStarPositions[i * 3] = x;
+      farStarPositions[i * 3 + 1] = y;
+      farStarPositions[i * 3 + 2] = z;
+      
+      farStarBasePos[i * 3] = x;
+      farStarBasePos[i * 3 + 1] = y;
+      farStarBasePos[i * 3 + 2] = z;
+    }
+    
+    farStarGeometry.setAttribute('position', new THREE.BufferAttribute(farStarPositions, 3));
+    const farStarMat = new THREE.PointsMaterial({
+      size: 1.1,
+      color: '#7C4DFF',
+      map: createCircularParticleTexture(),
+      transparent: true,
+      opacity: 0.28,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const deepConstellation = new THREE.Points(farStarGeometry, farStarMat);
+    scene.add(deepConstellation);
+
     // --- 3C. INTERACTIVE COSMIC GRID FILAMENTS (Periodic Connections) ---
     const periodicConnections: [number, number][] = [];
     ELEMENTS_DATA.forEach((el, index) => {
@@ -290,6 +329,46 @@ export default function ThreeScene({
       glowOutline.scale.set(1.05, 1.05, 1.05);
       glowOutline.position.z = 0.01;
       cardMesh.add(glowOutline);
+
+      // Spinning micro orbits around elements to build a stellar network
+      const ringGeom1 = new THREE.RingGeometry(1.05, 1.07, 32);
+      const ringMat1 = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(categoryConfig.hex),
+        transparent: true,
+        opacity: 0.16,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+      const miniOrbit1 = new THREE.Mesh(ringGeom1, ringMat1);
+      miniOrbit1.name = 'miniOrbit1';
+      miniOrbit1.scale.set(1.08, 1.08, 1.08);
+      miniOrbit1.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      cardMesh.add(miniOrbit1);
+
+      const ringGeom2 = new THREE.RingGeometry(1.22, 1.23, 32);
+      const ringMat2 = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(categoryConfig.hex),
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+      const miniOrbit2 = new THREE.Mesh(ringGeom2, ringMat2);
+      miniOrbit2.name = 'miniOrbit2';
+      miniOrbit2.scale.set(1.12, 1.12, 1.12);
+      miniOrbit2.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      cardMesh.add(miniOrbit2);
+
+      const centerNodeGeom = new THREE.SphereGeometry(0.08, 8, 8);
+      const centerNodeMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(categoryConfig.hex),
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending
+      });
+      const centerNode = new THREE.Mesh(centerNodeGeom, centerNodeMat);
+      centerNode.position.z = -0.12;
+      cardMesh.add(centerNode);
 
       // Storing coordinates for multi-layouts
       const targetPos = new THREE.Vector3();
@@ -543,15 +622,16 @@ export default function ThreeScene({
         (child.material as THREE.Material).dispose();
       }
 
-      // Configure category energy identity of element
-      const catColor = new THREE.Color(CATEGORY_COLORS[el.category]?.hex || '#00E5FF');
+      // Configure dynamic procedural environmental lights and nucleus attributes based on element visual identity
+      const visualPrimary = new THREE.Color(el.visual?.primaryColor || '#00E5FF');
+      const catColor = visualPrimary; // Bound to fine-tuned element visual design color
       
-      // Update Core Lights & Nucleus mesh emissions
-      coreLight.color.copy(catColor);
+      // Update Core Lights & Nucleus mesh emissions with visual primary
+      coreLight.color.copy(visualPrimary);
 
       const nucleusMaterial = new THREE.MeshPhongMaterial({
-        color: catColor,
-        emissive: catColor.clone().multiplyScalar(0.4),
+        color: visualPrimary,
+        emissive: visualPrimary.clone().multiplyScalar(0.4),
         shininess: 120,
         specular: '#FFFFFF',
       });
@@ -562,416 +642,13 @@ export default function ThreeScene({
         }
       });
 
-      // Configure beautiful atmospheric environmental lights/fog based on element symbol/category!
-      if (el.symbol === 'H') {
-        // HYDROGEN: Cosmic gas clouds, blue energy fog, fusion atmosphere
-        targetFogColor.set('#040d1e');
-        targetAmbientColor.set('#041630');
-        
-        // Build H environment: 2 perpendicular orbiting torus rings
-        const torusGeom1 = new THREE.TorusGeometry(3.2, 0.05, 8, 48);
-        const torusMat1 = new THREE.MeshBasicMaterial({
-          color: '#00E5FF',
-          transparent: true,
-          opacity: 0.35,
-          wireframe: true,
-          blending: THREE.AdditiveBlending
-        });
-        const torus1 = new THREE.Mesh(torusGeom1, torusMat1);
-        torus1.rotation.x = Math.PI / 4;
-        elementWorldGroup.add(torus1);
+      // Call our robust modular procedural world generator to build the custom atomic atmosphere!
+      const pTexture = createCircularParticleTexture();
+      const generated = buildProceduralAtomWorld(el, elementWorldGroup, pTexture);
 
-        const torusGeom2 = new THREE.TorusGeometry(3.2, 0.03, 8, 48);
-        const torusMat2 = new THREE.MeshBasicMaterial({
-          color: '#7C4DFF',
-          transparent: true,
-          opacity: 0.25,
-          wireframe: true,
-          blending: THREE.AdditiveBlending
-        });
-        const torus2 = new THREE.Mesh(torusGeom2, torusMat2);
-        torus2.rotation.y = Math.PI / 4;
-        elementWorldGroup.add(torus2);
-
-        // Swarming fast-rotating particles (fusion fuel effect)
-        const fSeedsCount = 50;
-        const fGeom = new THREE.BufferGeometry();
-        const fPositions = new Float32Array(fSeedsCount * 3);
-        const fSpeeds = new Float32Array(fSeedsCount);
-        const fRadii = new Float32Array(fSeedsCount);
-        const fAngles = new Float32Array(fSeedsCount);
-        
-        for (let i = 0; i < fSeedsCount; i++) {
-          fAngles[i] = Math.random() * Math.PI * 2;
-          fRadii[i] = 2.0 + Math.random() * 2.5;
-          fSpeeds[i] = 1.0 + Math.random() * 2.0;
-          
-          fPositions[i * 3] = Math.cos(fAngles[i]) * fRadii[i];
-          fPositions[i * 3 + 1] = (Math.random() - 0.5) * 1.5;
-          fPositions[i * 3 + 2] = Math.sin(fAngles[i]) * fRadii[i];
-        }
-        fGeom.setAttribute('position', new THREE.BufferAttribute(fPositions, 3));
-        const fMat = new THREE.PointsMaterial({
-          size: 0.65,
-          color: '#00E5FF',
-          map: createCircularParticleTexture(),
-          transparent: true,
-          opacity: 0.85,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false
-        });
-        const fusionPoints = new THREE.Points(fGeom, fMat);
-        elementWorldGroup.add(fusionPoints);
-
-        activeWorldAnimate = (time, dt, sm) => {
-          torus1.rotation.z += 0.4 * dt * sm;
-          torus2.rotation.z -= 0.3 * dt * sm;
-          
-          const posAttr = fusionPoints.geometry.attributes.position as THREE.BufferAttribute;
-          for (let i = 0; i < fSeedsCount; i++) {
-            fAngles[i] += fSpeeds[i] * dt * 1.5 * sm;
-            const dynamicRadius = fRadii[i] + Math.sin(time * 2.5 + i) * 0.3;
-            
-            posAttr.setX(i, Math.cos(fAngles[i]) * dynamicRadius);
-            posAttr.setY(i, Math.sin(time * 1.8 + i) * 0.4);
-            posAttr.setZ(i, Math.sin(fAngles[i]) * dynamicRadius);
-          }
-          posAttr.needsUpdate = true;
-        };
-
-      } else if (el.symbol === 'C') {
-        // CARBON: Crystal structures, molecular geometry, dark industrial depth
-        targetFogColor.set('#05070a');
-        targetAmbientColor.set('#0b0e12');
-        
-        // Structured Buckyball / fullerene wireframe
-        const buckyGeom = new THREE.IcosahedronGeometry(3.5, 1);
-        const buckyMat = new THREE.MeshBasicMaterial({
-          color: '#00FFB3',
-          transparent: true,
-          opacity: 0.4,
-          wireframe: true,
-        });
-        const bucky = new THREE.Mesh(buckyGeom, buckyMat);
-        elementWorldGroup.add(bucky);
-
-        // Nodes at vertex coordinates
-        const nodeGeom = new THREE.BufferGeometry();
-        const posArr = buckyGeom.attributes.position.clone() as THREE.BufferAttribute;
-        nodeGeom.setAttribute('position', posArr);
-        const nodeMat = new THREE.PointsMaterial({
-          size: 0.5,
-          color: '#FFFFFF',
-          map: createCircularParticleTexture(),
-          transparent: true,
-          opacity: 0.8,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-        });
-        const nodePoints = new THREE.Points(nodeGeom, nodeMat);
-        elementWorldGroup.add(nodePoints);
-
-        // Hexagonal/Diamond octahedron lattice inner skeleton
-        const latticeGeom = new THREE.OctahedronGeometry(2.0, 0);
-        const latticeMat = new THREE.MeshBasicMaterial({
-          color: '#7C4DFF',
-          transparent: true,
-          opacity: 0.2,
-          wireframe: true,
-        });
-        const lattice = new THREE.Mesh(latticeGeom, latticeMat);
-        elementWorldGroup.add(lattice);
-
-        activeWorldAnimate = (time, dt, sm) => {
-          bucky.rotation.y += 0.012 * sm;
-          bucky.rotation.x += 0.006 * sm;
-          nodePoints.rotation.y = bucky.rotation.y;
-          nodePoints.rotation.x = bucky.rotation.x;
-          
-          lattice.rotation.y -= 0.008 * sm;
-          lattice.rotation.z += 0.015 * sm;
-          
-          const pulse = 1.0 + Math.sin(time * 2.0) * 0.04;
-          bucky.scale.set(pulse, pulse, pulse);
-          nodePoints.scale.set(pulse, pulse, pulse);
-        };
-
-      } else if (el.symbol === 'Ne' || el.category === 'noble-gas') {
-        // NEON & NOBLE GASES: Glowing plasma, colorful energy clouds, electric atmosphere
-        targetFogColor.set(el.symbol === 'He' ? '#12051e' : (el.symbol === 'Ne' ? '#200407' : '#051820'));
-        targetAmbientColor.set(el.symbol === 'He' ? '#1a062e' : (el.symbol === 'Ne' ? '#2e070d' : '#072430'));
-
-        const glowColor = el.symbol === 'He' ? '#E1BEE7' : (el.symbol === 'Ne' ? '#FF5252' : '#00FFB3');
-        const secondaryGlowColor = el.symbol === 'He' ? '#7C4DFF' : (el.symbol === 'Ne' ? '#FF9100' : '#4DD0E1');
-
-        // Concentric expanding plasma clouds
-        const pSphereG1 = new THREE.SphereGeometry(3.0, 24, 24);
-        const pSphereM1 = new THREE.MeshBasicMaterial({
-          color: glowColor,
-          transparent: true,
-          opacity: 0.12,
-          blending: THREE.AdditiveBlending,
-        });
-        const pSphere1 = new THREE.Mesh(pSphereG1, pSphereM1);
-        elementWorldGroup.add(pSphere1);
-
-        const pSphereG2 = new THREE.SphereGeometry(2.2, 24, 24);
-        const pSphereM2 = new THREE.MeshBasicMaterial({
-          color: secondaryGlowColor,
-          transparent: true,
-          opacity: 0.2,
-          blending: THREE.AdditiveBlending,
-        });
-        const pSphere2 = new THREE.Mesh(pSphereG2, pSphereM2);
-        elementWorldGroup.add(pSphere2);
-
-        // Electric sparks / lightning bolts discharging
-        const sparkLines: THREE.Line[] = [];
-        const sparkCount = 6;
-        const sparkSegs = 5;
-        for (let s = 0; s < sparkCount; s++) {
-          const sGeom = new THREE.BufferGeometry();
-          const pts = [];
-          for (let seg = 0; seg < sparkSegs; seg++) {
-            pts.push(new THREE.Vector3(0,0,0));
-          }
-          sGeom.setFromPoints(pts);
-          const sMat = new THREE.LineBasicMaterial({
-            color: s % 2 === 0 ? glowColor : secondaryGlowColor,
-            transparent: true,
-            opacity: 0.8,
-            linewidth: 2,
-            blending: THREE.AdditiveBlending,
-          });
-          const line = new THREE.Line(sGeom, sMat);
-          elementWorldGroup.add(line);
-          sparkLines.push(line);
-        }
-
-        let sTimer = 0;
-        activeWorldAnimate = (time, dt, sm) => {
-          const pulse = 1.0 + Math.sin(time * 3.5) * 0.08;
-          pSphere1.scale.setScalar(pulse);
-          pSphere2.scale.setScalar(1.0 + Math.cos(time * 4) * 0.05);
-
-          sTimer -= dt * sm;
-          if (sTimer <= 0) {
-            sTimer = 0.06 + Math.random() * 0.08;
-            
-            sparkLines.forEach((line) => {
-              const posArr = new Float32Array(sparkSegs * 3);
-              const dir = new THREE.Vector3(
-                Math.random() * 2 - 1,
-                Math.random() * 2 - 1,
-                Math.random() * 2 - 1
-              ).normalize();
-              const radius = 2.2 + Math.random() * 1.5;
-
-              for (let i = 0; i < sparkSegs; i++) {
-                const frac = i / (sparkSegs - 1);
-                const pt = dir.clone().multiplyScalar(radius * frac);
-                if (i > 0 && i < sparkSegs - 1) {
-                  pt.x += (Math.random() - 0.5) * 0.4;
-                  pt.y += (Math.random() - 0.5) * 0.4;
-                  pt.z += (Math.random() - 0.5) * 0.4;
-                }
-                posArr[i * 3] = pt.x;
-                posArr[i * 3 + 1] = pt.y;
-                posArr[i * 3 + 2] = pt.z;
-              }
-              line.geometry.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-              line.geometry.attributes.position.needsUpdate = true;
-              (line.material as THREE.LineBasicMaterial).opacity = 0.3 + Math.random() * 0.6;
-            });
-          }
-        };
-
-      } else if (el.state === 'liquid' || el.symbol === 'Hg' || el.symbol === 'Br') {
-        // LIQUIDS (Bromine, Mercury): weightless fluid blobs pulsating organically
-        targetFogColor.set(el.symbol === 'Hg' ? '#080c10' : '#140602');
-        targetAmbientColor.set(el.symbol === 'Hg' ? '#111822' : '#220b05');
-
-        const mCount = 5;
-        const mMeshes: THREE.Mesh[] = [];
-        const mWeights: number[] = [];
-        const mRadii: number[] = [];
-        const mSpeeds: number[] = [];
-        const mAxes: THREE.Vector3[] = [];
-        const mAngles: number[] = [];
-
-        const subGeom = new THREE.SphereGeometry(0.4, 24, 24);
-        const subMat = new THREE.MeshPhongMaterial({
-          color: el.symbol === 'Hg' ? '#CFD8DC' : '#FF3D00',
-          emissive: el.symbol === 'Hg' ? '#37474F' : '#3E2723',
-          shininess: el.symbol === 'Hg' ? 100 : 70,
-          specular: '#FFFFFF',
-        });
-
-        for (let i = 0; i < mCount; i++) {
-          const m = new THREE.Mesh(subGeom, subMat);
-          elementWorldGroup.add(m);
-          mMeshes.push(m);
-          mWeights.push(0.6 + i * 0.12);
-          mRadii.push(2.5 + Math.random() * 1.2);
-          mSpeeds.push(1.0 + Math.random() * 1.5);
-          mAngles.push(Math.random() * Math.PI * 2);
-          mAxes.push(new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize());
-        }
-
-        activeWorldAnimate = (time, dt, sm) => {
-          mMeshes.forEach((mesh, idx) => {
-            mAngles[idx] += mSpeeds[idx] * dt * sm;
-            const r = mRadii[idx] + Math.sin(time * 2.0 + idx) * 0.25;
-            const ax = mAxes[idx];
-            const angle = mAngles[idx];
-
-            const pos = new THREE.Vector3(r * Math.sin(angle), 0, r * Math.cos(angle));
-            pos.applyAxisAngle(ax, angle * 0.15);
-            mesh.position.copy(pos);
-
-            const scaleW = mWeights[idx] * (1.0 + Math.sin(time * 3.0 + idx) * 0.15 + Math.cos(time * 5.5 + idx) * 0.05);
-            mesh.scale.set(scaleW, scaleW, scaleW);
-          });
-        };
-
-      } else if (el.category === 'actinide' || el.category === 'lanthanide' || el.number >= 89) {
-        // RADIOACTIVE ACTINIDES / RADIUM: Glowing radioactive decay alpha bursts
-        targetFogColor.set('#04180d');
-        targetAmbientColor.set('#062413');
-
-        // Expanding decay rays
-        const rCount = 10;
-        const rLines: THREE.Line[] = [];
-        const rPositions: THREE.Vector3[] = [];
-        const rDirs: THREE.Vector3[] = [];
-        const rSpeeds: number[] = [];
-        const rAges: number[] = [];
-        const rMaxAges: number[] = [];
-
-        for (let r = 0; r < rCount; r++) {
-          const rGeom = new THREE.BufferGeometry();
-          rGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2 * 3), 3));
-          const rMat = new THREE.LineBasicMaterial({
-            color: '#00FFB3',
-            transparent: true,
-            opacity: 0.9,
-            linewidth: 2,
-            blending: THREE.AdditiveBlending,
-          });
-          const line = new THREE.Line(rGeom, rMat);
-          elementWorldGroup.add(line);
-          rLines.push(line);
-
-          rPositions.push(new THREE.Vector3(0,0,0));
-          rDirs.push(new THREE.Vector3(0,0,0));
-          rSpeeds.push(6.0 + Math.random() * 10);
-          rAges.push(10); // trigger respawn immediately
-          rMaxAges.push(0.35 + Math.random() * 0.4);
-        }
-
-        // Swirled radioactive particle mist
-        const mistCount = 40;
-        const mistPos = new Float32Array(mistCount * 3);
-        const mistRadii = new Float32Array(mistCount);
-        const mistAngles = new Float32Array(mistCount);
-        const mistSpeeds = new Float32Array(mistCount);
-        for(let i=0; i<mistCount; i++) {
-          mistRadii[i] = 1.0 + Math.random() * 3.5;
-          mistAngles[i] = Math.random() * Math.PI * 2;
-          mistSpeeds[i] = 0.5 + Math.random() * 0.8;
-        }
-        const mistGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(mistPos, 3));
-        const mistPoints = new THREE.Points(mistGeom, new THREE.PointsMaterial({
-          size: 0.5,
-          color: '#CCFF90',
-          map: createCircularParticleTexture(),
-          transparent: true,
-          opacity: 0.65,
-          blending: THREE.AdditiveBlending
-        }));
-        elementWorldGroup.add(mistPoints);
-
-        activeWorldAnimate = (time, dt, sm) => {
-          // Mist rotation
-          const mPosAttr = mistPoints.geometry.attributes.position as THREE.BufferAttribute;
-          for (let i = 0; i < mistCount; i++) {
-            mistAngles[i] += mistSpeeds[i] * dt * sm;
-            const r = mistRadii[i] + Math.sin(time * 1.5 + i) * 0.25;
-            mPosAttr.setX(i, Math.cos(mistAngles[i]) * r);
-            mPosAttr.setY(i, Math.sin(time + i) * 0.6);
-            mPosAttr.setZ(i, Math.sin(mistAngles[i]) * r);
-          }
-          mPosAttr.needsUpdate = true;
-
-          // Process projectile rays
-          rLines.forEach((line, rIdx) => {
-            rAges[rIdx] += dt * sm;
-            if (rAges[rIdx] >= rMaxAges[rIdx]) {
-              rAges[rIdx] = 0.0;
-              rPositions[rIdx].set(0, 0, 0);
-              const u = Math.random() * 2 - 1;
-              const theta = Math.random() * Math.PI * 2;
-              const r = Math.sqrt(1 - u * u);
-              rDirs[rIdx].set(r * Math.cos(theta), u, r * Math.sin(theta)).normalize();
-              rSpeeds[rIdx] = 5.0 + Math.random() * 9.0;
-              rMaxAges[rIdx] = 0.25 + Math.random() * 0.35;
-            }
-
-            const step = rSpeeds[rIdx] * dt * sm;
-            const startPt = rPositions[rIdx].clone();
-            rPositions[rIdx].addScaledVector(rDirs[rIdx], step);
-            const endPt = rPositions[rIdx];
-
-            const lPos = line.geometry.attributes.position as THREE.BufferAttribute;
-            lPos.setX(0, startPt.x);
-            lPos.setY(0, startPt.y);
-            lPos.setZ(0, startPt.z);
-            lPos.setX(1, endPt.x);
-            lPos.setY(1, endPt.y);
-            lPos.setZ(1, endPt.z);
-            lPos.needsUpdate = true;
-
-            const life = rAges[rIdx] / rMaxAges[rIdx];
-            (line.material as THREE.LineBasicMaterial).opacity = Math.max(0, 1.0 - life) * 0.9;
-          });
-        };
-
-      } else {
-        // DEFAULT METALS / SYNTHETIC / CORE STRUCTURES: Concentric interlocking metallic/energy rings
-        targetFogColor.set(catColor.clone().multiplyScalar(0.04).getStyle());
-        targetAmbientColor.set(catColor.clone().multiplyScalar(0.12).getStyle());
-
-        const ringCount = 3;
-        const rings: THREE.Mesh[] = [];
-        const speedsR: number[] = [];
-
-        for (let i = 0; i < ringCount; i++) {
-          const rG = new THREE.TorusGeometry(3.0 + i * 1.5, 0.03, 8, 36);
-          const rM = new THREE.MeshBasicMaterial({
-            color: catColor,
-            transparent: true,
-            opacity: 0.15 + (1.0 - i * 0.25) * 0.25,
-            blending: THREE.AdditiveBlending,
-            wireframe: true,
-          });
-          const r = new THREE.Mesh(rG, rM);
-          r.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-          elementWorldGroup.add(r);
-          rings.push(r);
-          speedsR.push((0.1 + Math.random() * 0.15) * (i % 2 === 0 ? 1 : -1));
-        }
-
-        activeWorldAnimate = (time, dt, sm) => {
-          rings.forEach((r, idx) => {
-            r.rotation.x += speedsR[idx] * dt * sm;
-            r.rotation.y += speedsR[idx] * 0.5 * dt * sm;
-            r.rotation.z -= speedsR[idx] * 0.3 * dt * sm;
-
-            const glow = 1.0 + Math.sin(time * 2.0 + idx) * 0.04;
-            r.scale.set(glow, glow, glow);
-          });
-        };
-      }
+      targetFogColor.copy(generated.targetFogColor);
+      targetAmbientColor.copy(generated.targetAmbientColor);
+      activeWorldAnimate = generated.activeWorldAnimate;
 
       // Spawn electron rings based on real structural shells with varying inclinations
       const activeShells = el.shells; // e.g. [2, 8, 1]
