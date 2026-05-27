@@ -93,8 +93,9 @@ export default function ThreeScene({
     spotLight.position.set(0, 25, 25);
     scene.add(spotLight);
 
-    // --- 3. SPACE PARTICLES / COSMIC BACKGROUND DUST ---
-    const particleCount = window.innerWidth < 768 ? 800 : 2500;
+    // --- 3. SPACE PARTICLES / COSMIC BACKGROUND DUST (Performance Optimized Counts) ---
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 400 : 1500;
     const particleGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
@@ -142,8 +143,8 @@ export default function ThreeScene({
     const spaceDust = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(spaceDust);
 
-    // --- 3B. ATMOSPHERIC PLASMA FIELD (FOREGROUND NEBULA ECOSYSTEM) ---
-    const plasmaCount = window.innerWidth < 768 ? 150 : 450;
+    // --- 3B. ATMOSPHERIC PLASMA FIELD (FOREGROUND NEBULA ECOSYSTEM) (Performance Optimized Counts) ---
+    const plasmaCount = isMobile ? 80 : 250;
     const plasmaGeometry = new THREE.BufferGeometry();
     const plasmaPositions = new Float32Array(plasmaCount * 3);
     const plasmaColors = new Float32Array(plasmaCount * 3);
@@ -472,6 +473,10 @@ export default function ThreeScene({
     let currentParallaxX = 0;
     let currentParallaxY = 0;
 
+    // Direct performance tracking parameters
+    let lastMouseMoveTime = 0;
+    let mouseActive = false;
+
     // Raycasting for cards hover and click
     const raycaster = new THREE.Raycaster();
     const mouse2D = new THREE.Vector2();
@@ -723,6 +728,8 @@ export default function ThreeScene({
       const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       
       mouse2D.set(x, y);
+      lastMouseMoveTime = clock.getElapsedTime();
+      mouseActive = true;
 
       if (isDragging) {
         // Drag rotation camera control
@@ -747,11 +754,21 @@ export default function ThreeScene({
       isDragging = false;
     };
 
+    const updateMouseFromTouch = (touch: Touch) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+      mouse2D.set(x, y);
+      lastMouseMoveTime = clock.getElapsedTime();
+      mouseActive = true;
+    };
+
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
         isDragging = true;
         previousMouseX = e.touches[0].clientX;
         previousMouseY = e.touches[0].clientY;
+        updateMouseFromTouch(e.touches[0]);
       }
     };
 
@@ -766,6 +783,7 @@ export default function ThreeScene({
 
         previousMouseX = e.touches[0].clientX;
         previousMouseY = e.touches[0].clientY;
+        updateMouseFromTouch(e.touches[0]);
       }
     };
 
@@ -885,9 +903,19 @@ export default function ThreeScene({
         }
       }
 
-      // Drag calculations slerp
-      currentRotX += (rotXTarget - currentRotX) * 0.08;
-      currentRotY += (rotYTarget - currentRotY) * 0.08;
+      // Track mouse activity decaying over time
+      if (mouseActive && elapsed - lastMouseMoveTime > 2.0) {
+        mouseActive = false;
+      }
+
+      // Frame-rate independent lerp factors using exponential decay
+      const animationSpeedScale = 5.0; // speed constant
+      const lerpFactor = Math.min(1.0, animationSpeedScale * delta);
+      const cameraLerpFactor = Math.min(1.0, 4.0 * delta);
+
+      // Drag calculations slerp (Frame-rate independent)
+      currentRotX += (rotXTarget - currentRotX) * lerpFactor;
+      currentRotY += (rotYTarget - currentRotY) * lerpFactor;
 
       // Cinematic buoyancy drift offsets (lissajous shapes for alive zero-G perspective)
       const buoyancyX = Math.sin(elapsed * 0.35) * 1.2;
@@ -897,13 +925,13 @@ export default function ThreeScene({
       // Elastic cursor parallax
       const targetParallaxX = mouse2D.x * 3.5;
       const targetParallaxY = mouse2D.y * 2.2;
-      currentParallaxX += (targetParallaxX - currentParallaxX) * 0.06;
-      currentParallaxY += (targetParallaxY - currentParallaxY) * 0.06;
+      currentParallaxX += (targetParallaxX - currentParallaxX) * lerpFactor;
+      currentParallaxY += (targetParallaxY - currentParallaxY) * lerpFactor;
 
-      // Apply integrated slerp positioning
-      camera.position.x += (cameraTargetX + buoyancyX + currentParallaxX - camera.position.x) * 0.07;
-      camera.position.y += (cameraTargetY + buoyancyY + currentParallaxY + cameraYOffsetTarget - camera.position.y) * 0.07;
-      camera.position.z += (cameraTargetZ + buoyancyZ - camera.position.z) * 0.07;
+      // Apply integrated slerp positioning (Frame-rate independent)
+      camera.position.x += (cameraTargetX + buoyancyX + currentParallaxX - camera.position.x) * cameraLerpFactor;
+      camera.position.y += (cameraTargetY + buoyancyY + currentParallaxY + cameraYOffsetTarget - camera.position.y) * cameraLerpFactor;
+      camera.position.z += (cameraTargetZ + buoyancyZ - camera.position.z) * cameraLerpFactor;
 
       // Point camera cinematic look
       const cameraLookTarget = new THREE.Vector3(currentProps.selectedElement ? 3.0 : 0, 0, 0);
@@ -993,26 +1021,31 @@ export default function ThreeScene({
       spotLight.intensity = 3.8 + Math.sin(elapsed * 1.25) * 0.6 + Math.cos(elapsed * 2.8) * 0.3;
 
       // 3. Move and float each element card
-      raycaster.setFromCamera(mouse2D, camera);
-      const intersects = raycaster.intersectObjects(cardGroup.children, true);
-      let hoveredMesh: THREE.Object3D | null = null;
+      // Raycast ONLY if inside observatory, not viewing detail, and mouse/touch active to save up to 90% CPU
+      let intersects: THREE.Intersection[] = [];
+      if (currentProps.isObsEntered && !currentProps.selectedElement && (mouseActive || isDragging || elapsed - lastMouseMoveTime < 0.5)) {
+        raycaster.setFromCamera(mouse2D, camera);
+        intersects = raycaster.intersectObjects(cardGroup.children, true);
+      }
       
+      let hoveredMesh: THREE.Object3D | null = null;
       if (intersects.length > 0) {
         hoveredMesh = intersects[0].object;
       }
 
       let currentHoveredElement: ChemicalElement | null = null;
+      const layoutLerpFactor = Math.min(1.0, 5.0 * delta);
 
       elementCards.forEach((ci) => {
-        ci.mesh.position.lerp(ci.targetPosition, 0.08);
+        ci.mesh.position.lerp(ci.targetPosition, layoutLerpFactor);
         
         // Dynamic weightless floating float calculations
         const floatFactor = Math.sin(elapsed * 1.5 + ci.floatOffset) * 0.14;
         ci.mesh.position.y += floatFactor * (currentProps.selectedElement ? 0.0 : 1.0);
 
-        // Smoothly rotate cards towards targeted layout angle
+        // Smoothly rotate cards towards targeted layout angle (Frame-rate independent)
         const targetQ = new THREE.Quaternion().setFromEuler(ci.targetRotation);
-        ci.mesh.quaternion.slerp(targetQ, 0.08);
+        ci.mesh.quaternion.slerp(targetQ, layoutLerpFactor);
 
         // Hover forward thrust inside grid matrices
         const isCurrentlyHovered = hoveredMesh && (hoveredMesh === ci.mesh || hoveredMesh.parent === ci.mesh);
@@ -1174,97 +1207,124 @@ export default function ThreeScene({
       // 5. User cursor disturbance forces projected onto Z=0 workspace
       const cursor3D = new THREE.Vector3(mouse2D.x * 32, mouse2D.y * 22, 0);
 
-      // (A) BACKGROUND SPACE DUST PARALLAX FORCE FIELD (Optimized Math.sqrt bypass)
+      // (A) BACKGROUND SPACE DUST PARALLAX FORCE FIELD (Optimized Float32Array and Selective Disturbance Checking)
       const posAttr = spaceDust.geometry.attributes.position as THREE.BufferAttribute;
+      const arr = posAttr.array as Float32Array;
       const count = posAttr.count;
-      for (let j = 0; j < count; j++) {
-        const bx = baseDustPositions[j * 3];
-        const by = baseDustPositions[j * 3 + 1];
-        const bz = baseDustPositions[j * 3 + 2];
+      const checkDisturbance = (mouseActive || isDragging) && currentProps.isObsEntered;
 
-        let currX = posAttr.getX(j);
-        let currY = posAttr.getY(j);
-        let currZ = posAttr.getZ(j);
+      if (checkDisturbance) {
+        for (let j = 0; j < count; j++) {
+          const bx = baseDustPositions[j * 3];
+          const by = baseDustPositions[j * 3 + 1];
 
-        // Constant weightless downwards fall
-        let baseNewY = by - speeds[j] * 0.08 * simMultiplier;
-        if (baseNewY < -45) {
-          baseNewY = 45;
+          let currX = arr[j * 3];
+          let currY = arr[j * 3 + 1];
+
+          // Constant weightless downwards fall
+          let baseNewY = by - speeds[j] * 0.08 * simMultiplier;
+          if (baseNewY < -45) {
+            baseNewY = 45;
+          }
+          baseDustPositions[j * 3 + 1] = baseNewY; // Retain falling base
+
+          // Compute cursor proximity forces
+          const dx = currX - cursor3D.x;
+          const dy = currY - cursor3D.y;
+          const distSq = dx*dx + dy*dy;
+
+          let targetX = bx;
+          let targetY = baseNewY;
+
+          if (distSq < 132.25) { // 11.5 * 11.5 = 132.25
+            const dist = Math.sqrt(distSq);
+            // Soft magnetic orbital vortex swirl
+            const force = (11.5 - dist) / 11.5;
+            const swirlDirection = (j % 2 === 0 ? 1 : -1);
+            const swirlAngle = Math.atan2(dy, dx) + 0.35 * swirlDirection * force;
+            const expandRadius = dist + 2.0 * force * (1.0 + currentProps.reactiveIntensity * 0.5);
+
+            targetX = cursor3D.x + Math.cos(swirlAngle) * expandRadius;
+            targetY = cursor3D.y + Math.sin(swirlAngle) * expandRadius;
+          }
+
+          // Direct array writes avoiding expensive wrapper calls
+          arr[j * 3] += (targetX - currX) * 0.08;
+          arr[j * 3 + 1] += (targetY - currY) * 0.08;
         }
-        baseDustPositions[j * 3 + 1] = baseNewY; // Retain falling base
-
-        // Compute cursor proximity forces
-        const dx = currX - cursor3D.x;
-        const dy = currY - cursor3D.y;
-        const dz = currZ - cursor3D.z;
-        const distSq = dx*dx + dy*dy + dz*dz;
-
-        let targetX = bx;
-        let targetY = baseNewY;
-
-        if (distSq < 132.25) { // 11.5 * 11.5 = 132.25
-          const dist = Math.sqrt(distSq);
-          // Soft magnetic orbital vortex swirl
-          const force = (11.5 - dist) / 11.5;
-          const swirlDirection = (j % 2 === 0 ? 1 : -1);
-          const swirlAngle = Math.atan2(dy, dx) + 0.35 * swirlDirection * force;
-          const expandRadius = dist + 2.0 * force * (1.0 + currentProps.reactiveIntensity * 0.5);
-
-          targetX = cursor3D.x + Math.cos(swirlAngle) * expandRadius;
-          targetY = cursor3D.y + Math.sin(swirlAngle) * expandRadius;
+      } else {
+        // High-speed drift bypass when there is no user cursor activity
+        for (let j = 0; j < count; j++) {
+          let baseNewY = baseDustPositions[j * 3 + 1] - speeds[j] * 0.08 * simMultiplier;
+          if (baseNewY < -45) {
+            baseNewY = 45;
+          }
+          baseDustPositions[j * 3 + 1] = baseNewY;
+          arr[j * 3 + 1] = baseNewY;
         }
-
-        // Standard slerping back to equilibrium or swirl coordinates
-        posAttr.setX(j, currX + (targetX - currX) * 0.08);
-        posAttr.setY(j, currY + (targetY - currY) * 0.08);
       }
       posAttr.needsUpdate = true;
       spaceDust.rotation.y += 0.0007 * simMultiplier;
 
-      // (B) FOREGROUND ATMOSPHERIC PLASMA NEBULA FLUID FIELD (Optimized Math.sqrt bypass)
+      // (B) FOREGROUND ATMOSPHERIC PLASMA NEBULA FLUID FIELD (Optimized Float32Array and Selective Disturbance Checking)
       const plasmaPosAttr = atmosphericPlasma.geometry.attributes.position as THREE.BufferAttribute;
+      const plasmaArr = plasmaPosAttr.array as Float32Array;
       const plasmaCountActual = plasmaPosAttr.count;
-      for (let j = 0; j < plasmaCountActual; j++) {
-        const bx = basePlasmaPositions[j * 3];
-        const by = basePlasmaPositions[j * 3 + 1];
-        const bz = basePlasmaPositions[j * 3 + 2];
 
-        let currX = plasmaPosAttr.getX(j);
-        let currY = plasmaPosAttr.getY(j);
-        let currZ = plasmaPosAttr.getZ(j);
+      if (checkDisturbance) {
+        for (let j = 0; j < plasmaCountActual; j++) {
+          const bx = basePlasmaPositions[j * 3];
+          const by = basePlasmaPositions[j * 3 + 1];
 
-        // Sinusoidal plasma swaying float
-        let baseNewY = by - plasmaSpeeds[j] * 0.05 * simMultiplier;
-        if (baseNewY < -30) {
-          baseNewY = 30;
+          let currX = plasmaArr[j * 3];
+          let currY = plasmaArr[j * 3 + 1];
+
+          // Sinusoidal plasma swaying float
+          let baseNewY = by - plasmaSpeeds[j] * 0.05 * simMultiplier;
+          if (baseNewY < -30) {
+            baseNewY = 30;
+          }
+          // Horizontal breathe sway
+          let baseNewX = bx + Math.sin(elapsed * 0.8 + j) * 0.05;
+          basePlasmaPositions[j * 3] = baseNewX;
+          basePlasmaPositions[j * 3 + 1] = baseNewY;
+
+          // Proximity calculation
+          const dx = currX - cursor3D.x;
+          const dy = currY - cursor3D.y;
+          const distSq = dx*dx + dy*dy;
+
+          let targetX = baseNewX;
+          let targetY = baseNewY;
+
+          if (distSq < 196) { // 14 * 14 = 196
+            const dist = Math.sqrt(distSq);
+            const force = (14 - dist) / 14;
+            // Soft fluid repulsive shockwave
+            const pushAngle = Math.atan2(dy, dx);
+            const pushDistance = dist + 3.8 * force * (1.0 + currentProps.reactiveIntensity * 0.3);
+
+            targetX = cursor3D.x + Math.cos(pushAngle) * pushDistance;
+            targetY = cursor3D.y + Math.sin(pushAngle) * pushDistance;
+          }
+
+          plasmaArr[j * 3] += (targetX - currX) * 0.07;
+          plasmaArr[j * 3 + 1] += (targetY - currY) * 0.07;
         }
-        // Horizontal breathe sway
-        let baseNewX = bx + Math.sin(elapsed * 0.8 + j) * 0.05;
-        basePlasmaPositions[j * 3] = baseNewX;
-        basePlasmaPositions[j * 3 + 1] = baseNewY;
+      } else {
+        // High-speed drift bypass when there is no user cursor activity
+        for (let j = 0; j < plasmaCountActual; j++) {
+          let baseNewY = basePlasmaPositions[j * 3 + 1] - plasmaSpeeds[j] * 0.05 * simMultiplier;
+          if (baseNewY < -30) {
+            baseNewY = 30;
+          }
+          let baseNewX = basePlasmaPositions[j * 3] + Math.sin(elapsed * 0.8 + j) * 0.05;
+          basePlasmaPositions[j * 3] = baseNewX;
+          basePlasmaPositions[j * 3 + 1] = baseNewY;
 
-        // Proximity calculation
-        const dx = currX - cursor3D.x;
-        const dy = currY - cursor3D.y;
-        const dz = currZ - cursor3D.z;
-        const distSq = dx*dx + dy*dy + dz*dz;
-
-        let targetX = baseNewX;
-        let targetY = baseNewY;
-
-        if (distSq < 196) { // 14 * 14 = 196
-          const dist = Math.sqrt(distSq);
-          const force = (14 - dist) / 14;
-          // Soft fluid repulsive shockwave
-          const pushAngle = Math.atan2(dy, dx);
-          const pushDistance = dist + 3.8 * force * (1.0 + currentProps.reactiveIntensity * 0.3);
-
-          targetX = cursor3D.x + Math.cos(pushAngle) * pushDistance;
-          targetY = cursor3D.y + Math.sin(pushAngle) * pushDistance;
+          plasmaArr[j * 3] = baseNewX;
+          plasmaArr[j * 3 + 1] = baseNewY;
         }
-
-        plasmaPosAttr.setX(j, currX + (targetX - currX) * 0.07);
-        plasmaPosAttr.setY(j, currY + (targetY - currY) * 0.07);
       }
       plasmaPosAttr.needsUpdate = true;
       atmosphericPlasma.rotation.y += 0.0014 * simMultiplier;
@@ -1365,12 +1425,16 @@ export default function ThreeScene({
 
   // Draw element card with high-end sci-fi HUD layouts on offscreen canvas
   function createCardTexture(el: ChemicalElement, glowHex: string): THREE.Texture {
+    const isMobileDevice = window.innerWidth < 768;
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 320;
+    canvas.width = isMobileDevice ? 128 : 256;
+    canvas.height = isMobileDevice ? 160 : 320;
     const ctx = canvas.getContext('2d');
     
     if (ctx) {
+      if (isMobileDevice) {
+        ctx.scale(0.5, 0.5);
+      }
       // Clear background with glassmorphism dark slate
       ctx.fillStyle = '#0B1020';
       ctx.fillRect(0, 0, 256, 320);

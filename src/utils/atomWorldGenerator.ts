@@ -86,13 +86,14 @@ export function buildProceduralAtomWorld(
       torus2.rotation.z -= 0.16 * dt * sm;
       
       const posAttr = fusionPoints.geometry.attributes.position as THREE.BufferAttribute;
+      const arr = posAttr.array as Float32Array;
       for (let i = 0; i < fSeedsCount; i++) {
         fAngles[i] += fSpeeds[i] * dt * 1.1 * sm;
         const dynamicRadius = fRadii[i] + Math.sin(time * 2.0 + i) * 0.35;
         
-        posAttr.setX(i, Math.cos(fAngles[i]) * dynamicRadius);
-        posAttr.setY(i, Math.sin(time * 1.5 + i) * 0.45);
-        posAttr.setZ(i, Math.sin(fAngles[i]) * dynamicRadius);
+        arr[i * 3] = Math.cos(fAngles[i]) * dynamicRadius;
+        arr[i * 3 + 1] = Math.sin(time * 1.5 + i) * 0.45;
+        arr[i * 3 + 2] = Math.sin(fAngles[i]) * dynamicRadius;
       }
       posAttr.needsUpdate = true;
     };
@@ -334,12 +335,13 @@ export function buildProceduralAtomWorld(
     activeWorldAnimate = (time, dt, sm) => {
       // Rotate of mist orbits
       const mPosAttr = mistPoints.geometry.attributes.position as THREE.BufferAttribute;
+      const arr = mPosAttr.array as Float32Array;
       for (let i = 0; i < mistCount; i++) {
         mistAngles[i] += mistSpeeds[i] * dt * sm;
         const r = mistRadii[i] + Math.sin(time * 1.5 + i) * 0.22;
-        mPosAttr.setX(i, Math.cos(mistAngles[i]) * r);
-        mPosAttr.setY(i, Math.sin(time * 1.2 + i) * 0.5);
-        mPosAttr.setZ(i, Math.sin(mistAngles[i]) * r);
+        arr[i * 3] = Math.cos(mistAngles[i]) * r;
+        arr[i * 3 + 1] = Math.sin(time * 1.2 + i) * 0.5;
+        arr[i * 3 + 2] = Math.sin(mistAngles[i]) * r;
       }
       mPosAttr.needsUpdate = true;
 
@@ -364,12 +366,13 @@ export function buildProceduralAtomWorld(
         const endPt = rPositions[rIdx];
 
         const lPos = line.geometry.attributes.position as THREE.BufferAttribute;
-        lPos.setX(0, startPt.x);
-        lPos.setY(0, startPt.y);
-        lPos.setZ(0, startPt.z);
-        lPos.setX(1, endPt.x);
-        lPos.setY(1, endPt.y);
-        lPos.setZ(1, endPt.z);
+        const lArr = lPos.array as Float32Array;
+        lArr[0] = startPt.x;
+        lArr[1] = startPt.y;
+        lArr[2] = startPt.z;
+        lArr[3] = endPt.x;
+        lArr[4] = endPt.y;
+        lArr[5] = endPt.z;
         lPos.needsUpdate = true;
 
         const life = rAges[rIdx] / rMaxAges[rIdx];
