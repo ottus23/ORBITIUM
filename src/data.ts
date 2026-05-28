@@ -230,121 +230,280 @@ function getElectronConfig(num: number): string {
 // Famous core overrides for selected elements to maintain pristine, high-end detailed commentary
 const ELEMENT_OVERRIDES: Record<number, Partial<ChemicalElement>> = {
   1: {
-    summary: 'The most abundant chemical substance in the Universe, constituting roughly 75% of all baryonic mass.',
-    funFact: 'Highly flammable, H serves as the key cosmic fuel that ignites nuclear fusion reactions in stars.',
-    discoveredBy: 'Henry Cavendish',
-    year: 1766,
-    density: '0.08988 g/L',
-    meltingPoint: '14.01 K (-259.14 °C)',
-    boilingPoint: '20.28 K (-252.87 °C)',
-    electronegativity: 2.20,
-    ionizationEnergy: '1312 kJ/mol',
-    realWorldUses: ['Rocket Propellent', 'Ammonia Production', 'Hydrogen Fuel Cells'],
-    reactivity: 'High'
+    summary: 'The absolute primordial seed of the Cosmos, constituting roughly 75% of all baryonic gas mass.',
+    funFact: 'Under extreme planetary pressures like Jupiter\'s core, H transforms into a superconducting liquid metal.',
+    discoveredBy: 'Henry Cavendish', year: 1766, density: '0.08988 g/L', meltingPoint: '14.01 K (-259.14 °C)', boilingPoint: '20.28 K (-252.87 °C)',
+    electronegativity: 2.20, ionizationEnergy: '1312 kJ/mol', realWorldUses: ['Clean Fuel Cells', 'Ammonia Production', 'Stellar Fusion Ignition'], reactivity: 'High'
   },
   2: {
-    summary: 'A chemically inert, colorless, and odorless noble gas. It represents the second lightest element in existence.',
-    funFact: 'When chilled below 2.17 Kelvin, Helium transforms into a superfluid with zero viscosity, allowing it to crawl up containers!',
-    discoveredBy: 'Jules Janssen, Norman Lockyer',
-    year: 1868,
-    density: '0.1786 g/L',
-    meltingPoint: '0.95 K (-272.2 °C)',
-    boilingPoint: '4.22 K (-268.93 °C)',
-    electronegativity: null,
-    ionizationEnergy: '2372 kJ/mol',
-    realWorldUses: ['Cryogenic Cooling', 'Lifting Gas', 'Gas Chromatography'],
-    reactivity: 'Inert'
+    summary: 'A completely chemically inert, colorless noble gas. It represents the second lightest element in existence.',
+    funFact: 'When chilled below 2.17 Kelvin, Helium becomes a superfluid with zero viscosity, crawling up the walls of its cell.',
+    discoveredBy: 'Jules Janssen, Norman Lockyer', year: 1868, density: '0.1786 g/L', meltingPoint: '0.95 K (-272.2 °C)', boilingPoint: '4.22 K (-268.93 °C)',
+    electronegativity: null, ionizationEnergy: '2372 kJ/mol', realWorldUses: ['Cryogenic Cooling', 'Deep Hull Pressurization', 'Superconducting Magnets'], reactivity: 'Inert'
   },
   3: {
-    summary: 'A highly reactive, soft alkali metal. It is the least dense of all solid chemical elements at room temperature.',
-    funFact: 'Lithium is so lightweight it floats effortlessly on mineral oil, and bursts into crimson violet flames upon contact with water.',
-    discoveredBy: 'Johan August Arfwedson',
-    year: 1817,
-    density: '0.534 g/cm³',
-    meltingPoint: '453.69 K (180.54 °C)',
-    boilingPoint: '1615 K (1342 °C)',
-    electronegativity: 0.98,
-    ionizationEnergy: '520 kJ/mol',
-    realWorldUses: ['Rechargeable Batteries', 'Thermonuclear Cubes', 'Psychiatric Pharmaceuticals'],
-    reactivity: 'High'
+    summary: 'A highly reactive, ultra-lightweight alkali metal displaying the lowest density of any solid element.',
+    funFact: 'Lithium acts as a powerful electrochemical conductor, floating on oil and reacting immediately with moist air.',
+    discoveredBy: 'Johan August Arfwedson', year: 1817, density: '0.534 g/cm³', meltingPoint: '453.69 K (180.54 °C)', boilingPoint: '1615 K (1342 °C)',
+    electronegativity: 0.98, ionizationEnergy: '520 kJ/mol', realWorldUses: ['High-Energy Batteries', 'Heavy Metal Alloys', 'Tritium Breeding'], reactivity: 'High'
+  },
+  4: {
+    summary: 'An extremely stiff, high-melting-point alkaline earth metal with superb thermal conductivity.',
+    funFact: 'Beryllium is highly transparent to X-rays, making it the perfect choice for high-energy nuclear beam windows.',
+    discoveredBy: 'Louis Nicolas Vauquelin', year: 1798, density: '1.85 g/cm³', meltingPoint: '1560 K (1287 °C)', boilingPoint: '2742 K (2469 °C)',
+    electronegativity: 1.57, ionizationEnergy: '900 kJ/mol', realWorldUses: ['Aerospace Gyroscopes', 'X-ray Window Seals', 'James Webb Mirror Scaffolds'], reactivity: 'Moderate'
+  },
+  5: {
+    summary: 'A tough, low-density metalloid crucial for establishing strong industrial borosilicate structures.',
+    funFact: 'Amorphously synthesized boron burns with an intense, signature futuristic emerald green plasma glow.',
+    discoveredBy: 'Joseph Louis Gay-Lussac', year: 1808, density: '2.34 g/cm³', meltingPoint: '2349 K (2076 °C)', boilingPoint: '4200 K (3927 °C)',
+    electronegativity: 2.04, ionizationEnergy: '801 kJ/mol', realWorldUses: ['Reactor Control Rods', 'Borosilicate Glasses', 'Neodymium Magnets'], reactivity: 'Moderate'
   },
   6: {
-    summary: 'The chemical foundation of life on Earth, carbon occupies a highly unique place due to its ability to form stable bonds.',
-    funFact: 'Depending on bonding geometry, carbon exists as soft conductive graphite, or as diamond - the hardest known natural mineral.',
-    discoveredBy: 'Ancient civilizations',
-    year: -3750,
-    density: '2.267 g/cm³',
-    meltingPoint: '3823 K (3550 °C)',
-    boilingPoint: '4300 K (4027 °C)',
-    electronegativity: 2.55,
-    ionizationEnergy: '1086 kJ/mol',
-    realWorldUses: ['Carbon Fibers', 'Graphene Alloys', 'Radiocarbon Dating'],
-    reactivity: 'Moderate'
+    summary: 'The definitive geometric backbone of the structural carbon chemistry and all organic life forms.',
+    funFact: 'Graphite layers slide like silk, yet carbon carbon lattice lattices create diamonds - the hardest natural minerals.',
+    discoveredBy: 'Ancient civilizations', year: -3750, density: '2.267 g/cm³', meltingPoint: '3823 K (3550 °C)', boilingPoint: '4300 K (4027 °C)',
+    electronegativity: 2.55, ionizationEnergy: '1086 kJ/mol', realWorldUses: ['Graphene Circuits', 'Reinforced Polymers', 'Radiocarbon Telemetry'], reactivity: 'Moderate'
+  },
+  7: {
+    summary: 'A colorless gas making up about 78% of Earth\'s atmosphere, acting as an atmospheric inert buffer.',
+    funFact: 'Liquid nitrogen boils instantly at room temperature, freezing cells instantly upon cryo engagement.',
+    discoveredBy: 'Daniel Rutherford', year: 1772, density: '1.2506 g/L', meltingPoint: '63.15 K (-210 °C)', boilingPoint: '77.36 K (-195.79 °C)',
+    electronegativity: 3.04, ionizationEnergy: '1402 kJ/mol', realWorldUses: ['Cryogenic Freezing', 'Inert Atmosphere Purge', 'Fertilizer Synthesis'], reactivity: 'Moderate'
+  },
+  8: {
+    summary: 'An exceptionally reactive nonmetal and biological fuel agent powering aerobic respirators globally.',
+    funFact: 'Liquid oxygen exhibits strong paramagnetic behaviors, hovering suspended between powerful magnetic poles.',
+    discoveredBy: 'Carl Wilhelm Scheele', year: 1772, density: '1.429 g/L', meltingPoint: '54.36 K (-218.79 °C)', boilingPoint: '90.2 K (-182.95 °C)',
+    electronegativity: 3.44, ionizationEnergy: '1314 kJ/mol', realWorldUses: ['Life Support Circuits', 'Stellar Rocket Oxidizers', 'Blast Furnace Smelting'], reactivity: 'Extreme'
+  },
+  9: {
+    summary: 'The most reactive of all chemical elements, a pale yellow halogen that immediately eats organic matter.',
+    funFact: 'Fluorine reacts explosively with water, ice, and glass, igniting carbon blocks at room temperature.',
+    discoveredBy: 'Henri Moissan', year: 1886, density: '1.696 g/L', meltingPoint: '53.48 K (-219.67 °C)', boilingPoint: '85.03 K (-188.12 °C)',
+    electronegativity: 3.98, ionizationEnergy: '1681 kJ/mol', realWorldUses: ['Uranium Enrichment', 'Acoustic Fluoropolymer coatings', 'Super-acid Synthesis'], reactivity: 'Extreme'
   },
   10: {
-    summary: 'A completely unreactive noble gas. Neon glows with a brilliant reddish-orange discharge light when excited by electricity.',
-    funFact: 'Neon is the second lightest noble gas but maintains forty times the refrigerating capacity of liquid helium.',
-    discoveredBy: 'William Ramsay, Morris Travers',
-    year: 1898,
-    density: '0.9002 g/L',
-    meltingPoint: '24.56 K (-248.59 °C)',
-    boilingPoint: '27.07 K (-246.08 °C)',
-    electronegativity: null,
-    ionizationEnergy: '2081 kJ/mol',
-    realWorldUses: ['Neon Signs', 'Laser Media', 'High-Voltage Discharge Tubes'],
-    reactivity: 'Inert'
+    summary: 'A colorless noble gas glowing with a vibrant, intense futuristic orange-red plasma discharge.',
+    funFact: 'Despite its common presence in neon lights, neon is rare in Earth\'s crust, sourced mostly from air liquefaction.',
+    discoveredBy: 'William Ramsay, Morris Travers', year: 1898, density: '0.9002 g/L', meltingPoint: '24.56 K (-248.59 °C)', boilingPoint: '27.07 K (-246.08 °C)',
+    electronegativity: null, ionizationEnergy: '2081 kJ/mol', realWorldUses: ['Plasma Discharge Tubes', 'Excimer Laser Channels', 'Cryogenic Refrigerants'], reactivity: 'Inert'
+  },
+  11: {
+    summary: 'A soft, silvery alkali metal that floats on water and oxidizes violently into white sodium oxides.',
+    funFact: 'Sodium is so easily sliced that a warm laboratory knife glides through metallic sodium like refrigerated butter.',
+    discoveredBy: 'Humphry Davy', year: 1807, density: '0.968 g/cm³', meltingPoint: '370.87 K (97.72 °C)', boilingPoint: '1156 K (883 °C)',
+    electronegativity: 0.93, ionizationEnergy: '496 kJ/mol', realWorldUses: ['Sodium-Ion Batteries', 'Cooling Nuclear Reactors', 'Sodium Vapor Lights'], reactivity: 'High'
+  },
+  12: {
+    summary: 'A lightweight alkaline earth metal that ignites with a blinding, pure white electromagnetic glow.',
+    funFact: 'Magnesium acts as the central chlorophyll receptor, capturing solar rays to fuel planetary photosynthesis.',
+    discoveredBy: 'Joseph Black', year: 1755, density: '1.738 g/cm³', meltingPoint: '923 K (650 °C)', boilingPoint: '1363 K (1090 °C)',
+    electronegativity: 1.31, ionizationEnergy: '738 kJ/mol', realWorldUses: ['Lightweight Structural Alloys', 'Flares and Pyrotechnics', 'Biological Cell Engines'], reactivity: 'High'
+  },
+  13: {
+    summary: 'A low-density, corrosion-resistant post-transition metal representing the foundation of aircraft frameworks.',
+    funFact: 'Once more precious than gold because of difficult refining, Emperor Napoleon III dined with aluminum forks.',
+    discoveredBy: 'Hans Christian Ørsted', year: 1825, density: '2.70 g/cm³', meltingPoint: '933.47 K (660.32 °C)', boilingPoint: '2792 K (2519 °C)',
+    electronegativity: 1.61, ionizationEnergy: '578 kJ/mol', realWorldUses: ['Aviation Structures', 'Alloy Heat Sinks', 'Interstellar Shield Liners'], reactivity: 'Moderate'
+  },
+  14: {
+    summary: 'An abundant semiconductor metalloid acting as the silicon foundational framework of microelectronics.',
+    funFact: 'Silicon comprises more than 27% of Earth\'s structural crust, making up sands, quartz, and heavy clay fields.',
+    discoveredBy: 'Jöns Jacob Berzelius', year: 1823, density: '2.329 g/cm³', meltingPoint: '1687 K (1414 °C)', boilingPoint: '3538 K (3265 °C)',
+    electronegativity: 1.90, ionizationEnergy: '787 kJ/mol', realWorldUses: ['Semiconductor Microchips', 'Solar Panel Grids', 'Glassware Compounds'], reactivity: 'Moderate'
+  },
+  15: {
+    summary: 'A highly reactive, non-metallic element existing in highly combustible red, white, and black structures.',
+    funFact: 'White phosphorus ignites spontaneously in normal air, producing a bright white toxic phosphorus smoke.',
+    discoveredBy: 'Hennig Brand', year: 1669, density: '1.823 g/cm³', meltingPoint: '317.3 K (44.15 °C)', boilingPoint: '553.6 K (280.5 °C)',
+    electronegativity: 2.19, ionizationEnergy: '1012 kJ/mol', realWorldUses: ['Bio-energetic Phosphates', 'Combustive Flares', 'Specialty Chemical Smelts'], reactivity: 'High'
+  },
+  16: {
+    summary: 'A pale yellow, nonmetallic crystalline element forming volcanic vapors and industrial battery acids.',
+    funFact: 'Pure sulfur is entirely odorless, yet its volatile hydrogen sulfides create the classic rotten egg scent.',
+    discoveredBy: 'Ancient civilizations', year: -2000, density: '2.07 g/cm³', meltingPoint: '388.36 K (115.21 °C)', boilingPoint: '717.8 K (444.6 °C)',
+    electronegativity: 2.58, ionizationEnergy: '1000 kJ/mol', realWorldUses: ['Lithium-Sulfur Batteries', 'Industrial Sulfuric Acid', 'Rubber Vulcanization'], reactivity: 'Moderate'
+  },
+  17: {
+    summary: 'A choking, neon-greenish-yellow halogen gas behaving as an exceptional biological purifier.',
+    funFact: 'Even small leaks of highly reactive chlorine are immediately recognizable by its strong bleach odors.',
+    discoveredBy: 'Carl Wilhelm Scheele', year: 1774, density: '3.2 g/L', meltingPoint: '171.6 K (-101.5 °C)', boilingPoint: '239.11 K (-34.04 °C)',
+    electronegativity: 3.16, ionizationEnergy: '1251 kJ/mol', realWorldUses: ['Water Purification', 'Disinfectant Solvents', 'Isocyanates Synthesis'], reactivity: 'Extreme'
+  },
+  18: {
+    summary: 'The third most abundant gas in Earth\'s envelope, an inert noble gas glowing with deep violet emissions.',
+    funFact: 'Argon provides the perfect protective shield inside historic lightbulbs to halt filament decay.',
+    discoveredBy: 'Lord Rayleigh, William Ramsay', year: 1894, density: '1.784 g/L', meltingPoint: '83.8 K (-189.3 °C)', boilingPoint: '87.3 K (-185.8 °C)',
+    electronegativity: null, ionizationEnergy: '1521 kJ/mol', realWorldUses: ['GMAW Welding Inert Gas', 'Double-Pane Window Insulation', 'Titanium Refining Shields'], reactivity: 'Inert'
+  },
+  19: {
+    summary: 'An incredibly soft, low-melting alkali metal reacting explosively with water to release hydrogen.',
+    funFact: 'Potassium can explode under water even at sub-zero temperatures, forming highly caustic lye.',
+    discoveredBy: 'Humphry Davy', year: 1807, density: '0.89 g/cm³', meltingPoint: '336.5 K (63.35 °C)', boilingPoint: '1032 K (759 °C)',
+    electronegativity: 0.82, ionizationEnergy: '419 kJ/mol', realWorldUses: ['Potassium-Superoxide breathing masks', 'Agricultural Fertilizers', 'Cardiac Ion Regulators'], reactivity: 'High'
+  },
+  20: {
+    summary: 'A moderately reactive, silver-white alkaline earth metal providing vital structural skeletons to earth life.',
+    funFact: 'Calcium represents the fifth most rich element in planetary crusts, forming massive marble hills.',
+    discoveredBy: 'Humphry Davy', year: 1808, density: '1.55 g/cm³', meltingPoint: '1115 K (842 °C)', boilingPoint: '1757 K (1484 °C)',
+    electronegativity: 1.00, ionizationEnergy: '590 kJ/mol', realWorldUses: ['Structural Bone Scaffold', 'Concrete Formulations', 'Specialty Alloy Reducers'], reactivity: 'High'
+  },
+  22: {
+    summary: 'An ultra-strong, low-density transition metal with superior resistance to seawater corroding agents.',
+    funFact: 'Titanium possesses the highest strength-to-weight ratio of all metals, matching steel weight at half mass.',
+    discoveredBy: 'William Gregor', year: 1791, density: '4.506 g/cm³', meltingPoint: '1941 K (1668 °C)', boilingPoint: '3560 K (3287 °C)',
+    electronegativity: 1.54, ionizationEnergy: '659 kJ/mol', realWorldUses: ['Aeronautic Fuselages', 'Orthopedic Transplants', 'Chemical Reactor Pipes'], reactivity: 'Low'
+  },
+  24: {
+    summary: 'A lustrous, hard transition metal displaying superb mirror polishing values and anti-corrosion properties.',
+    funFact: 'Chromium creates the mesmerizing red shades of rubies and the vibrant emerald green of chromium gemstones.',
+    discoveredBy: 'Louis Nicolas Vauquelin', year: 1797, density: '7.19 g/cm³', meltingPoint: '2180 K (1907 °C)', boilingPoint: '2944 K (2671 °C)',
+    electronegativity: 1.66, ionizationEnergy: '653 kJ/mol', realWorldUses: ['Chrome Electroplating', 'Corrosion-Proof Stainless Steels', 'Pigment Coloring Markers'], reactivity: 'Moderate'
+  },
+  25: {
+    summary: 'A hard, brittle gray-white metal crucial for hardening steel alloys against destructive friction wear.',
+    funFact: 'First used in prehistoric cave paintings, manganese triggers crucial oxygen formation during plant respiration.',
+    discoveredBy: 'Carl Wilhelm Scheele', year: 1774, density: '7.21 g/cm³', meltingPoint: '1519 K (1246 °C)', boilingPoint: '2334 K (2061 °C)',
+    electronegativity: 1.55, ionizationEnergy: '717 kJ/mol', realWorldUses: ['High-Strength Manganese Alloys', 'Metal Rust Converters', 'Stony-Meteorite Research'], reactivity: 'Moderate'
   },
   26: {
-    summary: 'The most common metal on Earth by mass, iron forms much of Earth\'s inner core and is extremely vital for metabolic oxygen routing.',
-    funFact: 'A star\'s life terminates in a supernova when its core begins fusing Fe, which consumes more thermal energy than it returns.',
-    discoveredBy: 'Ancient civilizations',
-    year: -5000,
-    density: '7.874 g/cm³',
-    meltingPoint: '1811 K (1538 °C)',
-    boilingPoint: '3134 K (2861 °C)',
-    electronegativity: 1.83,
-    ionizationEnergy: '762 kJ/mol',
-    realWorldUses: ['Structural Steel', 'Electromagnetic Cores', 'Industrial Machinery'],
-    reactivity: 'Moderate'
+    summary: 'The abundant planetary metal forming Earth\'s hot magnetic core and stellar nucleosynthesis end.',
+    funFact: 'A star\'s life terminates in a supernova when its core fuses Fe, consuming more thermal energy than it returns.',
+    discoveredBy: 'Ancient civilizations', year: -5000, density: '7.874 g/cm³', meltingPoint: '1811 K (1538 °C)', boilingPoint: '3134 K (2861 °C)',
+    electronegativity: 1.83, ionizationEnergy: '762 kJ/mol', realWorldUses: ['Reinforced Structural Steels', 'Transformer Induction Cores', 'Atmospheric Oxygen Hemoglobins'], reactivity: 'Moderate'
+  },
+  27: {
+    summary: 'A ferromagnetic, hard transition metal forming crucial high-temperature industrial superalloys.',
+    funFact: 'Cobalt creates an iconic, deep radiant ocean blue color used historically in Egyptian glasswares.',
+    discoveredBy: 'Georg Brandt', year: 1735, density: '8.90 g/cm³', meltingPoint: '1768 K (1495 °C)', boilingPoint: '3200 K (2927 °C)',
+    electronegativity: 1.88, ionizationEnergy: '760 kJ/mol', realWorldUses: ['Jet Engine Turbine Blades', 'Rechargeable Battery Cathodes', 'Surgical Implant Structures'], reactivity: 'Low'
+  },
+  28: {
+    summary: 'A silvery-white transition metal with superior resistance to atmospheric oxidation processes.',
+    funFact: 'Nickel comprises a substantial portion of metallic meteorites, raining down on primordial Earth.',
+    discoveredBy: 'Axel Fredrik Cronstedt', year: 1751, density: '8.908 g/cm³', meltingPoint: '1728 K (1455 °C)', boilingPoint: '3186 K (2913 °C)',
+    electronegativity: 1.91, ionizationEnergy: '737 kJ/mol', realWorldUses: ['Electroplated Shell Coatings', 'Alnico High-Power Magnets', 'Monel Marine Corrosion Valves'], reactivity: 'Low'
+  },
+  29: {
+    summary: 'A highly ductile metal exhibiting exceptional electrical conductivity and natural anti-microbial shields.',
+    funFact: 'Freshly synthesized copper displays a reddish metallic luster, oxidizing gradually into a green patina armor.',
+    discoveredBy: 'Middle East settlers', year: -9000, density: '8.96 g/cm³', meltingPoint: '1357.77 K (1084.62 °C)', boilingPoint: '2835 K (2562 °C)',
+    electronegativity: 1.90, ionizationEnergy: '745 kJ/mol', realWorldUses: ['Global High-Voltage Wiring', 'Antibacterial Surfaces', 'Heat Exchanger Blocks'], reactivity: 'Moderate'
+  },
+  30: {
+    summary: 'A blue-gray metal crucial for galvanizing iron against destructive atmospheric moisture rusting.',
+    funFact: 'An essential cofactor in more than 300 human biological enzymes, zinc fuels genetic code repairs.',
+    discoveredBy: 'Indian metallurgists', year: -1000, density: '7.14 g/cm³', meltingPoint: '692.68 K (419.53 °C)', boilingPoint: '1180 K (907 °C)',
+    electronegativity: 1.65, ionizationEnergy: '906 kJ/mol', realWorldUses: ['Corrosion Protective Galvanizing', 'Brass and Bronze Alloys', 'Immune Defense Enzymes'], reactivity: 'Moderate'
+  },
+  33: {
+    summary: 'A highly toxic grey metalloid historically renowned as the ultimate undetectable trace poison.',
+    funFact: 'Despite its toxic traits, arsenic doping boosts the high-frequency speed of solar gallium-arsenide cells.',
+    discoveredBy: 'Albertus Magnus', year: 1250, density: '5.727 g/cm³', meltingPoint: '1090 K (817 °C)', boilingPoint: '887 K (Sublimates)',
+    electronegativity: 2.18, ionizationEnergy: '947 kJ/mol', realWorldUses: ['Gallium Arsenide Semiconductors', 'Preserving Wood Structural Borers', 'Lead-Alloy Bullet Hardening'], reactivity: 'Moderate'
+  },
+  35: {
+    summary: 'The only nonmetallic element that exists as a heavy, reddish-brown volatile liquid at room temperatures.',
+    funFact: 'Bromine fumes display a thick, highly dense orange gas cloud that irritates human eyes instantly.',
+    discoveredBy: 'Antoine Jérôme Balard', year: 1826, density: '3.102 g/cm³', meltingPoint: '265.8 K (-7.2 °C)', boilingPoint: '332 K (58.8 °C)',
+    electronegativity: 2.96, ionizationEnergy: '1140 kJ/mol', realWorldUses: ['Flame retardant treatments', 'Specialty Photographic Silver Halides', 'Chemical Emulsion Sanitizers'], reactivity: 'Extreme'
+  },
+  36: {
+    summary: 'A heavy atmospheric noble gas glowing with a pristine bright green/orange spectral flash.',
+    funFact: 'Krypton lasers power high-precision retinal photocoagulators to seal leaking eye vessels.',
+    discoveredBy: 'William Ramsay, Morris Travers', year: 1898, density: '3.749 g/L', meltingPoint: '115.79 K (-157.36 °C)', boilingPoint: '119.93 K (-153.22 °C)',
+    electronegativity: 3.00, ionizationEnergy: '1351 kJ/mol', realWorldUses: ['High-Power Airfield Strobe Lights', 'Therapeutic Retinal Laser Channels', 'Specialty Insulation Fillers'], reactivity: 'Inert'
+  },
+  47: {
+    summary: 'A gorgeous, soft white metal with the absolute highest electrical conductivity of all known elements.',
+    funFact: 'Silver represents the ultimate light reflector, bouncing back more than 99% of visible light rays.',
+    discoveredBy: 'Anatolia miners', year: -3000, density: '10.49 g/cm³', meltingPoint: '1234.93 K (961.78 °C)', boilingPoint: '2435 K (2162 °C)',
+    electronegativity: 1.93, ionizationEnergy: '731 kJ/mol', realWorldUses: ['High-Reflection Mirror Blanks', 'Micro-Electronic Solder Joints', 'Antibacterial Surgical Dressings'], reactivity: 'Low'
+  },
+  53: {
+    summary: 'A deep violet, lustrous halogen solid that sublimates smoothly into highly dense purple vapors.',
+    funFact: 'Iodine concentrates highly in active thyroid glands, building metabolic rate regulatory hormones.',
+    discoveredBy: 'Bernard Courtois', year: 1811, density: '4.933 g/cm³', meltingPoint: '386.85 K (113.7 °C)', boilingPoint: '457.4 K (184.3 °C)',
+    electronegativity: 2.66, ionizationEnergy: '1008 kJ/mol', realWorldUses: ['Surgical Antiseptics', 'Radio-contrast Diagnostic Agents', 'Anti-Radiation Potassium Pills'], reactivity: 'High'
+  },
+  54: {
+    summary: 'An extremely heavy noble gas that glows with an incredibly clean sky-blue electric flash.',
+    funFact: 'Xenon engines generate light-speed microscopic particle thrusts, driving robotic interplanetary probes.',
+    discoveredBy: 'William Ramsay, Morris Travers', year: 1898, density: '5.894 g/L', meltingPoint: '161.4 K (-111.7 °C)', boilingPoint: '165.03 K (-108.07 °C)',
+    electronegativity: 2.60, ionizationEnergy: '1170 kJ/mol', realWorldUses: ['Ion Propulsion Space Thrusters', 'Deep Seawater Diving Lights', 'IMAX Projection HMI Arc Lamps'], reactivity: 'Inert'
+  },
+  55: {
+    summary: 'An extremely reactive alkali metal that melts in hands and explodes on contact with cool water.',
+    funFact: 'Its ticking atomic resonance sets the global definition of a single second to atomic perfection.',
+    discoveredBy: 'Robert Bunsen, Gustav Kirchhoff', year: 1860, density: '1.93 g/cm³', meltingPoint: '301.59 K (28.44 °C)', boilingPoint: '944 K (671 °C)',
+    electronegativity: 0.79, ionizationEnergy: '376 kJ/mol', realWorldUses: ['Atomic Clocks Accuracy Calibration', 'Density Gradient Centrifugations', 'Photosensitive Vacuum Diodes'], reactivity: 'Extreme'
+  },
+  56: {
+    summary: 'An active, soft alkaline earth metal manifesting as an exceptional medical tracer for intestinal scans.',
+    funFact: 'Barium absorbs X-rays completely, outlining biological blockages during digestive imaging.',
+    discoveredBy: 'Carl Wilhelm Scheele', year: 1774, density: '3.51 g/cm³', meltingPoint: '1000 K (727 °C)', boilingPoint: '2170 K (1897 °C)',
+    electronegativity: 0.89, ionizationEnergy: '503 kJ/mol', realWorldUses: ['Intestinal Contrast marker', 'Vacuum Tube Degasser Traps', 'Fireworks Green Emission Starches'], reactivity: 'High'
+  },
+  78: {
+    summary: 'An incredibly unreactive precious metal that acts as an exceptional agent for therapeutic cancer drugs.',
+    funFact: 'Platinum is so stable that it resists all acids unless attacked by the lethal "royal water" (aqua regia).',
+    discoveredBy: 'Antonio de Ulloa', year: 1735, density: '21.45 g/cm³', meltingPoint: '2041.4 K (1768.3 °C)', boilingPoint: '4098 K (3825 °C)',
+    electronegativity: 2.28, ionizationEnergy: '870 kJ/mol', realWorldUses: ['Emission Catalytic Converter meshes', 'Pacemaker Lead Electrodes', 'Chemotherapy Metal Complexes'], reactivity: 'Low'
   },
   79: {
     summary: 'An extraordinarily dense, malleable precious metal that maintains a rich golden lustre and resists all chemical weathering.',
     funFact: 'Gold is so incredibly ductile that a single ounce can be drawn into a hair-thin wire stretching over 50 miles long.',
-    discoveredBy: 'Prehistoric humans',
-    year: -4000,
-    density: '19.3 g/cm³',
-    meltingPoint: '1337.33 K (1064.18 °C)',
-    boilingPoint: '3129 K (2856 °C)',
-    electronegativity: 2.54,
-    ionizationEnergy: '890 kJ/mol',
-    realWorldUses: ['Financial Assets', 'Electronics Connectors', 'Space-Suit Infrared Shielding'],
-    reactivity: 'Low'
+    discoveredBy: 'Prehistoric humans', year: -4000, density: '19.3 g/cm³', meltingPoint: '1337.33 K (1064.18 °C)', boilingPoint: '3129 K (2856 °C)',
+    electronegativity: 2.54, ionizationEnergy: '890 kJ/mol', realWorldUses: ['Financial Assets Reserves', 'Corrosion-proof Micro-wiring', 'Astronaut Gold visor foils'], reactivity: 'Low'
   },
   80: {
     summary: 'The only transition metal that remains liquid at standard room temperature. Heavy, highly toxic, historically called "quicksilver".',
     funFact: 'Despite its liquid state, mercury represents such a dense fluid that heavy iron blocks can float on it like toy boats.',
-    discoveredBy: 'Ancient Egyptians',
-    year: -1500,
-    density: '13.534 g/cm³',
-    meltingPoint: '234.32 K (-38.83 °C)',
-    boilingPoint: '629.88 K (356.73 °C)',
-    electronegativity: 2.00,
-    ionizationEnergy: '1007 kJ/mol',
-    realWorldUses: ['Scientific Thermometers', 'Fluorescent Illumination', 'Amalgam Alloys'],
-    reactivity: 'Low'
+    discoveredBy: 'Ancient Egyptians', year: -1500, density: '13.534 g/cm³', meltingPoint: '234.32 K (-38.83 °C)', boilingPoint: '629.88 K (356.73 °C)',
+    electronegativity: 2.00, ionizationEnergy: '1007 kJ/mol', realWorldUses: ['Silent Liquid Contactors', 'Ultraviolet Fluorescent tubes', 'Precision Laboratory Barometers'], reactivity: 'Low'
+  },
+  82: {
+    summary: 'A heavy, dense post-transition metal possessing exceptional ionizing radiation shielding performance.',
+    funFact: 'Ancient Romans lined culinary lead water channels with lead, leading to chronic systemic toxicity.',
+    discoveredBy: 'Middle East metallurgists', year: -6400, density: '11.34 g/cm³', meltingPoint: '600.61 K (327.46 °C)', boilingPoint: '2022 K (1749 °C)',
+    electronegativity: 1.87, ionizationEnergy: '716 kJ/mol', realWorldUses: ['Ionizing Gamma Shields', 'Sealed Lead Batteries', 'Vibration Seismic Dampers'], reactivity: 'Low'
+  },
+  83: {
+    summary: 'A heavy, brittle pinkish-white post-transition metal displaying highly unique diamagnetic properties.',
+    funFact: 'Its safe nuclear configuration decays with a half-life of 20 billion billion years, virtually stable.',
+    discoveredBy: 'Claude François Geoffroy', year: 1753, density: '9.78 g/cm³', meltingPoint: '544.7 K (271.5 °C)', boilingPoint: '1837 K (1564 °C)',
+    electronegativity: 2.02, ionizationEnergy: '703 kJ/mol', realWorldUses: ['Fire Suppressing Fusible plugs', 'Nuclear Cooling Lead Alloys', 'Non-Toxic Lead replacements'], reactivity: 'Low'
+  },
+  86: {
+    summary: 'An extremely heavy radioactive noble gas that pools in deep caverns and stone basement structures.',
+    funFact: 'Radon holds the record as the densest known gas, weighing nearly 100 times more than air.',
+    discoveredBy: 'Ernest Rutherford, Robert Owens', year: 1899, density: '9.73 g/L', meltingPoint: '202 K (-71 °C)', boilingPoint: '211.3 K (-61.8 °C)',
+    electronegativity: 2.20, ionizationEnergy: '1037 kJ/mol', realWorldUses: ['Underground Seismological gas monitoring', 'Target Radioactive tumor therapies', 'Geological mineral tracking'], reactivity: 'Inert'
+  },
+  88: {
+    summary: 'An unstable alkaline earth metal discovered by Marie Curie, glowing with a ghostly, faint green luminosity.',
+    funFact: 'Marie Curie carried radium tubes inside her lab pockets, unaware of ionizing radiation hazards.',
+    discoveredBy: 'Marie and Pierre Curie', year: 1898, density: '5.5 g/cm³', meltingPoint: '973 K (700 °C)', boilingPoint: '2010 K (1737 °C)',
+    electronegativity: 0.90, ionizationEnergy: '509 kJ/mol', realWorldUses: ['Historical Self-Luminous Dials', 'Target Alpha Cancer treatments', 'Primary Neutron Spawning sources'], reactivity: 'Extreme'
+  },
+  90: {
+    summary: 'A silver-white, weakly radioactive actinide metal presenting massive potential as a safe nuclear fuel alternative.',
+    funFact: 'Thorium fission emits no weaponizable plutonium, acting as an exceptional civil atomic power option.',
+    discoveredBy: 'Jöns Jacob Berzelius', year: 1828, density: '11.72 g/cm³', meltingPoint: '2023 K (1750 °C)', boilingPoint: '5061 K (4788 °C)',
+    electronegativity: 1.30, ionizationEnergy: '587 kJ/mol', realWorldUses: ['High-Safety Molten Salt Reactors', 'Intense Heat Gas mantles', 'Specialty High-Refraction Lenses'], reactivity: 'Moderate'
   },
   92: {
-    summary: 'A heavy, naturally fissionable radioactive metal. It serves as the primary fuel source for nuclear power reactors.',
-    funFact: 'Traces of uranium added to historical glass (vaseline glass) create a haunting, cosmic green fluorescence under UV rays.',
-    discoveredBy: 'Martin Heinrich Klaproth',
-    year: 1789,
-    density: '19.1 g/cm³',
-    meltingPoint: '1405.3 K (1132.2 °C)',
-    boilingPoint: '4404 K (4131 °C)',
-    electronegativity: 1.38,
-    ionizationEnergy: '597 kJ/mol',
-    realWorldUses: ['Nuclear Fission Reactors', 'Armor-Piercing Munitions', 'Target Shielding'],
-    reactivity: 'Moderate'
+    summary: 'A dense, uranium-heavy radioactive metal acting as the primary fuel source for nuclear power drives.',
+    funFact: 'Traces of uranium added to vintage glass (Vaseline glass) generate a haunting neon-green glow under UV stars.',
+    discoveredBy: 'Martin Heinrich Klaproth', year: 1789, density: '19.1 g/cm³', meltingPoint: '1405.3 K (1132.2 °C)', boilingPoint: '4404 K (4131 °C)',
+    electronegativity: 1.38, ionizationEnergy: '597 kJ/mol', realWorldUses: ['Nuclear Fission Reactors', 'Naval Aircraft Carrier turbines', 'Armor Shield Heavy Alloys'], reactivity: 'Moderate'
+  },
+  94: {
+    summary: 'An artificially synthesized actinide metal presenting immense energy potential for space propulsion.',
+    funFact: 'Plutonium-238 isotopes generate thermal radiation that powers deep space voyagers for many decades.',
+    discoveredBy: 'Glenn T. Seaborg', year: 1940, density: '19.81 g/cm³', meltingPoint: '912.5 K (639.4 °C)', boilingPoint: '3501 K (3228 °C)',
+    electronegativity: 1.28, ionizationEnergy: '585 kJ/mol', realWorldUses: ['Radioisotope Thermoelectric Generators', 'Deep Space Voyager batteries', 'Atomic Warhead cores'], reactivity: 'Moderate'
   }
 };
 
