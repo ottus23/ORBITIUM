@@ -26,6 +26,14 @@ interface ThreeSceneProps {
   onFpsChange: (fps: number) => void;
 }
 
+const BOND_ENERGIES: Record<string, { value: number; unit: string; color: string; maxLimit: number }> = {
+  'NaCl': { value: 787, unit: 'kJ/mol', color: '#D500F9', maxLimit: 2000 },      // Ionic, purple/pink
+  'H₂O': { value: 926, unit: 'kJ/mol', color: '#00E5FF', maxLimit: 2000 },       // Covalent, cyan
+  'CsOH + H₂': { value: 1120, unit: 'kJ/mol', color: '#FF3D00', maxLimit: 2000 }, // Explosive, orange-red
+  'CO₂': { value: 1616, unit: 'kJ/mol', color: '#FFD700', maxLimit: 2000 },      // Double covalent, yellow-gold
+  'Fe₂O₃': { value: 480, unit: 'kJ/mol', color: '#FF9100', maxLimit: 2000 },      // Slow ionic, bronze/rust
+};
+
 export default function ThreeScene({
   selectedElement,
   hoveredElement,
@@ -320,6 +328,15 @@ export default function ThreeScene({
     let productMoleculeGroup: THREE.Group | null = null;
     let isReactionStable = false;
 
+    // Bond Energy Gauge 3D elements
+    let energyMeterGroup: THREE.Group | null = null;
+    let energyBarMesh: THREE.Mesh | null = null;
+    let energyBarMat: THREE.MeshPhongMaterial | null = null;
+    let energyScoreLabelTexture: THREE.CanvasTexture | null = null;
+    const energySegments: THREE.Mesh[] = [];
+    const energySegmentMats: THREE.MeshPhongMaterial[] = [];
+    let currentLevelRatio = 0; // Smooth rise target
+
     // --- 4. PLANAR ATMOSPHERIC LAB GRID System ---
     const gridHelperY = new THREE.GridHelper(100, 50, '#00E5FF', '#0B1020');
     gridHelperY.position.set(0, -25, 0);
@@ -393,6 +410,147 @@ export default function ThreeScene({
     });
     const chamberCage = new THREE.LineSegments(scanPlaneEdges, scanPlaneMat);
     chamberRingsGroup.add(chamberCage);
+
+    // --- 4C. HOLOGRAPHIC BOND ENERGY DETECTOR (GAUGE) ---
+    energyMeterGroup = new THREE.Group();
+    // Position it on the left side within safe sight in the chamber limits
+    energyMeterGroup.position.set(-9.8, -4.5, -2.5);
+    chamberRingsGroup.add(energyMeterGroup);
+
+    // Grid backdrop behind the indicator
+    const gaugeBackdropGeom = new THREE.PlaneGeometry(1.5, 8.2);
+    const gaugeBackdropMat = new THREE.MeshBasicMaterial({
+      color: '#02070D',
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide
+    });
+    const gaugeBackdrop = new THREE.Mesh(gaugeBackdropGeom, gaugeBackdropMat);
+    gaugeBackdrop.position.set(0, 4.0, -0.15);
+    energyMeterGroup.add(gaugeBackdrop);
+
+    // Decorative base ring
+    const meterBaseGeom = new THREE.CylinderGeometry(1.0, 1.2, 0.25, 16);
+    const meterBaseMat = new THREE.MeshPhongMaterial({
+      color: '#1A2F4C',
+      emissive: '#09152C',
+      shininess: 40
+    });
+    const meterBase = new THREE.Mesh(meterBaseGeom, meterBaseMat);
+    energyMeterGroup.add(meterBase);
+
+    // Vertical supporting pylons/frame
+    const frameGeom = new THREE.BoxGeometry(0.08, 8.0, 0.08);
+    const frameMat = new THREE.MeshPhongMaterial({
+      color: '#0D2036',
+      transparent: true,
+      opacity: 0.7
+    });
+    const frameLeft = new THREE.Mesh(frameGeom, frameMat);
+    frameLeft.position.set(-0.65, 4.0, 0);
+    energyMeterGroup.add(frameLeft);
+
+    const frameRight = new THREE.Mesh(frameGeom, frameMat);
+    frameRight.position.set(0.65, 4.0, 0);
+    energyMeterGroup.add(frameRight);
+
+    // Decorative cap
+    const meterCap = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.7, 0.15, 16), meterBaseMat);
+    meterCap.position.y = 8.0;
+    energyMeterGroup.add(meterCap);
+
+    // Energy segments (horizontal indicator steps)
+    // 8 steps representing bonding intensity divisions
+    const segmentCount = 8;
+    for (let s = 0; s < segmentCount; s++) {
+      const segGeom = new THREE.BoxGeometry(0.8, 0.18, 0.15);
+      const segMat = new THREE.MeshPhongMaterial({
+        color: '#00E5FF',
+        emissive: '#00E5FF',
+        emissiveIntensity: 0.05,
+        transparent: true,
+        opacity: 0.2
+      });
+      const segMesh = new THREE.Mesh(segGeom, segMat);
+      // Place segments uniformly between y=0.8 and y=7.2
+      segMesh.position.set(0, 0.8 + (s * 0.85), 0);
+      energyMeterGroup.add(segMesh);
+      energySegments.push(segMesh);
+      energySegmentMats.push(segMat); // We store the material pointer
+    }
+
+    // Inside central glowing core energy cylinder bar
+    const barGeom = new THREE.CylinderGeometry(0.18, 0.18, 6.8, 16);
+    barGeom.translate(0, 3.4, 0); // Translate so bottom is at origin
+    energyBarMat = new THREE.MeshPhongMaterial({
+      color: '#00FFB3', // Default green, will shift based on reaction type color
+      emissive: '#00FFB3',
+      emissiveIntensity: 0.5,
+      transparent: true,
+      opacity: 0.85
+    });
+    energyBarMesh = new THREE.Mesh(barGeom, energyBarMat);
+    energyBarMesh.position.set(0, 0.6, 0);
+    energyBarMesh.scale.y = 0.001; // initial scale
+    energyMeterGroup.add(energyBarMesh);
+
+    // Create CanvasTexture for the HUD overlay text
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 256;
+    labelCanvas.height = 128;
+    energyScoreLabelTexture = new THREE.CanvasTexture(labelCanvas);
+
+    const updateEnergyLabelCanvas = (formula: string, energyValue: number, colorHex: string) => {
+      const ctx = labelCanvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, 256, 128);
+        
+        // Semi-transparent backdrop
+        ctx.fillStyle = 'rgba(7, 11, 20, 0.9)';
+        ctx.beginPath();
+        ctx.rect(5, 5, 246, 118);
+        ctx.fill();
+        
+        ctx.strokeStyle = colorHex;
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        ctx.font = 'bold 12px monospace';
+        ctx.fillStyle = '#EAF2FF';
+        ctx.textAlign = 'center';
+        ctx.fillText('BOND ENERGY', 128, 28);
+
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = colorHex;
+        ctx.fillText(`${energyValue}`, 128, 68);
+
+        ctx.font = '10px monospace';
+        ctx.fillStyle = 'rgba(234, 242, 255, 0.65)';
+        ctx.fillText('kJ/mol (VALENCE)', 128, 92);
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(25, 38); ctx.lineTo(231, 38);
+        ctx.stroke();
+      }
+      if (energyScoreLabelTexture) energyScoreLabelTexture.needsUpdate = true;
+    };
+
+    const labelGeom = new THREE.PlaneGeometry(3.0, 1.5);
+    const labelMat = new THREE.MeshBasicMaterial({
+      map: energyScoreLabelTexture,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide
+    });
+    const labelMesh = new THREE.Mesh(labelGeom, labelMat);
+    labelMesh.position.set(0, 9.2, 0);
+    energyMeterGroup.add(labelMesh);
+    energyMeterGroup.userData = { labelMesh, updateLabel: updateEnergyLabelCanvas };
+
+    // Initial label
+    updateEnergyLabelCanvas('N/A', 0, '#00E5FF');
 
     // --- 5. FLOATING ELEMENT CARDS SETUP ---
     const cardGroup = new THREE.Group();
@@ -2213,6 +2371,105 @@ export default function ThreeScene({
         const label = productMoleculeGroup.userData.labelMesh as THREE.Mesh;
         if (label) {
           label.lookAt(camera.position);
+        }
+      }
+
+      // --- ANIMATE HOLOGRAPHIC BOND ENERGY DETECTOR (ENERGY METER) ---
+      if (currentProps.appMode === 'bond_lab' && energyMeterGroup) {
+        if (activeBondModeReaction) {
+          const formula = activeBondModeReaction.productFormula;
+          const energyConfig = BOND_ENERGIES[formula] || { value: 300, unit: 'kJ/mol', color: '#00FFB3', maxLimit: 2000 };
+          
+          // Calculate target level ratio
+          // If stable, fill up to the actual value percentage
+          // If in progress and reactants exist, fill dynamically as they approach
+          let targetRatio = 0.05;
+          if (isReactionStable) {
+            targetRatio = energyConfig.value / energyConfig.maxLimit;
+          } else if (reactantA && reactantB) {
+            const currentDist = reactantA.position.distanceTo(reactantB.position);
+            // Climbs to 0.45 of the final target scale as distance closes
+            const distanceClimb = (1.0 - Math.min(1.0, currentDist / 17.0)) * 0.42;
+            targetRatio = 0.05 + distanceClimb * (energyConfig.value / energyConfig.maxLimit);
+          }
+
+          // Smooth interpolation matching simulation speed
+          currentLevelRatio += (targetRatio - currentLevelRatio) * 0.1 * simMultiplier;
+
+          // Scale the energy core cylinder bar
+          if (energyBarMesh) {
+            energyBarMesh.scale.y = Math.max(0.001, currentLevelRatio);
+          }
+
+          // Update neon colors of the bar matching reaction type
+          const reactionColor = new THREE.Color(energyConfig.color);
+          if (energyBarMat) {
+            energyBarMat.color.copy(reactionColor);
+            energyBarMat.emissive.copy(reactionColor);
+            // Core pulsing effect
+            energyBarMat.emissiveIntensity = 0.35 + Math.sin(elapsed * 8.5) * 0.2;
+          }
+
+          // Light up the horizontal indicator segment bars
+          const activeSegmentsCount = Math.min(8, Math.ceil(currentLevelRatio * 8));
+          for (let s = 0; s < 8; s++) {
+            const segMat = energySegmentMats[s];
+            if (segMat) {
+              if (s < activeSegmentsCount) {
+                segMat.color.copy(reactionColor);
+                segMat.emissive.copy(reactionColor);
+                segMat.emissiveIntensity = 0.4 + Math.sin(elapsed * 10.0 + s * 1.5) * 0.25;
+                segMat.opacity = 0.85;
+              } else {
+                segMat.color.set('#00E5FF');
+                segMat.emissive.set('#00E5FF');
+                segMat.emissiveIntensity = 0.05;
+                segMat.opacity = 0.2;
+              }
+            }
+          }
+
+          // Face HUD Billboard towards camera and update values
+          const labelMesh = energyMeterGroup.userData.labelMesh as THREE.Mesh;
+          if (labelMesh) {
+            labelMesh.lookAt(camera.position);
+
+            if (frameCount % 4 === 0) {
+              const displayedValue = isReactionStable 
+                ? energyConfig.value 
+                : Math.round(currentLevelRatio * energyConfig.maxLimit);
+              
+              energyMeterGroup.userData.updateLabel(formula, displayedValue, energyConfig.color);
+            }
+          }
+        } else {
+          // Reset when no active reaction
+          currentLevelRatio += (0.001 - currentLevelRatio) * 0.15 * simMultiplier;
+          if (energyBarMesh) energyBarMesh.scale.y = currentLevelRatio;
+          
+          if (energyBarMat) {
+            energyBarMat.color.set('#00FFB3');
+            energyBarMat.emissive.set('#00FFB3');
+            energyBarMat.emissiveIntensity = 0.2;
+          }
+
+          for (let s = 0; s < 8; s++) {
+            const segMat = energySegmentMats[s];
+            if (segMat) {
+              segMat.color.set('#00E5FF');
+              segMat.emissive.set('#00E5FF');
+              segMat.emissiveIntensity = 0.05;
+              segMat.opacity = 0.15;
+            }
+          }
+
+          const labelMesh = energyMeterGroup.userData.labelMesh as THREE.Mesh;
+          if (labelMesh) {
+            labelMesh.lookAt(camera.position);
+            if (frameCount % 10 === 0) {
+              energyMeterGroup.userData.updateLabel('N/A', 0, '#00E5FF');
+            }
+          }
         }
       }
 
