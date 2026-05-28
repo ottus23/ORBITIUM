@@ -311,12 +311,88 @@ export default function ThreeScene({
     const currentFogColor = new THREE.Color(defaultFogHex);
     const targetAmbientColor = new THREE.Color(defaultAmbientHex);
 
+    // 3D Reaction containment chamber & molecular representation variables
+    let chamberRingsGroup: THREE.Group | null = null;
+    let chamberRing1: THREE.Mesh | null = null;
+    let chamberRing2: THREE.Mesh | null = null;
+    let ringOuterMat: THREE.MeshBasicMaterial | null = null;
+    let ringInnerMat: THREE.MeshBasicMaterial | null = null;
+    let productMoleculeGroup: THREE.Group | null = null;
+    let isReactionStable = false;
+
     // --- 4. PLANAR ATMOSPHERIC LAB GRID System ---
     const gridHelperY = new THREE.GridHelper(100, 50, '#00E5FF', '#0B1020');
     gridHelperY.position.set(0, -25, 0);
     gridHelperY.material.opacity = 0.12;
     gridHelperY.material.transparent = true;
     scene.add(gridHelperY);
+
+    // --- 4B. FUTURISTIC CONTAINMENT CHAMBER ---
+    chamberRingsGroup = new THREE.Group();
+    chamberRingsGroup.visible = false; // Displayed only in 'bond_lab' mode
+    scene.add(chamberRingsGroup);
+
+    // Large glowing boundary energy ring
+    const ringOuterGeom = new THREE.TorusGeometry(14.0, 0.15, 16, 120);
+    ringOuterMat = new THREE.MeshBasicMaterial({
+      color: '#00E5FF',
+      transparent: true,
+      opacity: 0.15,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+    chamberRing1 = new THREE.Mesh(ringOuterGeom, ringOuterMat);
+    chamberRing1.rotation.x = Math.PI / 2;
+    chamberRingsGroup.add(chamberRing1);
+
+    // Secondary energy ring offset angled
+    const ringInnerGeom = new THREE.TorusGeometry(13.8, 0.08, 16, 100);
+    ringInnerMat = new THREE.MeshBasicMaterial({
+      color: '#FF9100',
+      transparent: true,
+      opacity: 0.10,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+    chamberRing2 = new THREE.Mesh(ringInnerGeom, ringInnerMat);
+    chamberRing2.rotation.y = Math.PI / 3;
+    chamberRingsGroup.add(chamberRing2);
+
+    // Horizontal grid base inside the chamber
+    const chamberGrid = new THREE.GridHelper(26, 12, '#20FFD0', '#103040');
+    chamberGrid.position.y = -6.0;
+    (chamberGrid.material as THREE.Material).transparent = true;
+    (chamberGrid.material as THREE.Material).opacity = 0.12;
+    chamberRingsGroup.add(chamberGrid);
+
+    // Lateral electromagnetic coils cylinder pillars
+    const coilGeom = new THREE.CylinderGeometry(0.3, 0.3, 14, 8);
+    const coilMat = new THREE.MeshPhongMaterial({
+      color: '#152540',
+      emissive: '#09152a',
+      shininess: 60,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    const coilLeft = new THREE.Mesh(coilGeom, coilMat);
+    coilLeft.position.set(-14.2, 0, 0);
+    chamberRingsGroup.add(coilLeft);
+
+    const coilRight = new THREE.Mesh(coilGeom, coilMat);
+    coilRight.position.set(14.2, 0, 0);
+    chamberRingsGroup.add(coilRight);
+
+    // Chamber warning perimeter edge bounding cage
+    const scanPlaneGeom = new THREE.BoxGeometry(28, 12, 10);
+    const scanPlaneEdges = new THREE.EdgesGeometry(scanPlaneGeom);
+    const scanPlaneMat = new THREE.LineBasicMaterial({
+      color: '#00FFB3',
+      transparent: true,
+      opacity: 0.06
+    });
+    const chamberCage = new THREE.LineSegments(scanPlaneEdges, scanPlaneMat);
+    chamberRingsGroup.add(chamberCage);
 
     // --- 5. FLOATING ELEMENT CARDS SETUP ---
     const cardGroup = new THREE.Group();
@@ -521,7 +597,6 @@ export default function ThreeScene({
     let sparkPoints: THREE.Points | null = null;
     let sparkSpeeds: Float32Array | null = null;
     let sparkDirections: Float32Array | null = null;
-    let isReactionStable = false;
 
     const createReactantAtom = (symbol: string, colorHex: string) => {
       const group = new THREE.Group();
@@ -596,12 +671,378 @@ export default function ThreeScene({
       return group;
     };
 
+    const createLatticeLine = (pointA: THREE.Vector3, pointB: THREE.Vector3, parentGroup: THREE.Group, customColor = '#00E5FF') => {
+      const direction = new THREE.Vector3().subVectors(pointB, pointA);
+      const length = direction.length();
+      const geom = new THREE.CylinderGeometry(0.06, 0.06, length, 8);
+      geom.translate(0, length / 2, 0);
+      geom.rotateX(Math.PI / 2);
+      
+      const mat = new THREE.MeshBasicMaterial({
+        color: customColor,
+        transparent: true,
+        opacity: 0.55
+      });
+      const cylinder = new THREE.Mesh(geom, mat);
+      cylinder.position.copy(pointA);
+      cylinder.lookAt(pointB);
+      parentGroup.add(cylinder);
+    };
+
+    const createCovalentBond = (pointA: THREE.Vector3, pointB: THREE.Vector3, parentGroup: THREE.Group, color1: string, color2: string) => {
+      const direction = new THREE.Vector3().subVectors(pointB, pointA);
+      const length = direction.length();
+      const halfLength = length / 2;
+
+      // First half (colored towards Atom 1)
+      const geom1 = new THREE.CylinderGeometry(0.08, 0.08, halfLength, 8);
+      geom1.translate(0, halfLength / 2, 0);
+      geom1.rotateX(Math.PI / 2);
+      const mat1 = new THREE.MeshPhongMaterial({
+        color: new THREE.Color(color1),
+        emissive: new THREE.Color(color1).multiplyScalar(0.5),
+        transparent: true,
+        opacity: 0.7
+      });
+      const cyl1 = new THREE.Mesh(geom1, mat1);
+      cyl1.position.copy(pointA);
+      cyl1.lookAt(pointB);
+      parentGroup.add(cyl1);
+
+      // Second half (colored towards Atom 2)
+      const geom2 = new THREE.CylinderGeometry(0.08, 0.08, halfLength, 8);
+      geom2.translate(0, halfLength / 2, 0);
+      geom2.rotateX(Math.PI / 2);
+      const mat2 = new THREE.MeshPhongMaterial({
+        color: new THREE.Color(color2),
+        emissive: new THREE.Color(color2).multiplyScalar(0.5),
+        transparent: true,
+        opacity: 0.7
+      });
+      const cyl2 = new THREE.Mesh(geom2, mat2);
+      const midPoint = new THREE.Vector3().addVectors(pointA, pointB).multiplyScalar(0.5);
+      cyl2.position.copy(midPoint);
+      cyl2.lookAt(pointB);
+      parentGroup.add(cyl2);
+    };
+
+    const createDoubleCovalentBond = (pointA: THREE.Vector3, pointB: THREE.Vector3, parentGroup: THREE.Group, color1: string, color2: string) => {
+      // Calculate perpendicular offset vector for drawing twin parallel lines
+      const direction = new THREE.Vector3().subVectors(pointB, pointA).normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      if (Math.abs(direction.dot(up)) > 0.9) {
+        up.set(1, 0, 0);
+      }
+      const right = new THREE.Vector3().crossVectors(direction, up).normalize().multiplyScalar(0.24);
+
+      // Left Bond
+      const leftA = pointA.clone().add(right);
+      const leftB = pointB.clone().add(right);
+      createCovalentBond(leftA, leftB, parentGroup, color1, color2);
+
+      // Right Bond
+      const rightA = pointA.clone().sub(right);
+      const rightB = pointB.clone().sub(right);
+      createCovalentBond(rightA, rightB, parentGroup, color1, color2);
+    };
+
+    const createHolographic3DLabel = (formula: string, name: string, parentGroup: THREE.Group) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, 512, 128);
+        
+        // Semi-transparent high-tech hud back plate
+        ctx.fillStyle = 'rgba(7, 11, 20, 0.85)';
+        ctx.beginPath();
+        ctx.rect(10, 10, 492, 108);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#00FFB3';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // High-tech corner bracket styles
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        // Top Left
+        ctx.moveTo(15, 35); ctx.lineTo(15, 15); ctx.lineTo(35, 15);
+        // Top Right
+        ctx.moveTo(497, 35); ctx.lineTo(497, 15); ctx.lineTo(477, 15);
+        // Bottom Left
+        ctx.moveTo(15, 93); ctx.lineTo(15, 113); ctx.lineTo(35, 113);
+        // Bottom Right
+        ctx.moveTo(497, 93); ctx.lineTo(497, 113); ctx.lineTo(477, 113);
+        ctx.stroke();
+
+        ctx.font = 'bold 38px sans-serif';
+        ctx.fillStyle = '#00FFB3';
+        ctx.textAlign = 'left';
+        ctx.fillText(formula, 42, 58);
+
+        ctx.font = 'bold 16px monospace';
+        ctx.fillStyle = '#EAF2FF';
+        ctx.fillText('SYNTHESIZED MATRIX', 42, 92);
+
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillStyle = 'rgba(234, 242, 255, 0.85)';
+        ctx.textAlign = 'right';
+        ctx.fillText(name, 470, 70);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const material = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide
+      });
+      const geom = new THREE.PlaneGeometry(6.4, 1.6);
+      const mesh = new THREE.Mesh(geom, material);
+      
+      mesh.position.set(0, 4.2, 0);
+      parentGroup.add(mesh);
+      parentGroup.userData.labelMesh = mesh;
+    };
+
+    const createProductMolecule = (re: ReactionConfig | null, position: THREE.Vector3) => {
+      const group = new THREE.Group();
+      group.position.copy(position);
+
+      if (!re) return group;
+
+      // Add a base golden holographic bounding grid / scanning emitter beneath the formed molecule!
+      const gridHelper = new THREE.GridHelper(8, 8, '#00FFB3', '#00FFB3');
+      gridHelper.position.y = -3.5;
+      (gridHelper.material as THREE.Material).transparent = true;
+      (gridHelper.material as THREE.Material).opacity = 0.15;
+      group.add(gridHelper);
+
+      // Add some scanning laser lines
+      const scannerGeom = new THREE.RingGeometry(3.0, 3.1, 32);
+      const scannerMat = new THREE.MeshBasicMaterial({
+        color: '#00FFB3',
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.35
+      });
+      const scanner = new THREE.Mesh(scannerGeom, scannerMat);
+      scanner.rotation.x = Math.PI / 2;
+      scanner.position.y = -3.5;
+      group.add(scanner);
+      group.userData = { scanner };
+
+      const formula = re.productFormula;
+
+      if (formula === 'NaCl') {
+        const spacing = 1.6;
+        for (let x = -1; x <= 1; x++) {
+          for (let y = -1; y <= 1; y++) {
+            for (let z = -1; z <= 1; z++) {
+              const isSodium = (x + y + z) % 2 === 0;
+              const sphereGeom = new THREE.SphereGeometry(isSodium ? 0.38 : 0.52, 16, 16);
+              const color = isSodium ? '#D500F9' : '#00FFB3';
+              const sphereMat = new THREE.MeshPhongMaterial({
+                color: new THREE.Color(color),
+                emissive: new THREE.Color(color).multiplyScalar(0.4),
+                shininess: 90,
+                transparent: true,
+                opacity: 0.85
+              });
+              const atomMesh = new THREE.Mesh(sphereGeom, sphereMat);
+              atomMesh.position.set(x * spacing, y * spacing, z * spacing);
+              group.add(atomMesh);
+
+              if (x < 1) {
+                createLatticeLine(atomMesh.position, new THREE.Vector3((x + 1) * spacing, y * spacing, z * spacing), group);
+              }
+              if (y < 1) {
+                createLatticeLine(atomMesh.position, new THREE.Vector3(x * spacing, (y + 1) * spacing, z * spacing), group);
+              }
+              if (z < 1) {
+                createLatticeLine(atomMesh.position, new THREE.Vector3(x * spacing, y * spacing, (z + 1) * spacing), group);
+              }
+            }
+          }
+        }
+      } else if (formula === 'H₂O') {
+        const oxGeom = new THREE.SphereGeometry(1.2, 32, 32);
+        const oxMat = new THREE.MeshPhongMaterial({
+          color: '#FF1744',
+          emissive: '#4D000A',
+          shininess: 80,
+          transparent: true,
+          opacity: 0.9
+        });
+        const ox = new THREE.Mesh(oxGeom, oxMat);
+        group.add(ox);
+
+        const hGeom = new THREE.SphereGeometry(0.6, 24, 24);
+        const hMat = new THREE.MeshPhongMaterial({
+          color: '#EAF2FF',
+          emissive: '#203040',
+          shininess: 70,
+          transparent: true,
+          opacity: 0.85
+        });
+
+        const angle = 104.5 * Math.PI / 180;
+        const dist = 2.4;
+
+        const h1 = new THREE.Mesh(hGeom, hMat);
+        h1.position.set(Math.cos(angle / 2) * dist, Math.sin(angle / 2) * dist, 0);
+        group.add(h1);
+
+        const h2 = new THREE.Mesh(hGeom, hMat);
+        h2.position.set(-Math.cos(angle / 2) * dist, Math.sin(angle / 2) * dist, 0);
+        group.add(h2);
+
+        createCovalentBond(ox.position, h1.position, group, '#FF1744', '#EAF2FF');
+        createCovalentBond(ox.position, h2.position, group, '#FF1744', '#EAF2FF');
+
+      } else if (formula.includes('CsOH')) {
+        const csGeom = new THREE.SphereGeometry(1.6, 32, 32);
+        const csMat = new THREE.MeshPhongMaterial({
+          color: '#FFD700',
+          emissive: '#554400',
+          shininess: 100,
+          transparent: true,
+          opacity: 0.9
+        });
+        const cs = new THREE.Mesh(csGeom, csMat);
+        cs.position.set(-2.0, 0.5, 0);
+        group.add(cs);
+
+        const oxGeom = new THREE.SphereGeometry(0.9, 24, 24);
+        const oxMat = new THREE.MeshPhongMaterial({
+          color: '#FF1744',
+          emissive: '#400000',
+          shininess: 80,
+          transparent: true,
+          opacity: 0.9
+        });
+        const ox = new THREE.Mesh(oxGeom, oxMat);
+        ox.position.set(1.0, 0.8, -0.5);
+        group.add(ox);
+
+        const hGeom = new THREE.SphereGeometry(0.48, 20, 20);
+        const hMat = new THREE.MeshPhongMaterial({ color: '#EAF2FF' });
+        const h = new THREE.Mesh(hGeom, hMat);
+        h.position.set(2.0, 1.2, -0.3);
+        group.add(h);
+
+        createCovalentBond(ox.position, h.position, group, '#FF1744', '#EAF2FF');
+
+        const dimerGroup = new THREE.Group();
+        dimerGroup.position.set(0.5, -2.0, 1.5);
+        const hD1 = new THREE.Mesh(hGeom, hMat);
+        hD1.position.set(-0.6, 0, 0);
+        const hD2 = new THREE.Mesh(hGeom, hMat);
+        hD2.position.set(0.6, 0, 0);
+        dimerGroup.add(hD1);
+        dimerGroup.add(hD2);
+        createCovalentBond(hD1.position, hD2.position, dimerGroup, '#EAF2FF', '#EAF2FF');
+        group.add(dimerGroup);
+
+        const ionizationRingGeom = new THREE.TorusGeometry(3.0, 0.08, 16, 100);
+        const ionizationRingMat = new THREE.MeshBasicMaterial({
+          color: '#FF00E5',
+          transparent: true,
+          opacity: 0.45,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide
+        });
+        const ionRing = new THREE.Mesh(ionizationRingGeom, ionizationRingMat);
+        ionRing.rotation.x = Math.PI / 4;
+        group.add(ionRing);
+        group.userData = { scanner, ionRing, dimer: dimerGroup };
+
+      } else if (formula === 'CO₂') {
+        const cGeom = new THREE.SphereGeometry(1.0, 28, 28);
+        const cMat = new THREE.MeshPhongMaterial({
+          color: '#2C3539',
+          emissive: '#11161B',
+          shininess: 90,
+          transparent: true,
+          opacity: 0.95
+        });
+        const carbon = new THREE.Mesh(cGeom, cMat);
+        carbon.position.set(0, 0, 0);
+        group.add(carbon);
+
+        const oxGeom = new THREE.SphereGeometry(1.15, 28, 28);
+        const oxMat = new THREE.MeshPhongMaterial({
+          color: '#FF1744',
+          emissive: '#4D000A',
+          shininess: 80,
+          transparent: true,
+          opacity: 0.90
+        });
+
+        const oxLeft = new THREE.Mesh(oxGeom, oxMat);
+        oxLeft.position.set(-2.5, 0, 0);
+        group.add(oxLeft);
+
+        const oxRight = new THREE.Mesh(oxGeom, oxMat);
+        oxRight.position.set(2.5, 0, 0);
+        group.add(oxRight);
+
+        createDoubleCovalentBond(carbon.position, oxLeft.position, group, '#2C3539', '#FF1744');
+        createDoubleCovalentBond(carbon.position, oxRight.position, group, '#2C3539', '#FF1744');
+
+      } else if (formula === 'Fe₂O₃') {
+        const positions = [
+          { pos: new THREE.Vector3(-1.4, 0.8, -0.6), isIron: true },
+          { pos: new THREE.Vector3(1.4, -0.6, 0.7), isIron: true },
+          { pos: new THREE.Vector3(-0.2, -0.9, -1.0), isIron: false },
+          { pos: new THREE.Vector3(-0.5, 0.2, 1.2), isIron: false },
+          { pos: new THREE.Vector3(1.0, 1.0, 0.1), isIron: false },
+        ];
+
+        const nodes: THREE.Mesh[] = [];
+
+        positions.forEach((node, idx) => {
+          const geom = new THREE.SphereGeometry(node.isIron ? 1.2 : 0.8, 20, 20);
+          const mat = new THREE.MeshPhongMaterial({
+            color: node.isIron ? '#D2691E' : '#FF3D00',
+            emissive: node.isIron ? '#3E1C07' : '#5E1100',
+            shininess: node.isIron ? 30 : 60,
+            transparent: true,
+            opacity: 0.9
+          });
+          const mesh = new THREE.Mesh(geom, mat);
+          mesh.position.copy(node.pos);
+          group.add(mesh);
+          nodes.push(mesh);
+        });
+
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            if (nodes[i].position.distanceTo(nodes[j].position) < 3.2) {
+              createLatticeLine(nodes[i].position, nodes[j].position, group, '#8B4513');
+            }
+          }
+        }
+      }
+
+      createHolographic3DLabel(re.productFormula, re.productName, group);
+
+      return group;
+    };
+
     const spawnReactants = (re: ReactionConfig) => {
       // Clean up previous reactants if they exist
       if (reactantA) scene.remove(reactantA);
       if (reactantB) scene.remove(reactantB);
       if (fusionShockwave) scene.remove(fusionShockwave);
       if (sparkPoints) scene.remove(sparkPoints);
+      if (productMoleculeGroup) {
+        scene.remove(productMoleculeGroup);
+        productMoleculeGroup = null;
+      }
 
       isReactionStable = false;
 
@@ -632,7 +1073,7 @@ export default function ThreeScene({
       scene.add(fusionShockwave);
 
       // Create explosive reaction sparks/particles
-      const sparkCount = 120;
+      const sparkCount = re.visualType === 'explosion' ? 240 : 120;
       const sparkGeom = new THREE.BufferGeometry();
       const sparkPosArray = new Float32Array(sparkCount * 3);
       sparkSpeeds = new Float32Array(sparkCount);
@@ -643,7 +1084,7 @@ export default function ThreeScene({
         sparkPosArray[s * 3 + 1] = 0;
         sparkPosArray[s * 3 + 2] = 0;
 
-        sparkSpeeds[s] = 4.0 + Math.random() * 12.0;
+        sparkSpeeds[s] = re.visualType === 'explosion' ? (8.0 + Math.random() * 16.0) : (4.0 + Math.random() * 12.0);
 
         // Random vector output
         const theta = Math.random() * Math.PI * 2;
@@ -654,9 +1095,19 @@ export default function ThreeScene({
       }
 
       sparkGeom.setAttribute('position', new THREE.BufferAttribute(sparkPosArray, 3));
+
+      let sparkColor = new THREE.Color(colorA).lerp(new THREE.Color(colorB), 0.5);
+      if (re.visualType === 'explosion') {
+        sparkColor.set('#FF3D00');
+      } else if (re.visualType === 'covalent') {
+        sparkColor.set('#00E5FF');
+      } else if (re.visualType === 'ionic') {
+        sparkColor.set('#FFD700');
+      }
+
       const sparkMat = new THREE.PointsMaterial({
-        size: 0.42,
-        color: new THREE.Color(colorA).lerp(new THREE.Color(colorB), 0.5),
+        size: re.visualType === 'explosion' ? 0.55 : 0.42,
+        color: sparkColor,
         map: createCircularParticleTexture(),
         transparent: true,
         opacity: 0.0,
@@ -686,10 +1137,32 @@ export default function ThreeScene({
       if (sparkPoints) {
         sparkPoints.visible = false;
       }
+      if (productMoleculeGroup) {
+        scene.remove(productMoleculeGroup);
+        productMoleculeGroup = null;
+      }
       // Notify back to UI
       window.dispatchEvent(new CustomEvent('reaction-stage', { detail: { stage: 'idle' } }));
     };
     window.addEventListener('reset-reactor', handleResetReactor);
+
+    // Screen-shake animation state and reaction-stage event listener
+    let shakeIntensity = 0;
+
+    const handleReactionStageEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail && customEvent.detail.stage === 'stable') {
+        const vType = propsRef.current.activeReaction?.visualType;
+        if (vType === 'explosion') {
+          shakeIntensity = 2.4;
+        } else if (vType === 'covalent') {
+          shakeIntensity = 1.1;
+        } else {
+          shakeIntensity = 1.6;
+        }
+      }
+    };
+    window.addEventListener('reaction-stage', handleReactionStageEvent);
 
     // Interactive Camera Parallax & Elastic buoyancy
     let currentParallaxX = 0;
@@ -1270,6 +1743,27 @@ export default function ThreeScene({
         
         rotXTarget *= 0.95;
         rotYTarget *= 0.95;
+      } else if (currentProps.appMode === 'bond_lab') {
+        // High-end cinematic reaction camera tracking
+        if (isReactionStable) {
+          // Zoom in beautifully on the synthesized molecular mesh!
+          cameraTargetX = 0;
+          cameraTargetY = 0.5;
+          cameraTargetZ = 16.5;
+        } else {
+          // Dynamic zoom: as elements approach each other, camera automatically glides closer to emphasize structural matter!
+          if (reactantA && reactantB) {
+            const currentDist = reactantA.position.distanceTo(reactantB.position);
+            cameraTargetZ = 19.0 + Math.min(9.0, currentDist * 0.6);
+            cameraTargetY = Math.max(-1.5, -2.5 + (currentDist * 0.12));
+          } else {
+            cameraTargetZ = 28.0;
+            cameraTargetY = 0.0;
+          }
+          cameraTargetX = 0;
+        }
+        rotYTarget += (0 - rotYTarget) * 0.1;
+        rotXTarget += (0 - rotXTarget) * 0.1;
       } else {
         if (currentProps.layoutMode === 'spiral') {
           cameraTargetZ = 30;
@@ -1312,6 +1806,21 @@ export default function ThreeScene({
       camera.position.x += (cameraTargetX + buoyancyX + currentParallaxX - camera.position.x) * cameraLerpFactor;
       camera.position.y += (cameraTargetY + buoyancyY + currentParallaxY + cameraYOffsetTarget - camera.position.y) * cameraLerpFactor;
       camera.position.z += (cameraTargetZ + buoyancyZ - camera.position.z) * cameraLerpFactor;
+
+      // Apply highly immersive reactive screen-shake offsets
+      if (shakeIntensity > 0.01) {
+        const shakeX = (Math.random() - 0.5) * shakeIntensity;
+        const shakeY = (Math.random() - 0.5) * shakeIntensity;
+        const shakeZ = (Math.random() - 0.5) * shakeIntensity * 0.4; // Slightly damped in Z depth to avoid clip-throughs
+        
+        camera.position.x += shakeX;
+        camera.position.y += shakeY;
+        camera.position.z += shakeZ;
+
+        // Fluid physical exponential damping over time
+        shakeIntensity *= Math.exp(-6.5 * delta);
+        if (shakeIntensity < 0.01) shakeIntensity = 0;
+      }
 
       // Point camera cinematic look
       const cameraLookTarget = new THREE.Vector3(currentProps.selectedElement ? 3.0 : 0, 0, 0);
@@ -1495,10 +2004,41 @@ export default function ThreeScene({
         if (reactantB) reactantB.visible = false;
         if (fusionShockwave) fusionShockwave.visible = false;
         if (sparkPoints) sparkPoints.visible = false;
+        if (productMoleculeGroup) {
+          scene.remove(productMoleculeGroup);
+          productMoleculeGroup = null;
+        }
+        if (chamberRingsGroup) chamberRingsGroup.visible = false;
       } else {
         // Safe check to spawn reactants if empty or config changed
         if (currentProps.activeReaction && activeBondModeReaction?.productFormula !== currentProps.activeReaction.productFormula) {
           spawnReactants(currentProps.activeReaction);
+        }
+
+        // Keep chamber rings visible
+        if (chamberRingsGroup) {
+          chamberRingsGroup.visible = true;
+          // Rotate chamber core rings smoothly
+          if (chamberRing1) chamberRing1.rotation.z += 0.003 * simMultiplier;
+          if (chamberRing2) {
+            chamberRing2.rotation.y += 0.005 * simMultiplier;
+            chamberRing2.rotation.x += 0.002 * simMultiplier;
+          }
+
+          // Dynamic light levels based on reaction distance
+          if (reactantA && reactantB && !isReactionStable) {
+            const currentDist = reactantA.position.distanceTo(reactantB.position);
+            const intensityAlpha = 0.1 + (1.0 - Math.min(1.0, currentDist / 17.0)) * 0.35;
+            if (ringOuterMat) ringOuterMat.opacity = intensityAlpha + Math.sin(elapsed * 6.5) * 0.03;
+            if (ringInnerMat) ringInnerMat.opacity = (intensityAlpha * 0.72) + Math.cos(elapsed * 5.0) * 0.025;
+          } else if (isReactionStable) {
+            // Highly charged energy output
+            if (ringOuterMat) ringOuterMat.opacity = 0.35 + Math.sin(elapsed * 9.0) * 0.06;
+            if (ringInnerMat) ringInnerMat.opacity = 0.22 + Math.cos(elapsed * 7.0) * 0.04;
+          } else {
+            if (ringOuterMat) ringOuterMat.opacity = 0.15;
+            if (ringInnerMat) ringInnerMat.opacity = 0.08;
+          }
         }
 
         if (reactantA && reactantB) {
@@ -1535,6 +2075,15 @@ export default function ThreeScene({
           if (!isReactionStable) {
             const dist = reactantA.position.distanceTo(reactantB.position);
             
+            // MAGNETIC DRIFT ATTRACTION FIELD MECHANICS
+            if (!draggedReactant) {
+              const forceStrength = Math.max(0.005, (12.0 - dist) * 0.035); // pull gets exponentially higher inside field
+              const pullDirection = new THREE.Vector3().subVectors(reactantB.position, reactantA.position).normalize();
+              const driftStep = pullDirection.multiplyScalar(forceStrength * delta * 50.0 * simMultiplier);
+              reactantA.position.add(driftStep);
+              reactantB.position.sub(driftStep);
+            }
+
             if (frameCount % 3 === 0) {
               window.dispatchEvent(new CustomEvent('tether-distance', { detail: { distance: dist } }));
             }
@@ -1555,11 +2104,27 @@ export default function ThreeScene({
 
               // Center reaction explosion shockwave
               const midPoint = new THREE.Vector3().addVectors(reactantA.position, reactantB.position).multiplyScalar(0.5);
+              
+              // CREATE THE BEAUTIFUL 3D PRODUCT MOLECULE SOLID FOR REAL TRANSFORMATION
+              if (productMoleculeGroup) scene.remove(productMoleculeGroup);
+              productMoleculeGroup = createProductMolecule(activeBondModeReaction, midPoint);
+              scene.add(productMoleculeGroup);
+
               if (fusionShockwave) {
                 fusionShockwave.position.copy(midPoint);
                 fusionShockwave.visible = true;
                 (fusionShockwave.material as THREE.MeshBasicMaterial).opacity = 1.0;
                 fusionShockwave.scale.set(0.1, 0.1, 0.1);
+                
+                // Customize color based on visual type
+                const vType = activeBondModeReaction?.visualType;
+                if (vType === 'explosion') {
+                  (fusionShockwave.material as THREE.MeshBasicMaterial).color.set('#FF3D00');
+                } else if (vType === 'covalent') {
+                  (fusionShockwave.material as THREE.MeshBasicMaterial).color.set('#00E5FF');
+                } else {
+                  (fusionShockwave.material as THREE.MeshBasicMaterial).color.set('#FFD700');
+                }
               }
 
               if (sparkPoints) {
@@ -1610,6 +2175,44 @@ export default function ThreeScene({
         (sparkPoints.material as THREE.PointsMaterial).opacity -= 1.4 * delta * simMultiplier;
         if ((sparkPoints.material as THREE.PointsMaterial).opacity <= 0) {
           sparkPoints.visible = false;
+        }
+      }
+
+      // 3D. Animate formed product molecule structures
+      if (currentProps.appMode === 'bond_lab' && productMoleculeGroup && productMoleculeGroup.visible) {
+        // Slow organic rotation of the molecular formula matrix
+        productMoleculeGroup.rotation.y = elapsed * 0.4;
+        productMoleculeGroup.rotation.x = Math.sin(elapsed * 0.2) * 0.15;
+        productMoleculeGroup.rotation.z = Math.cos(elapsed * 0.15) * 0.1;
+
+        // Weightless zero-G floating displacement
+        productMoleculeGroup.position.y = Math.sin(elapsed * 1.5) * 0.22;
+
+        // Animated diagnostic laser swept ring inside molecule
+        const scanner = productMoleculeGroup.userData.scanner as THREE.Mesh;
+        if (scanner) {
+          scanner.position.y = -3.2 + Math.sin(elapsed * 1.8) * 3.4;
+          (scanner.material as THREE.MeshBasicMaterial).opacity = 0.12 + (1.0 - Math.abs(scanner.position.y / 3.4)) * 0.38;
+        }
+
+        // Active CsOH ionization field ring
+        const ionRing = productMoleculeGroup.userData.ionRing as THREE.Mesh;
+        if (ionRing) {
+          ionRing.rotation.z += 0.04 * simMultiplier;
+          ionRing.rotation.y = Math.sin(elapsed) * 0.4;
+        }
+
+        // Separate molecular H2 dimer oscillation
+        const dimer = productMoleculeGroup.userData.dimer as THREE.Group;
+        if (dimer) {
+          dimer.position.y = -2.0 + Math.sin(elapsed * 3.5) * 0.3;
+          dimer.rotation.y += 0.02 * simMultiplier;
+        }
+
+        // Diagnostic HUD label billboards to align facing the observer's camera
+        const label = productMoleculeGroup.userData.labelMesh as THREE.Mesh;
+        if (label) {
+          label.lookAt(camera.position);
         }
       }
 
@@ -1893,6 +2496,8 @@ export default function ThreeScene({
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('reset-reactor', handleResetReactor);
+      window.removeEventListener('reaction-stage', handleReactionStageEvent);
       detachEvents();
       
       // Memory cleanup for geometries & textures

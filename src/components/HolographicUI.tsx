@@ -235,6 +235,62 @@ export default function HolographicUI({
     window.dispatchEvent(new CustomEvent('reset-reactor', {}));
   };
 
+  const REACTION_TELEMETRY: Record<string, {
+    equation: string;
+    energyChange: string;
+    bondDetail: string;
+    orbitalType: string;
+    kinetics: string;
+    thermalStatus: string;
+    hazards: string;
+  }> = {
+    'NaCl': {
+      equation: '2Na (s) + Cl₂ (g) → 2NaCl (s)',
+      energyChange: 'ΔH = -787 kJ/mol (Lattice Energy release)',
+      bondDetail: 'Ionic Electrostatic attraction. Complete valence electron shell donation from Sodium [Ne]3s¹ to Chlorine [Ne]3s²3p⁵.',
+      orbitalType: 'Closed shell octet configuration [Na⁺][Cl⁻]',
+      kinetics: 'Highly spontaneous, instantaneous lattice crystallization solidifying into face-centered cubic grids.',
+      thermalStatus: 'Strongly Exothermic, crystalline consolidation',
+      hazards: 'Corrosive gas + volatile alkali reduction.'
+    },
+    'H₂O': {
+      equation: '2H₂ (g) + O₂ (g) → 2H₂O (l)',
+      energyChange: 'ΔH = -572 kJ/mol (Highly Exothermic)',
+      bondDetail: 'Dual single-covalent sigma (σ) bonds. Oxygen shares pairs with hydrogen s-orbitals.',
+      orbitalType: 'Sp³ hybridized orbitals with bent geometry (~104.5° bond angle)',
+      kinetics: 'Activated radical cascade chain propagation.',
+      thermalStatus: 'Thermally explosive, immediate water vapor condensation',
+      hazards: 'Highly flammable fuel, explosive shock front.'
+    },
+    'CsOH + H₂': {
+      equation: '2Cs (s) + 2H₂O (l) → 2CsOH (aq) + H₂ (g)',
+      energyChange: 'ΔH = -391 kJ/mol (Extremely Rapid Detonation)',
+      bondDetail: 'Ionic Cs⁺/OH⁻ dissociation alongside covalent H-H gas formation.',
+      orbitalType: 'Volatile plasma-coupled cationic transition phases',
+      kinetics: 'Uncapped chain propagation supported by instant base boiling',
+      thermalStatus: 'Superheated alkaline jet steam explosion + localized plasma ignition',
+      hazards: 'Ultra-reactive alkali hazard, severe thermal blast pressure.'
+    },
+    'CO₂': {
+      equation: 'C (s) + O₂ (g) → CO₂ (g)',
+      energyChange: 'ΔH = -393.5 kJ/mol (Highly Spontaneous Combustion)',
+      bondDetail: 'Double covalent sigma-pi (σ, π) bonds. Carbon shares 4 valence electrons with two separate Oxygens.',
+      orbitalType: 'Sp hybridized linear molecule structure (180° bond angle)',
+      kinetics: 'Slow or rapid oxidation depending on temperature catalysts.',
+      thermalStatus: 'Exothermic gas expansion',
+      hazards: 'Asphyxiant gas accumulating in negative grav fields.'
+    },
+    'Fe₂O₃': {
+      equation: '4Fe (s) + 3O₂ (g) → 2Fe₂O₃ (s)',
+      energyChange: 'ΔH = -824.2 kJ/mol (Slow Oxidation)',
+      bondDetail: 'Metallic oxidation and electrostatic Fe³⁺ / O²⁻ ion exchange.',
+      orbitalType: 'Unfilled d-orbital ligand coordination network',
+      kinetics: 'Multi-day moisture-facilitated anode-cathode rust migration.',
+      thermalStatus: 'Extremely slow heat dispersal, negligible instant spike',
+      hazards: 'Structural fatigue material decay.'
+    }
+  };
+
   const getCatMeta = (cat: string) => {
     return CATEGORY_COLORS[cat] || { hex: '#00E5FF', label: cat, description: '' };
   };
@@ -696,6 +752,93 @@ export default function HolographicUI({
                 </button>
               </div>
             ) : null}
+          </div>
+        )}
+
+        {/* RIGHT HUD: REACTOR SPEC-DIAGNOSTIC WORKSTATION */}
+        {isObsEntered && appMode === 'bond_lab' && activeReaction && (
+          <div className="w-full md:w-90 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col gap-3.5 shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)] border-[#FF9100]/30 animate-fade-in z-20">
+            {/* Custom cybernetic overlay grids for detailed visual */}
+            <div className="absolute top-0 right-0 p-1 flex gap-1 bg-[#070B14]/40 border-l border-b border-white/10 text-[8px] font-mono tracking-widest text-[#EAF2FF]/30 lowercase">
+              sys.spectrograph_node()
+            </div>
+
+            <div className="text-[10px] font-mono uppercase text-[#00FFB3] tracking-widest border-b border-white/10 pb-2 flex items-center justify-between">
+              <span>BOND DIAGNOSTICS WORKSTATION</span>
+              <span className="text-[8px] text-[#EAF2FF]/30">CHAMBER_ONLINE</span>
+            </div>
+
+            {/* Reaction Summary block */}
+            <div className="flex flex-col gap-1 p-3 bg-white/5 rounded-sm border border-white/10">
+              <div className="text-[8.5px] font-mono text-[#FF9100] tracking-wider uppercase font-black">FORMULA PATHWAY SELECTED:</div>
+              <div className="text-[17px] font-extrabold text-[#EAF2FF] tracking-wider leading-none mt-1">{activeReaction.productName}</div>
+              <div className="text-[10px] font-mono text-[#00E5FF] mt-1 font-bold">{activeReaction.productFormula}</div>
+            </div>
+
+            {/* Deep Scientific Telemetry parameters displayed elegantly */}
+            {(() => {
+              const tel = REACTION_TELEMETRY[activeReaction.productFormula] || {
+                equation: `${activeReaction.reactants[0]} + ${activeReaction.reactants[1]} → ${activeReaction.productFormula}`,
+                energyChange: 'ΔH < 0 (Unspecified heat release)',
+                bondDetail: 'Orbital hybridization and valence sharing sequence.',
+                orbitalType: 'Dynamic hybrid valence bonds',
+                kinetics: 'Spontaneous chain alignment',
+                thermalStatus: 'Energetically active fusion',
+                hazards: 'None identified.'
+              };
+
+              return (
+                <div className="flex flex-col gap-3.5 font-mono text-[10px]">
+                  {/* Reaction Equations */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">EQUILIBRIUM EQUATION:</span>
+                    <span className="text-[#00FFB3] text-[11px] font-black bg-black/40 px-2.5 py-1.5 rounded-sm border border-[#00FFB3]/15 tracking-wide">
+                      {tel.equation}
+                    </span>
+                  </div>
+
+                  {/* Energy changes */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase md:text-[7.5px]">ENERGY MODULATION (ENTHALPY):</span>
+                    <span className="text-red-400 font-extrabold px-2 py-1 bg-red-950/20 rounded-sm border border-red-500/10">
+                      {tel.energyChange}
+                    </span>
+                  </div>
+
+                  {/* Bond Formation details */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">BOND FORMATION MATRIX:</span>
+                    <p className="text-[#EAF2FF]/80 text-[10px] leading-relaxed font-light font-sans">
+                      {tel.bondDetail}
+                    </p>
+                  </div>
+
+                  {/* Orbital geometry */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">VALENCE ORBITAL HYBRID:</span>
+                    <span className="text-[#00E5FF] font-semibold">{tel.orbitalType}</span>
+                  </div>
+
+                  {/* Chemical Kinetics */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">REACTION VELOCITY:</span>
+                    <span className="text-[#EAF2FF]/80 text-[10px] leading-relaxed font-sans font-light">{tel.kinetics}</span>
+                  </div>
+
+                  {/* Thermal Status */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">THERMAL DISCHARGE:</span>
+                    <span className="text-amber-400/90 font-medium">{tel.thermalStatus}</span>
+                  </div>
+
+                  {/* Hazards / Warnings */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase text-red-500/80">containment hazard:</span>
+                    <span className="text-[9.5px] text-[#EAF2FF]/70 bg-black/30 p-1.5 rounded border border-white/5 font-sans font-light">{tel.hazards}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
