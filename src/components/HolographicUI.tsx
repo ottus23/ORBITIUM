@@ -91,6 +91,111 @@ export default function HolographicUI({
     radius: number;
   } | null>(null);
 
+  // Discovery tracking states
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [discoveredAnomalies, setDiscoveredAnomalies] = useState<any[]>([]);
+  const [lastDiscovery, setLastDiscovery] = useState<any | null>(null);
+
+  // Private static discovery options database
+  const DISCOVERY_DATABASE = [
+    {
+      id: 'heliogenesis',
+      title: 'Stellar Heliogenesis Loop',
+      desc: 'Discovered a hydrogen compression corridor inside Sector Helios. High-energy stellar fusion is now synthesizable.',
+      reactantA: 'H',
+      reactantB: 'H',
+      pathway: 'H + H → He (Sun Core)',
+      category: 'Fusion'
+    },
+    {
+      id: 'excimer',
+      title: 'Excimer Plasma Resonance',
+      desc: 'Located argon gas excitation nodes under intense fluorine laser discharge inside Sector Neon.',
+      reactantA: 'Ar',
+      reactantB: 'F',
+      pathway: 'Ar + F → ArF*',
+      category: 'Plasma Optics'
+    },
+    {
+      id: 'superconductive',
+      title: 'Superconductive Perovskite',
+      desc: 'Traced zero-ohm Cooper-pair corridors in layered Yttrium-Barium-Copper-Oxygen planes inside Sector Core.',
+      reactantA: 'Y',
+      reactantB: 'Cu',
+      pathway: 'YBCO Lattice',
+      category: 'Quantum Condensate'
+    },
+    {
+      id: 'hawking_radiation',
+      title: 'Quantum Hawking Leak',
+      desc: 'Detected virtual baryonic particle leaks at the event horizon of high-mass black holes in Sector Omega decays.',
+      reactantA: null,
+      reactantB: null,
+      pathway: 'Hawking Stream SEC-Ω',
+      category: 'Singularity Anomaly'
+    },
+    {
+      id: 'dimensional_rip',
+      title: 'Dimensional Gravity Twist',
+      desc: 'Identified trace curls of localized space-time warp fields in the high-frequency Anomaly Grid.',
+      reactantA: null,
+      reactantB: null,
+      pathway: 'Micro-Warp Singularity',
+      category: 'Gravity Tensors'
+    }
+  ];
+
+  // Trigger scanning sequence
+  const handleStartScan = () => {
+    if (isScanning) return;
+    setIsScanning(true);
+    setScanProgress(0);
+    setLastDiscovery(null);
+
+    // Shake camera and emit synth sound via existing events
+    window.dispatchEvent(
+      new CustomEvent('reaction-stage', {
+        detail: { stage: 'mixing' }
+      })
+    );
+  };
+
+  useEffect(() => {
+    if (!isScanning) return;
+    const interval = setInterval(() => {
+      setScanProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsScanning(false);
+          
+          // Select a discovery that has not been found, or repeat
+          const unfound = DISCOVERY_DATABASE.filter(d => !discoveredAnomalies.some(found => found.id === d.id));
+          const discovery = unfound.length > 0 
+            ? unfound[Math.floor(Math.random() * unfound.length)]
+            : DISCOVERY_DATABASE[Math.floor(Math.random() * DISCOVERY_DATABASE.length)];
+
+          setDiscoveredAnomalies((prevList) => {
+            if (prevList.some(item => item.id === discovery.id)) return prevList;
+            return [...prevList, discovery];
+          });
+          setLastDiscovery(discovery);
+
+          // Complete scan visual pulse
+          window.dispatchEvent(
+            new CustomEvent('reaction-stage', {
+              detail: { stage: 'stable' }
+            })
+          );
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isScanning, discoveredAnomalies]);
+
   useEffect(() => {
     setActiveShellInfo(null);
   }, [selectedElement]);
@@ -745,6 +850,115 @@ export default function HolographicUI({
                 )}
               </div>
             )}
+          </div>
+        )}
+        
+        {/* RIGHT HUD: ANOMALOUS DIAGNOSTICS & DISCOVERY SCANNER */}
+        {isObsEntered && !selectedElement && appMode === 'explorer' && (
+          <div id="right-hud-discovery" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-start gap-4 shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)] border-[#00E5FF]/20 animate-fade-in z-45 flex-shrink-0">
+            <div className="absolute top-0 right-0 p-1 flex gap-1 bg-[#070B14]/40 border-l border-b border-white/10 text-[8px] font-mono tracking-widest text-[#00E5FF]/40 lowercase">
+              sys.discovery_module()
+            </div>
+
+            <div className="text-[10px] font-mono uppercase text-[#00E5FF] tracking-widest border-b border-white/10 pb-2 flex items-center gap-2">
+              <Compass className="w-4 h-4 text-[#00E5FF] animate-pulse" />
+              <span>COSMIC SCANNER & ANOMALY PROBE</span>
+            </div>
+
+            <p className="text-[11px] text-[#EAF2FF]/70 leading-relaxed font-sans font-light">
+              Initiate deep radiation scans on the 3D scientific sector grids below to uncover hidden physical anomalies, Star-core compositions, and rare synthesis pathways.
+            </p>
+
+            <div className="p-4 bg-[#0A0D10]/80 border border-white/5 rounded-sm flex flex-col gap-3 mt-1">
+              {!isScanning ? (
+                <button
+                  onClick={handleStartScan}
+                  className="w-full py-2.5 bg-[#00E5FF]/10 border border-[#00E5FF]/30 hover:border-[#00E5FF] hover:bg-[#00E5FF]/20 text-[#00E5FF] text-[10px] uppercase font-mono tracking-widest font-extrabold rounded-sm cursor-pointer transition-all hover:shadow-[0_0_12px_rgba(0,229,255,0.15)] flex justify-center items-center gap-2"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>INITIATE QUANTUM SECTOR SCAN</span>
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 font-mono text-[9px]">
+                  <div className="flex justify-between items-center text-[#00E5FF]">
+                    <span className="animate-pulse">PROBING SPACE FILAMENTS...</span>
+                    <span>{scanProgress}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] transition-all duration-100"
+                      style={{ width: `${scanProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-[8px] text-white/30 text-center uppercase tracking-wider">DO NOT DISCONNECT TETHER COILS</span>
+                </div>
+              )}
+            </div>
+
+            {lastDiscovery && (
+              <div className="p-3.5 bg-[#00FFB3]/5 border border-[#00FFB3]/20 rounded-sm animate-fade-in flex flex-col gap-2">
+                <div className="flex items-center gap-1.5 text-[#00FFB3] text-[9.5px] font-mono font-bold uppercase">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>ANOMALY REACHED! Unlocked:</span>
+                </div>
+                <div className="text-sm font-extrabold text-white tracking-wide uppercase leading-tight font-sans mt-0.5">
+                  {lastDiscovery.title}
+                </div>
+                <div className="text-[8.5px] font-mono text-[#00E5FF] font-bold">
+                  {lastDiscovery.category.toUpperCase()} // STATUS: RESOLVED
+                </div>
+                <p className="text-[10.5px] text-[#EAF2FF]/75 font-light leading-relaxed font-sans">
+                  {lastDiscovery.desc}
+                </p>
+                {lastDiscovery.reactantA && (
+                  <div className="mt-1 flex flex-col gap-1.5">
+                    <div className="text-[8.5px] font-mono text-white/40 uppercase">SYNTHESIS FORMULA PATH:</div>
+                    <div className="flex items-center justify-between text-[10.5px] font-mono bg-black/30 p-2 rounded border border-white/5">
+                      <span className="text-[#00FFB3]">{lastDiscovery.pathway}</span>
+                      <button
+                        onClick={() => {
+                          onChangeAppMode('bond_lab');
+                          const reaction = REACTION_CONFIGS.find(r => r.reactants.includes(lastDiscovery.reactantA) && r.reactants.includes(lastDiscovery.reactantB));
+                          if (reaction) {
+                            onTriggerReaction(reaction);
+                          }
+                        }}
+                        className="px-2 py-0.5 border border-[#00E5FF] text-[#00E5FF] rounded bg-[#070B14] hover:bg-[#00E5FF]/10 text-[9px] cursor-pointer transition-all whitespace-nowrap"
+                      >
+                        ENGAGE REACTION
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex-1 flex flex-col gap-2 min-h-[144px] overflow-hidden">
+              <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest font-bold">
+                DIAGNOSTICS ARCHIVE LOG ({discoveredAnomalies.length}/5)
+              </div>
+              
+              {discoveredAnomalies.length === 0 ? (
+                <div className="flex-1 border border-dashed border-white/10 rounded-sm flex items-center justify-center p-6 text-center text-[#EAF2FF]/35 font-sans font-light text-[10.5px]">
+                  No sector anomalies scanned. Execute quantum scans to populate the Observatory Archive.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5 overflow-y-auto max-h-48 pr-1 mt-0.5">
+                  {discoveredAnomalies.map((item, index) => (
+                    <div 
+                      key={index}
+                      className="p-2.5 bg-[#0C1123]/90 border border-white/[0.06] rounded-sm flex flex-col gap-1 hover:border-white/15 transition-all text-left font-mono text-[9px]"
+                    >
+                      <div className="flex justify-between w-full font-bold">
+                        <span className="text-white/80 uppercase tracking-wide truncate max-w-[150px]">{item.title}</span>
+                        <span className="text-[#00E5FF]">{item.category}</span>
+                      </div>
+                      <div className="text-[8px] text-white/40 leading-tight">PATH: {item.pathway}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

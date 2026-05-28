@@ -375,6 +375,167 @@ export default function ThreeScene({
     const hoverNetworkLines = new THREE.LineSegments(hoverNetworkGeom, hoverNetworkMat);
     scene.add(hoverNetworkLines);
 
+    // --- 3D SCIENTIFIC SECTORS SYSTEM ---
+    const sectorsGroup = new THREE.Group();
+    scene.add(sectorsGroup);
+
+    // CanvasTexture label generator for billboarding labels
+    function createSectorLabelSprite(name: string, subtitle: string, colorHex: string): THREE.Sprite {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'rgba(7, 11, 20, 0.45)';
+        ctx.fillRect(0, 0, 512, 128);
+        
+        ctx.strokeStyle = colorHex;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(6, 6, 500, 116);
+        
+        ctx.fillStyle = colorHex;
+        ctx.fillRect(6, 6, 24, 4);
+        ctx.fillRect(6, 6, 4, 24);
+        ctx.fillRect(482, 6, 24, 4);
+        ctx.fillRect(502, 6, 4, 24);
+        ctx.fillRect(6, 118, 24, 4);
+        ctx.fillRect(6, 98, 4, 24);
+        ctx.fillRect(482, 118, 24, 4);
+        ctx.fillRect(502, 98, 4, 24);
+        
+        ctx.fillRect(20, 64, 18, 2);
+        ctx.fillRect(28, 55, 2, 20);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText(name, 56, 50);
+        
+        ctx.fillStyle = 'rgba(234, 242, 255, 0.65)';
+        ctx.font = '12.5px monospace';
+        ctx.fillText(subtitle.toUpperCase(), 56, 85);
+      }
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(7.5, 1.875, 1);
+      return sprite;
+    }
+
+    interface SpatialSectorDef {
+      name: string;
+      desc: string;
+      color: string;
+      pos: THREE.Vector3;
+      geom: THREE.BufferGeometry;
+    }
+
+    const sectorDefs: SpatialSectorDef[] = [
+      {
+        name: 'SEC-Ω: RADIOACTIVE ABYSS',
+        desc: 'SYSTEM STABILITY: FAILING (DECAY: 94%)',
+        color: '#7FFF00',
+        pos: new THREE.Vector3(-24, -14, -14),
+        geom: new THREE.IcosahedronGeometry(4.5, 0)
+      },
+      {
+        name: 'SEC-E: PLASMA FIELD',
+        desc: 'TEMPERATURE: EXTREME (1.2M KELVIN)',
+        color: '#FF4500',
+        pos: new THREE.Vector3(-18, 14, 2),
+        geom: new THREE.DodecahedronGeometry(4.0, 0)
+      },
+      {
+        name: 'SEC-M: METALLIC LATTICE',
+        desc: 'MAGNETIC DECK: 4.8T COHERENT',
+        color: '#CFD8DC',
+        pos: new THREE.Vector3(0, -9, -9),
+        geom: new THREE.OctahedronGeometry(4.5, 0)
+      },
+      {
+        name: 'SEC-N: NOBLE ENVELOPE',
+        desc: 'COHERENCE RATE: PERFECT (INERT)',
+        color: '#00E5FF',
+        pos: new THREE.Vector3(26, 11, 4),
+        geom: new THREE.TorusGeometry(3.0, 0.5, 8, 24)
+      },
+      {
+        name: 'SEC-S: MOLECULAR STORM',
+        desc: 'PRESSURE: INTENSE FIELD DENSITY',
+        color: '#FF007F',
+        pos: new THREE.Vector3(14, -13, -10),
+        geom: new THREE.ConeGeometry(2.8, 5.6, 4)
+      },
+      {
+        name: 'SEC-A: ANOMALY DISTORTION',
+        desc: 'DIMENSIONAL COUPLING: DEVIANT',
+        color: '#7C4DFF',
+        pos: new THREE.Vector3(5, 21, -22),
+        geom: new THREE.TorusKnotGeometry(2.5, 0.4, 32, 4, 3, 4)
+      }
+    ];
+
+    const sectorMeshes: THREE.Object3D[] = [];
+    sectorDefs.forEach(def => {
+      const secGroup = new THREE.Group();
+      secGroup.position.copy(def.pos);
+      
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(def.color),
+        transparent: true,
+        opacity: 0.12,
+        wireframe: true,
+        blending: THREE.AdditiveBlending
+      });
+      const wireMesh = new THREE.Mesh(def.geom, wireMat);
+      secGroup.add(wireMesh);
+      
+      const edgeGeom = new THREE.EdgesGeometry(def.geom);
+      const edgeMat = new THREE.LineBasicMaterial({
+        color: new THREE.Color(def.color),
+        transparent: true,
+        opacity: 0.28,
+        blending: THREE.AdditiveBlending
+      });
+      const fineEdges = new THREE.LineSegments(edgeGeom, edgeMat);
+      secGroup.add(fineEdges);
+      
+      const labelSprite = createSectorLabelSprite(def.name, def.desc, def.color);
+      labelSprite.position.set(0, def.geom instanceof THREE.ConeGeometry ? 4.0 : 3.5, 0);
+      secGroup.add(labelSprite);
+      
+      const particleCount = 10;
+      const partGeom = new THREE.BufferGeometry();
+      const partPos = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount; i++) {
+        const r = 1.2 + Math.random() * 1.8;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        partPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        partPos[i * 3 + 1] = r * Math.cos(phi);
+        partPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+      }
+      partGeom.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+      const partMat = new THREE.PointsMaterial({
+        size: 0.35,
+        color: new THREE.Color(def.color),
+        transparent: true,
+        opacity: 0.65,
+        map: createCircularParticleTexture(),
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const points = new THREE.Points(partGeom, partMat);
+      secGroup.add(points);
+      
+      sectorsGroup.add(secGroup);
+      sectorMeshes.push(secGroup);
+    });
+
     // Adaptive fog and ambient lighting variables
     const defaultFogHex = '#070B14';
     const defaultAmbientHex = '#0B1020';
@@ -2363,6 +2524,31 @@ export default function ThreeScene({
         if (bgStructure) bgStructure.rotation.y = elapsed * -0.005 * simMultiplier;
       }
 
+      // Animate the 3D Scientific Sectors
+      if (sectorsGroup && sectorsGroup.children.length > 0) {
+        sectorsGroup.children.forEach((sec, idx) => {
+          const breath = 1.0 + Math.sin(elapsed * 1.1 + idx) * 0.05;
+          sec.scale.setScalar(breath);
+          
+          sec.children.forEach(child => {
+            if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+              child.rotation.y += 0.004 * simMultiplier * (idx % 2 === 0 ? 1 : -1);
+              child.rotation.x += 0.0018 * simMultiplier;
+            }
+            if (child instanceof THREE.Points) {
+              child.rotation.y -= 0.005 * simMultiplier;
+            }
+          });
+          
+          const def = sectorDefs[idx];
+          if (def) {
+            sec.position.x = def.pos.x + Math.sin(elapsed * 0.45 + idx) * 0.35;
+            sec.position.y = def.pos.y + Math.cos(elapsed * 0.35 + idx) * 0.25;
+            sec.position.z = def.pos.z + Math.sin(elapsed * 0.25 + idx) * 0.22;
+          }
+        });
+      }
+
       // Point camera cinematic look
       const cameraLookTarget = new THREE.Vector3(currentProps.selectedElement ? 3.0 : 0, 0, 0);
       camera.lookAt(cameraLookTarget);
@@ -3292,6 +3478,26 @@ export default function ThreeScene({
       networkMat.dispose();
       hoverNetworkLines.geometry.dispose();
       hoverNetworkMat.dispose();
+
+      // Dispose sectorsGroup structures
+      sectorsGroup.children.forEach(secGroup => {
+        secGroup.children.forEach(child => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry.dispose();
+            if (child.material instanceof THREE.Material) child.material.dispose();
+          } else if (child instanceof THREE.LineSegments) {
+            child.geometry.dispose();
+            if (child.material instanceof THREE.Material) child.material.dispose();
+          } else if (child instanceof THREE.Sprite) {
+            child.material.map?.dispose();
+            child.material.dispose();
+          } else if (child instanceof THREE.Points) {
+            child.geometry.dispose();
+            if (child.material instanceof THREE.Material) child.material.dispose();
+          }
+        });
+      });
+
       clearElementWorld();
       
       elementCards.forEach(c => {

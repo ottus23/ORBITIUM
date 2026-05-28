@@ -913,5 +913,26 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     productFormula: 'Fe₂O₃',
     description: 'Metallic Oxidation: Iron loses electrons slowly in contact with environmental Oxygen molecules, transforming the dense transition metal into crumbly red rust.',
     visualType: 'ionic'
+  },
+  {
+    reactants: ['H', 'H'],
+    productName: 'Thermonuclear Heliogenesis Fusion',
+    productFormula: 'He (Primal Sun)',
+    description: 'Nuclear Fusion Cascade: Under titanic stellar core pressures, two Hydrogen nuclei fuse directly into Helium, releasing blinding solar plasma streams and mass-energy wave expansion.',
+    visualType: 'explosion'
+  },
+  {
+    reactants: ['Ar', 'F'],
+    productName: 'Excimer Plasma Quantum Laser',
+    productFormula: 'ArF*',
+    description: 'Quantum Excitation: Unstable excited gas inert argon with reactive fluorine, discharging coherent high-frequency ultraviolet laser emissions in neon-cyan plasma channels.',
+    visualType: 'covalent'
+  },
+  {
+    reactants: ['Y', 'Cu'],
+    productName: 'Superconducting YBCO Cuprate Matrix',
+    productFormula: 'YBa₂Cu₃O₇-x',
+    description: 'Coherent Quantum Levitation: Copper, Yttrium, Barium, and Oxygen coordinate in dense multi-layered perovskite lattices, achieving perfect zero-ohm superconductivity.',
+    visualType: 'ionic'
   }
 ];
