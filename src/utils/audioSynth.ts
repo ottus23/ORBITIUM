@@ -130,6 +130,186 @@ class OrbitiumAudioEngine {
     chime2.stop(now + 1.3);
   }
 
+  /**
+   * Generates a single dynamic grain of sound procedurally.
+   */
+  private playGrain(
+    pitch: number,
+    duration: number,
+    gType: 'sine' | 'sawtooth' | 'triangle' | 'noise',
+    gainVal: number,
+    startTime: number,
+    filterFreqValue?: number,
+    panValue?: number
+  ) {
+    if (!this.ctx) return;
+    const now = startTime;
+    const oscGain = this.ctx.createGain();
+
+    // Volume envelope for the grain (parabolic or linear-attack-exponential-release shape)
+    oscGain.gain.setValueAtTime(0.0, now);
+    const attack = duration * 0.18;
+    const decay = duration * 0.82;
+    oscGain.gain.linearRampToValueAtTime(gainVal, now + attack);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + attack + decay);
+
+    let lastNode: AudioNode = oscGain;
+
+    // Apply stereo panning if available
+    if (this.ctx.createStereoPanner && panValue !== undefined) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panValue, now);
+      oscGain.connect(panner);
+      lastNode = panner;
+    }
+
+    // Apply bandpass filter to highlight local frequency components of each grain
+    if (filterFreqValue !== undefined) {
+      const gFilter = this.ctx.createBiquadFilter();
+      gFilter.type = 'bandpass';
+      gFilter.frequency.setValueAtTime(filterFreqValue, now);
+      gFilter.Q.setValueAtTime(4.5, now);
+      lastNode.connect(gFilter);
+      lastNode = gFilter;
+    }
+
+    lastNode.connect(this.primaryGain || this.ctx.destination);
+
+    if (gType === 'noise') {
+      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+      if (bufferSize > 0) {
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noiseSource = this.ctx.createBufferSource();
+        noiseSource.buffer = buffer;
+        noiseSource.connect(oscGain);
+        noiseSource.start(now);
+        noiseSource.stop(now + duration + 0.05);
+      }
+    } else {
+      const osc = this.ctx.createOscillator();
+      osc.type = gType;
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.connect(oscGain);
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    }
+  }
+
+  /**
+   * Powerful Granular Synthesis Engine representing atomic bond crystallization.
+   */
+  public playGranularReactionSynth(type: 'covalent' | 'ionic' | 'explosion') {
+    if (!this.ctx || this.isMuted) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+
+    if (type === 'ionic') {
+      // CRISP IONIC SNAP: Tiny rapid high-frequency click/snap cloud (electrostatic discharge)
+      // Play a quick sub heavy thump at the core start
+      const kick = this.ctx.createOscillator();
+      const kickGain = this.ctx.createGain();
+      kick.type = 'sine';
+      kick.frequency.setValueAtTime(150, now);
+      kick.frequency.exponentialRampToValueAtTime(40, now + 0.22);
+      kickGain.gain.setValueAtTime(0.35, now);
+      kickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      kick.connect(kickGain);
+      kickGain.connect(this.primaryGain || this.ctx.destination);
+      kick.start(now);
+      kick.stop(now + 0.25);
+
+      // Schedule 22 crystal snapping grains
+      const numGrains = 22;
+      for (let i = 0; i < numGrains; i++) {
+        const grainStart = now + (i * 0.008); // tightly packed 8ms apart
+        const duration = 0.008 + (Math.random() * 0.018); // super snappy
+        const pitch = 1400 + Math.random() * 2600; // electrostatic high-frequency
+        const panned = (i % 2 === 0 ? 1 : -1) * (0.1 + Math.random() * 0.7);
+        const gain = 0.03 + Math.random() * 0.08;
+        const gType = Math.random() > 0.4 ? 'noise' : 'sine';
+        const filterVal = Math.random() > 0.5 ? pitch : undefined;
+
+        this.playGrain(pitch, duration, gType, gain, grainStart, filterVal, panned);
+      }
+    } else if (type === 'covalent') {
+      // COVALENT HUM: Lush resonant harmonic drone/hum cloud of overlapping slow grains
+      const numGrains = 65;
+      const totalDuration = 1.3; // spans 1.3 seconds
+      
+      // Underlying warm root bass pad to tie it together
+      const humBase = this.ctx.createOscillator();
+      const humBaseGain = this.ctx.createGain();
+      humBase.type = 'triangle';
+      humBase.frequency.setValueAtTime(110, now);
+      humBaseGain.gain.setValueAtTime(0.0, now);
+      humBaseGain.gain.linearRampToValueAtTime(0.18, now + 0.2);
+      humBaseGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+      humBase.connect(humBaseGain);
+      humBaseGain.connect(this.primaryGain || this.ctx.destination);
+      humBase.start(now);
+      humBase.stop(now + 1.3);
+
+      for (let i = 0; i < numGrains; i++) {
+        // Distribute grains with slow breathing acceleration then deceleration
+        const progress = i / numGrains;
+        const grainOffset = progress * totalDuration;
+        const grainStart = now + grainOffset;
+        const duration = 0.12 + Math.random() * 0.16; // lingering grains
+        
+        // Formant / Overtones chord stack frequencies (110Hz root)
+        const harmStack = [220, 330, 440, 550, 660, 880];
+        const basePitch = harmStack[Math.floor(Math.random() * harmStack.length)];
+        const fineDetune = (Math.random() - 0.5) * 8.0; // rich chorus detune
+        const pitch = basePitch + fineDetune;
+        
+        const panned = Math.sin(progress * Math.PI * 2) * 0.7; // swirling circular panning
+        const gain = 0.02 + (1.0 - progress) * 0.04;
+        
+        this.playGrain(pitch, duration, 'sine', gain, grainStart, undefined, panned);
+      }
+    } else {
+      // EXPLOSIONS / HIGH ENERGY THERMAL WAVE: Heavy cascade of jagged high-impact grains
+      // Start with massive kick drum wave
+      const blast = this.ctx.createOscillator();
+      const blastGain = this.ctx.createGain();
+      blast.type = 'sawtooth';
+      blast.frequency.setValueAtTime(180, now);
+      blast.frequency.exponentialRampToValueAtTime(28, now + 0.85);
+      blastGain.gain.setValueAtTime(0.4, now);
+      blastGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+      blast.connect(blastGain);
+      blastGain.connect(this.primaryGain || this.ctx.destination);
+      blast.start(now);
+      blast.stop(now + 1.0);
+
+      const numGrains = 90;
+      const totalDuration = 2.2;
+
+      for (let i = 0; i < numGrains; i++) {
+        const progress = i / numGrains;
+        // Dynamic interval spacing: spacing gets wider as the explosion debris disperses
+        const grainOffset = Math.pow(progress, 1.6) * totalDuration;
+        const grainStart = now + grainOffset;
+        
+        const duration = 0.015 + (1.0 - progress) * 0.28; // starts rapid/snappy, stretches into long rumbles
+        // Pitch starts at sizzling high frequencies and falls into heavy rumbles
+        const pitch = (2400 * (1.0 - progress)) + 50 + (Math.random() * 180);
+        
+        const panned = (Math.random() - 0.5) * 0.9;
+        const gain = (0.05 + Math.random() * 0.08) * (1.0 - progress * 0.85);
+        const gType = Math.random() > 0.45 ? 'sawtooth' : 'noise';
+        const filterVal = 1200 * (1.0 - progress) + 80;
+
+        this.playGrain(pitch, duration, gType, gain, grainStart, filterVal, panned);
+      }
+    }
+  }
+
   // Plays chemical collision syntheses bangs
   public playReactionExplosion(type: 'covalent' | 'ionic' | 'explosion') {
     if (!this.ctx || this.isMuted) this.init();
@@ -350,8 +530,8 @@ class OrbitiumAudioEngine {
   }
 
   // Explosive release acoustic feedback
-  public triggerReactionFusingRelease() {
-    this.playReactionExplosion('explosion');
+  public triggerReactionFusingRelease(reactionType?: 'covalent' | 'ionic' | 'explosion') {
+    this.playGranularReactionSynth(reactionType || 'explosion');
   }
 }
 

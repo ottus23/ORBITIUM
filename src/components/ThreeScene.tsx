@@ -2535,7 +2535,8 @@ export default function ThreeScene({
 
               // Play explosive collision sound from Web Audio synthesizer
               import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
-                OrbitiumAudio.triggerReactionFusingRelease();
+                const reactionType = activeBondModeReaction ? activeBondModeReaction.visualType : 'explosion';
+                OrbitiumAudio.triggerReactionFusingRelease(reactionType);
               });
             }
           }
