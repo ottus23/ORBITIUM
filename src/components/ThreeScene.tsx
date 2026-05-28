@@ -1615,6 +1615,16 @@ export default function ThreeScene({
     // Screen-shake animation state and reaction-stage event listener
     let shakeIntensity = 0;
 
+    // Zoom Scale Multiplier system for seamless multi-scale transitions
+    let zoomScaleMultiplier = 1.0;
+    const handleSetCosmicZoom = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail && typeof customEvent.detail.multiplier === 'number') {
+        zoomScaleMultiplier = customEvent.detail.multiplier;
+      }
+    };
+    window.addEventListener('set-cosmic-zoom', handleSetCosmicZoom);
+
     const handleReactionStageEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent && customEvent.detail && customEvent.detail.stage === 'stable') {
@@ -2432,7 +2442,7 @@ export default function ThreeScene({
         // Detailed Atom view focusing, camera offset to handle HUD neatness
         cameraTargetX = 4.8; 
         cameraTargetY = -0.2;
-        cameraTargetZ = 16.5 + currentProps.selectedElement.shells.length * 1.5;
+        cameraTargetZ = (16.5 + currentProps.selectedElement.shells.length * 1.5) * zoomScaleMultiplier;
         
         rotXTarget *= 0.95;
         rotYTarget *= 0.95;
@@ -2442,15 +2452,15 @@ export default function ThreeScene({
           // Zoom in beautifully on the synthesized molecular mesh!
           cameraTargetX = 0;
           cameraTargetY = 0.5;
-          cameraTargetZ = 16.5;
+          cameraTargetZ = 16.5 * zoomScaleMultiplier;
         } else {
           // Dynamic zoom: as elements approach each other, camera automatically glides closer to emphasize structural matter!
           if (reactantA && reactantB) {
             const currentDist = reactantA.position.distanceTo(reactantB.position);
-            cameraTargetZ = 19.0 + Math.min(9.0, currentDist * 0.6);
+            cameraTargetZ = (19.0 + Math.min(9.0, currentDist * 0.6)) * zoomScaleMultiplier;
             cameraTargetY = Math.max(-1.5, -2.5 + (currentDist * 0.12));
           } else {
-            cameraTargetZ = 28.0;
+            cameraTargetZ = 28.0 * zoomScaleMultiplier;
             cameraTargetY = 0.0;
           }
           cameraTargetX = 0;
@@ -2459,13 +2469,13 @@ export default function ThreeScene({
         rotXTarget += (0 - rotXTarget) * 0.1;
       } else {
         if (currentProps.layoutMode === 'spiral') {
-          cameraTargetZ = 30;
+          cameraTargetZ = 30 * zoomScaleMultiplier;
           cameraTargetY = 2;
         } else if (currentProps.layoutMode === 'sphere') {
-          cameraTargetZ = 38;
+          cameraTargetZ = 38 * zoomScaleMultiplier;
           cameraTargetY = 0;
         } else {
-          cameraTargetZ = 38;
+          cameraTargetZ = 38 * zoomScaleMultiplier;
           cameraTargetY = 0.5;
         }
       }
@@ -3463,6 +3473,7 @@ export default function ThreeScene({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('reset-reactor', handleResetReactor);
       window.removeEventListener('reaction-stage', handleReactionStageEvent);
+      window.removeEventListener('set-cosmic-zoom', handleSetCosmicZoom);
       detachEvents();
       
       // Memory cleanup for geometries & textures

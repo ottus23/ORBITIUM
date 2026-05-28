@@ -83,6 +83,19 @@ export default function HolographicUI({
   const [isPlayingTimeline, setIsPlayingTimeline] = useState(false);
   const [liveDistance, setLiveDistance] = useState<number | null>(null);
 
+  // Multi-Scale Exploration Scale state tracking
+  const [scaleMode, setScaleMode] = useState<'cosmic' | 'periodic' | 'molecular' | 'atomic' | 'subatomic'>('periodic');
+
+  useEffect(() => {
+    if (selectedElement) {
+      setScaleMode('atomic');
+    } else if (appMode === 'bond_lab') {
+      setScaleMode('molecular');
+    } else {
+      setScaleMode('periodic');
+    }
+  }, [selectedElement, appMode]);
+
   // Selected electron shell info state
   const [activeShellInfo, setActiveShellInfo] = useState<{
     shellIndex: number;
@@ -1490,6 +1503,51 @@ export default function HolographicUI({
               )}
             </div>
           )}
+
+          {/* QUANTUM MULTI-SCALE INDICATOR */}
+          <div className="hidden lg:flex flex-col items-center gap-1.5 bg-[#0B1020]/90 border border-white/10 px-4 py-2 rounded-sm shadow-xl backdrop-blur-md pointer-events-auto">
+            <span className="text-[8px] font-mono tracking-widest text-[#00E5FF]/80 uppercase font-black flex items-center gap-1">
+              <Compass className="w-3 h-3 animate-spin" style={{ animationDuration: '12s' }} />
+              QUANTUM SYSTEM SCALE NAVIGATOR
+            </span>
+            <div className="flex items-center gap-1.5 p-0.5 bg-black/40 rounded-sm border border-white/5">
+              {[
+                { id: 'cosmic', label: 'Cosmic', metric: '10¹² m', val: 2.2, color: '#7C4DFF' },
+                { id: 'periodic', label: 'Gridmap', metric: '10⁻² m', val: 1.0, color: '#00E5FF' },
+                { id: 'molecular', label: 'Molecular', metric: '10⁻⁹ m', val: 1.35, color: '#00FFB3' },
+                { id: 'atomic', label: 'Atomic', metric: '10⁻¹⁰ m', val: 0.95, color: '#FFD600' },
+                { id: 'subatomic', label: 'Core', metric: '10⁻¹⁵ m', val: 0.42, color: '#FF1744' }
+              ].map((sc) => {
+                const isSelected = scaleMode === sc.id;
+                // Allow selecting only applicable modes per user-intent
+                const isDisabled = (sc.id === 'cosmic' || sc.id === 'periodic') && selectedElement;
+                const isAtomsOnly = (sc.id === 'atomic' || sc.id === 'subatomic') && !selectedElement;
+                const active = isSelected;
+                
+                return (
+                  <button
+                    key={sc.id}
+                    disabled={isDisabled || isAtomsOnly}
+                    onClick={() => {
+                      setScaleMode(sc.id as any);
+                      window.dispatchEvent(new CustomEvent('set-cosmic-zoom', { detail: { multiplier: sc.val } }));
+                    }}
+                    className={`px-3 py-1.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border ${
+                      active
+                        ? 'bg-[#00E5FF]/10 text-white font-black shadow-[0_0_12px_rgba(0,229,255,0.2)]'
+                        : isDisabled || isAtomsOnly
+                          ? 'opacity-20 cursor-not-allowed border-transparent text-white/10'
+                          : 'border-transparent text-white/50 hover:text-[#00E5FF] hover:bg-white/5'
+                    }`}
+                    style={active ? { borderColor: sc.color } : {}}
+                  >
+                    <span className="text-[9px] font-mono uppercase tracking-wider leading-none" style={active ? { color: sc.color } : {}}>{sc.label}</span>
+                    <span className="text-[7px] font-mono mt-0.5 tracking-tighter text-white/30 leading-none">{sc.metric}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Selected element back indicator */}
           {selectedElement && (
