@@ -82,6 +82,7 @@ export default function HolographicUI({
   const [isMuted, setIsMuted] = useState(false);
   const [isPlayingTimeline, setIsPlayingTimeline] = useState(false);
   const [liveDistance, setLiveDistance] = useState<number | null>(null);
+  const [isMoreActive, setIsMoreActive] = useState(false);
 
   // Multi-Scale Exploration Scale state tracking
   const [scaleMode, setScaleMode] = useState<'cosmic' | 'periodic' | 'molecular' | 'atomic' | 'subatomic'>('periodic');
@@ -600,7 +601,28 @@ export default function HolographicUI({
         )}
 
         {/* Dynamic status widgets and audio node toggle */}
-        <div className="flex gap-3 font-mono text-[10px] self-end md:self-start">
+        <div className="flex gap-3.5 font-mono text-[10px] self-end md:self-start items-center">
+          {isObsEntered && (
+            <button
+              id="btn-toggle-more-protocols"
+              onClick={() => {
+                setIsMoreActive(!isMoreActive);
+                import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                  OrbitiumAudio.playUnlockChime();
+                }).catch(() => {});
+              }}
+              className={`px-3.5 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+                isMoreActive
+                  ? 'bg-gradient-to-r from-[#00FFB3]/15 to-[#00E5FF]/15 border-[#00FFB3] text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.25)] font-black'
+                  : 'bg-white/5 border-white/10 text-white/75 hover:border-[#00E5FF] hover:text-[#00E5FF] hover:bg-[#00E5FF]/5'
+              }`}
+              title={isMoreActive ? "Collapse advanced controls" : "Reveal advanced observatory controls"}
+            >
+              <Sliders className={`w-3.5 h-3.5 ${isMoreActive ? 'animate-spin' : ''}`} style={isMoreActive ? { animationDuration: '6s' } : {}} />
+              <span>{isMoreActive ? "COLLAPSE PANEL" : "MORE SYSTEMS"}</span>
+            </button>
+          )}
+
           {isObsEntered && (
             <button
               onClick={() => setIsMuted(!isMuted)}
@@ -629,9 +651,23 @@ export default function HolographicUI({
           MAIN INTERACTION HUD OVERLAYS (Left / Right / Middle)
           ======================================================= */}
       <main className="flex-1 my-4 flex flex-col md:flex-row gap-6 relative justify-between items-stretch">
-               {/* LEFT HUD: CONTROLS & LAYOUT SWITCHER */}
-        {isObsEntered && !selectedElement && (
-          <div id="left-hud-controls" className="w-full md:w-72 flex flex-col justify-start gap-4 pointer-events-auto z-40">
+        {!isMoreActive && !selectedElement && isObsEntered && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 select-none pointer-events-none z-10 text-center animate-fade-in whitespace-nowrap">
+            <span className="text-[7.5px] font-mono tracking-[0.3em] text-[#00E5FF]/45 uppercase">
+              // IMMERSIVE COHERENCE FIELD ACTIVE
+            </span>
+            <div className="px-5 py-1.5 bg-[#0B1020]/50 backdrop-blur-md border border-white/[0.08] rounded-full flex items-center gap-2.5 text-[8.2px] font-mono text-white/50 tracking-wider shadow-xl">
+              <span>DRAG TO ROTATE COSMOS</span>
+              <span className="text-[#00FFB3]/30">•</span>
+              <span>SCROLL TO ZOOM ATOMS</span>
+              <span className="text-[#00FFB3]/30">•</span>
+              <span className="text-[#00FFB3] font-bold">CLICK "MORE SYSTEMS" FOR ADVANCED CONTROLS</span>
+            </div>
+          </div>
+        )}
+        {/* LEFT HUD: CONTROLS & LAYOUT SWITCHER */}
+        {isObsEntered && !selectedElement && isMoreActive && (
+          <div id="left-hud-controls" className="w-full md:w-72 flex flex-col justify-start gap-4 pointer-events-auto z-40 max-h-[80vh] md:max-h-[calc(100vh-140px)] overflow-y-auto pr-1">
             
             {/* 1. ATOMIC EXPLORER PANEL CONTROLS */}
             {appMode === 'explorer' && (
@@ -927,7 +963,7 @@ export default function HolographicUI({
         )}
         
         {/* RIGHT HUD: ANOMALOUS DIAGNOSTICS & DISCOVERY SCANNER */}
-        {isObsEntered && !selectedElement && appMode === 'explorer' && (
+        {isObsEntered && !selectedElement && isMoreActive && appMode === 'explorer' && (
           <div id="right-hud-discovery" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-start gap-4 shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)] border-[#00E5FF]/20 animate-fade-in z-45 flex-shrink-0">
             <div className="absolute top-0 right-0 p-1 flex gap-1 bg-[#070B14]/40 border-l border-b border-white/10 text-[8px] font-mono tracking-widest text-[#00E5FF]/40 lowercase">
               sys.discovery_module()
