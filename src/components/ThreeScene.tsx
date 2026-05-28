@@ -233,6 +233,46 @@ export default function ThreeScene({
     const atmosphericPlasma = new THREE.Points(plasmaGeometry, plasmaMaterial);
     scene.add(atmosphericPlasma);
 
+    // --- 3B-1B. GIANT ROTATING SCIENTIFIC OBSERVATORY DESIGNATION SHELLS (Distant Structures) ---
+    const bgObservationGroup = new THREE.Group();
+    bgObservationGroup.position.set(0, 0, -45);
+    scene.add(bgObservationGroup);
+
+    const bgRingGeom1 = new THREE.RingGeometry(80, 80.4, 64);
+    const bgRingMat1 = new THREE.MeshBasicMaterial({
+      color: '#00E5FF',
+      transparent: true,
+      opacity: 0.05,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
+    });
+    const bgRing1 = new THREE.Mesh(bgRingGeom1, bgRingMat1);
+    bgRing1.rotation.x = Math.PI / 2;
+    bgObservationGroup.add(bgRing1);
+
+    const bgRingGeom2 = new THREE.RingGeometry(90, 90.5, 64);
+    const bgRingMat2 = new THREE.MeshBasicMaterial({
+      color: '#7C4DFF',
+      transparent: true,
+      opacity: 0.04,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
+    });
+    const bgRing2 = new THREE.Mesh(bgRingGeom2, bgRingMat2);
+    bgRing2.rotation.y = Math.PI / 3;
+    bgObservationGroup.add(bgRing2);
+
+    const bgStructureGeom = new THREE.IcosahedronGeometry(72, 1);
+    const bgStructureMat = new THREE.MeshBasicMaterial({
+      color: '#00FFB3',
+      wireframe: true,
+      transparent: true,
+      opacity: 0.02,
+      blending: THREE.AdditiveBlending
+    });
+    const bgStructure = new THREE.Mesh(bgStructureGeom, bgStructureMat);
+    bgObservationGroup.add(bgStructure);
+
     // --- 3B-2. DEEP SPACE CONSTELLATION MAP (FAR BACKGROUND NEBULA LAB) ---
     const farStarCount = 180;
     const farStarGeometry = new THREE.BufferGeometry();
@@ -289,10 +329,34 @@ export default function ThreeScene({
     const networkGeom = new THREE.BufferGeometry();
     const networkPos = new Float32Array(periodicConnections.length * 2 * 3);
     networkGeom.setAttribute('position', new THREE.BufferAttribute(networkPos, 3));
+
+    // Dynamic Energy Links: Set up vertex colors gradient representing scientific category connections
+    const networkColors = new Float32Array(periodicConnections.length * 2 * 3);
+    periodicConnections.forEach(([fromIdx, toIdx], cIdx) => {
+      const elA = ELEMENTS_DATA[fromIdx];
+      const elB = ELEMENTS_DATA[toIdx];
+      
+      const configA = CATEGORY_COLORS[elA.category] || { hex: '#00E5FF' };
+      const configB = CATEGORY_COLORS[elB.category] || { hex: '#D500F9' };
+      
+      const colA = new THREE.Color(configA.hex);
+      const colB = new THREE.Color(configB.hex);
+      
+      const iEdge = cIdx * 6;
+      networkColors[iEdge] = colA.r;
+      networkColors[iEdge + 1] = colA.g;
+      networkColors[iEdge + 2] = colA.b;
+      
+      networkColors[iEdge + 3] = colB.r;
+      networkColors[iEdge + 4] = colB.g;
+      networkColors[iEdge + 5] = colB.b;
+    });
+    networkGeom.setAttribute('color', new THREE.BufferAttribute(networkColors, 3));
+
     const networkMat = new THREE.LineBasicMaterial({
-      color: '#00E5FF',
+      vertexColors: true,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.28,
       blending: THREE.AdditiveBlending
     });
     const networkLines = new THREE.LineSegments(networkGeom, networkMat);
@@ -771,23 +835,64 @@ export default function ThreeScene({
       const coreMesh = new THREE.Mesh(coreGeom, coreMat);
       group.add(coreMesh);
 
-      // Ring structure
-      const ringGeom = new THREE.RingGeometry(2.1, 2.18, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(colorHex),
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.35
-      });
-      const ring = new THREE.Mesh(ringGeom, ringMat);
-      ring.rotation.x = Math.PI / 2.5; // stylish tilt
-      group.add(ring);
+      // Extract the shells structure of the element from database for accurate subatomic orbits
+      const elData = ELEMENTS_DATA.find(e => e.symbol === symbol);
+      const shellSpecs = elData ? elData.shells : [2, 1];
 
-      // Outer electron whizzer ball
-      const elGeom = new THREE.SphereGeometry(0.24, 8, 8);
-      const elMat = new THREE.MeshBasicMaterial({ color: '#EAF2FF' });
-      const electron = new THREE.Mesh(elGeom, elMat);
-      group.add(electron);
+      // Keep array of multiple whizzer electrons
+      const electronMeshes: Array<{
+        mesh: THREE.Mesh;
+        radius: number;
+        speed: number;
+        angleOffset: number;
+        tiltX: number;
+        tiltY: number;
+      }> = [];
+
+      // Create orbital rings and electrons for each shell level
+      shellSpecs.forEach((electronCount, shellIdx) => {
+        const radius = 2.0 + shellIdx * 1.25;
+        const tiltX = Math.PI / 2.5 + (shellIdx * 0.42);
+        const tiltY = shellIdx * 0.65;
+
+        // Visual orbital vector path torus ring
+        const shellRingGeom = new THREE.RingGeometry(radius, radius + 0.04, 32);
+        const shellRingMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(colorHex),
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: Math.max(0.08, 0.32 - (shellIdx * 0.05)),
+          blending: THREE.AdditiveBlending
+        });
+        const shellRing = new THREE.Mesh(shellRingGeom, shellRingMat);
+        shellRing.rotation.set(tiltX, tiltY, 0);
+        group.add(shellRing);
+
+        // Spawn whizzers for this shell level
+        for (let eIdx = 0; eIdx < electronCount; eIdx++) {
+          const elGeom = new THREE.SphereGeometry(0.18 + Math.random() * 0.06, 8, 8);
+          const elMat = new THREE.MeshBasicMaterial({
+            color: '#EAF2FF',
+            transparent: true,
+            opacity: 0.95
+          });
+          const elMesh = new THREE.Mesh(elGeom, elMat);
+          group.add(elMesh);
+
+          electronMeshes.push({
+            mesh: elMesh,
+            radius,
+            speed: (3.6 / radius) * (1.0 + Math.random() * 0.3), // Inner electrons orbit much faster!
+            angleOffset: (eIdx / electronCount) * Math.PI * 2,
+            tiltX,
+            tiltY
+          });
+        }
+      });
+
+      // Maintain legacy reference placeholders for safety-checks
+      const ring = group.children.find(c => c instanceof THREE.Mesh && c.geometry instanceof THREE.RingGeometry) as THREE.Mesh || null;
+      const electron = group.children.find(c => c instanceof THREE.Mesh && c.geometry instanceof THREE.SphereGeometry && c !== coreMesh) as THREE.Mesh || null;
 
       // Element billboard flat text symbol Card
       const canvas = document.createElement('canvas');
@@ -823,6 +928,7 @@ export default function ThreeScene({
         colorHex,
         electron,
         ring,
+        electronMeshes,
         symbolMesh
       };
 
@@ -1185,6 +1291,44 @@ export default function ThreeScene({
           }
         }
       }
+
+      // 3D Bond Energy Aura Indicator: Custom dual-shell volumetric energy core wrapping the molecule
+      const energyConfig = BOND_ENERGIES[formula] || { value: 300, color: '#00FFB3', maxLimit: 2000 };
+      const auraScale = 3.6 + (energyConfig.value / energyConfig.maxLimit) * 2.2;
+      const energyColor = energyConfig.color;
+      const opacityCoeff = 0.05 + (energyConfig.value / energyConfig.maxLimit) * 0.12;
+
+      const auraShell1 = new THREE.Mesh(
+        new THREE.SphereGeometry(auraScale, 16, 16),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(energyColor),
+          transparent: true,
+          opacity: opacityCoeff,
+          wireframe: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        })
+      );
+      group.add(auraShell1);
+
+      const auraShell2 = new THREE.Mesh(
+        new THREE.SphereGeometry(auraScale * 0.95, 12, 12),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(energyColor),
+          transparent: true,
+          opacity: opacityCoeff * 0.4,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        })
+      );
+      group.add(auraShell2);
+
+      group.userData = {
+        ...group.userData,
+        auraShell1,
+        auraShell2,
+        energyConfig
+      };
 
       createHolographic3DLabel(re.productFormula, re.productName, group);
 
@@ -1980,6 +2124,15 @@ export default function ThreeScene({
         if (shakeIntensity < 0.01) shakeIntensity = 0;
       }
 
+      // Rotate nested background scientific observatory coordinates (Observation Rings & Lattice geometry)
+      if (bgObservationGroup) {
+        bgObservationGroup.rotation.y = elapsed * 0.008 * simMultiplier;
+        bgObservationGroup.rotation.x = elapsed * 0.003 * simMultiplier;
+        if (bgRing1) bgRing1.rotation.z = elapsed * -0.012 * simMultiplier;
+        if (bgRing2) bgRing2.rotation.z = elapsed * 0.016 * simMultiplier;
+        if (bgStructure) bgStructure.rotation.y = elapsed * -0.005 * simMultiplier;
+      }
+
       // Point camera cinematic look
       const cameraLookTarget = new THREE.Vector3(currentProps.selectedElement ? 3.0 : 0, 0, 0);
       camera.lookAt(cameraLookTarget);
@@ -1997,7 +2150,7 @@ export default function ThreeScene({
       currentFogColor.lerp(targetFogColor, 0.035);
       ambientLight.color.lerp(targetAmbientColor, 0.035);
 
-      // Update network lines based on current card mesh positions
+      // Update network lines based on current card mesh positions with elegant real-time pulsing
       if (networkLines && networkLines.geometry.attributes.position) {
         const netPosAttr = networkLines.geometry.attributes.position as THREE.BufferAttribute;
         let netIdx = 0;
@@ -2014,6 +2167,11 @@ export default function ThreeScene({
           }
         });
         netPosAttr.needsUpdate = true;
+        
+        // Synaptic grid energy pulsing flow
+        const activeMultiplier = currentProps.appMode === 'bond_lab' ? 0.04 : 1.0;
+        (networkLines.material as THREE.LineBasicMaterial).opacity = 
+          (0.25 + Math.sin(elapsed * 2.5) * 0.1) * activeMultiplier;
       }
 
       // Highlights path of the active hovered element
@@ -2086,12 +2244,51 @@ export default function ThreeScene({
       elementCards.forEach((ci) => {
         ci.mesh.position.lerp(ci.targetPosition, layoutLerpFactor);
         
-        // Dynamic weightless floating float calculations
-        const floatFactor = Math.sin(elapsed * 1.5 + ci.floatOffset) * 0.14;
-        ci.mesh.position.y += floatFactor * (currentProps.selectedElement ? 0.0 : 1.0);
+        // Systemic Scientific Behavior: elements move and respond based on their chemical category
+        const cat = ci.element.category;
+        let floatFactor = 0;
+        let jitterX = 0;
+        let jitterZ = 0;
+        let rotationWobble = 0;
+        const speedMult = currentProps.simulationSpeed;
 
-        // Smoothly rotate cards towards targeted layout angle (Frame-rate independent)
-        const targetQ = new THREE.Quaternion().setFromEuler(ci.targetRotation);
+        if (cat === 'noble-gas') {
+          // Noble Gases: Calm, slow, stable, elegant floating curves
+          floatFactor = Math.sin(elapsed * 0.45 * speedMult + ci.floatOffset) * 0.08;
+        } else if (cat === 'alkali-metal') {
+          // Alkali Metals: Volatile, fast, high-frequency, highly active energy vibration
+          floatFactor = Math.sin(elapsed * 3.6 * speedMult + ci.floatOffset) * 0.22 + Math.cos(elapsed * 7.5) * 0.06;
+          jitterX = Math.sin(elapsed * 12.0 + ci.floatOffset) * 0.04;
+          rotationWobble = Math.cos(elapsed * 8.5) * 0.08;
+        } else if (cat === 'actinide' || cat === 'lanthanide') {
+          // Radioactive Elements: Instability, sudden distorted quantum jumps/jitters
+          floatFactor = Math.sin(elapsed * 2.0 * speedMult + ci.floatOffset) * 0.16 + Math.cos(elapsed * 4.2) * 0.04;
+          if (Math.random() > 0.95) {
+            jitterX = (Math.random() - 0.5) * 0.18;
+            jitterZ = (Math.random() - 0.5) * 0.18;
+            rotationWobble = (Math.random() - 0.5) * 0.09;
+          }
+        } else if (cat === 'transition-metal') {
+          // Transition Metals: Dense, heavy, rigid structured industrial movement
+          floatFactor = Math.sin(elapsed * 0.6 * speedMult + ci.floatOffset) * 0.04;
+        } else {
+          // Standard elements
+          floatFactor = Math.sin(elapsed * 1.35 * speedMult + ci.floatOffset) * 0.14;
+        }
+
+        const applyPhysics = !currentProps.selectedElement;
+        if (applyPhysics) {
+          ci.mesh.position.x += jitterX;
+          ci.mesh.position.y += floatFactor;
+          ci.mesh.position.z += jitterZ;
+        }
+
+        // Smoothly rotate cards towards targeted layout angle (Frame-rate independent + dynamic scientific wobble)
+        const rotTarget = ci.targetRotation.clone();
+        if (applyPhysics) {
+          rotTarget.z += rotationWobble;
+        }
+        const targetQ = new THREE.Quaternion().setFromEuler(rotTarget);
         ci.mesh.quaternion.slerp(targetQ, layoutLerpFactor);
 
         // Hover forward thrust inside grid matrices based on discovery status
@@ -2209,18 +2406,56 @@ export default function ThreeScene({
           if (ringA) ringA.rotation.z += 0.012 * simMultiplier;
           if (ringB) ringB.rotation.z += 0.015 * simMultiplier;
 
-          // Move electrons on orbits
-          const electronA = reactantA.userData.electron as THREE.Mesh;
-          const electronB = reactantB.userData.electron as THREE.Mesh;
-          const angleA = elapsed * 3.5 * simMultiplier;
-          const angleB = -elapsed * 4.0 * simMultiplier;
-          if (electronA) {
-            electronA.position.set(Math.cos(angleA) * 2.1, Math.sin(angleA) * 2.1, 0);
-            electronA.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2.5);
+          // Move dynamic shells multi-electron systems
+          const meshesA = reactantA.userData.electronMeshes as Array<{
+            mesh: THREE.Mesh;
+            radius: number;
+            speed: number;
+            angleOffset: number;
+            tiltX: number;
+            tiltY: number;
+          }>;
+          const meshesB = reactantB.userData.electronMeshes as Array<{
+            mesh: THREE.Mesh;
+            radius: number;
+            speed: number;
+            angleOffset: number;
+            tiltX: number;
+            tiltY: number;
+          }>;
+
+          if (meshesA) {
+            meshesA.forEach((e) => {
+              const theta = elapsed * e.speed * simMultiplier + e.angleOffset;
+              e.mesh.position.set(Math.cos(theta) * e.radius, Math.sin(theta) * e.radius, 0);
+              e.mesh.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), e.tiltX);
+              e.mesh.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), e.tiltY);
+            });
+          } else {
+            // Legacy single electron fallback
+            const electronA = reactantA.userData.electron as THREE.Mesh;
+            const angleA = elapsed * 3.5 * simMultiplier;
+            if (electronA) {
+              electronA.position.set(Math.cos(angleA) * 2.1, Math.sin(angleA) * 2.1, 0);
+              electronA.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2.5);
+            }
           }
-          if (electronB) {
-            electronB.position.set(Math.cos(angleB) * 2.1, Math.sin(angleB) * 2.1, 0);
-            electronB.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2.5);
+
+          if (meshesB) {
+            meshesB.forEach((e) => {
+              const theta = -elapsed * e.speed * simMultiplier + e.angleOffset;
+              e.mesh.position.set(Math.cos(theta) * e.radius, Math.sin(theta) * e.radius, 0);
+              e.mesh.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), e.tiltX);
+              e.mesh.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), e.tiltY);
+            });
+          } else {
+            // Legacy single electron fallback
+            const electronB = reactantB.userData.electron as THREE.Mesh;
+            const angleB = -elapsed * 4.0 * simMultiplier;
+            if (electronB) {
+              electronB.position.set(Math.cos(angleB) * 2.1, Math.sin(angleB) * 2.1, 0);
+              electronB.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2.5);
+            }
           }
 
           // Face element indicators towards center
@@ -2371,6 +2606,25 @@ export default function ThreeScene({
         const label = productMoleculeGroup.userData.labelMesh as THREE.Mesh;
         if (label) {
           label.lookAt(camera.position);
+        }
+
+        // Animate Bond Energy Aura Core Indicator: continuous breathing-pulsation & spinning of holographic shells
+        const auraShell1 = productMoleculeGroup.userData.auraShell1 as THREE.Mesh;
+        const auraShell2 = productMoleculeGroup.userData.auraShell2 as THREE.Mesh;
+        if (auraShell1 && auraShell2) {
+          // Slow contrasting rotation vectors
+          auraShell1.rotation.y = elapsed * 0.15 * simMultiplier;
+          auraShell1.rotation.z = elapsed * -0.05 * simMultiplier;
+          auraShell2.rotation.y = elapsed * -0.22 * simMultiplier;
+          
+          // Breathing scale fluctuations mimicking active quantum energy fields (higher value = more active/volatile pulse)
+          const config = productMoleculeGroup.userData.energyConfig || { value: 300, maxLimit: 2000 };
+          const activityRate = 1.2 + (config.value / config.maxLimit) * 3.5;
+          const fluctuationIntensity = 0.02 + (config.value / config.maxLimit) * 0.08;
+          
+          const pulse = 1.0 + Math.sin(elapsed * activityRate) * fluctuationIntensity;
+          auraShell1.scale.setScalar(pulse);
+          auraShell2.scale.setScalar(1.0 + Math.cos(elapsed * activityRate * 1.1) * (fluctuationIntensity * 0.7));
         }
       }
 
