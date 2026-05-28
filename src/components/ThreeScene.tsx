@@ -763,6 +763,9 @@ export default function ThreeScene({
     }
     
     let activeElectrons: ExtendedElectron[] = [];
+    let selectedShellIndex: number | null = null;
+    let hitRings: THREE.Mesh[] = [];
+    let densityCloud: THREE.Points | null = null;
 
     // --- 6B. ELEMENT WORLDS ENVIRONMENT GROUP ---
     const elementWorldGroup = new THREE.Group();
@@ -1562,9 +1565,169 @@ export default function ThreeScene({
       });
     };
 
+    // Standard normal Gaussian random helper (Box-Muller transform)
+    function randn_bm() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random(); 
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function getShellName(index: number): string {
+      const names = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
+      return names[index] || `Shell ${index + 1}`;
+    }
+
+    const rebuildDensityCloud = (shellIdx: number | null, el: ChemicalElement | null) => {
+      // 1. Clear previous cloud
+      if (densityCloud) {
+        scene.remove(densityCloud);
+        densityCloud.geometry.dispose();
+        if (Array.isArray(densityCloud.material)) {
+          densityCloud.material.forEach((m: any) => m.dispose());
+        } else {
+          densityCloud.material.dispose();
+        }
+        densityCloud = null;
+      }
+
+      if (shellIdx === null || !el) return;
+
+      const radius = 3.5 + shellIdx * 2.2;
+      const primaryColorHex = el.visual?.primaryColor || '#00E5FF';
+      const catColor = new THREE.Color(primaryColorHex);
+      
+      const rotX = (shellIdx * 0.38) + 0.15;
+      const rotZ = (shellIdx * -0.28) - 0.1;
+
+      // 2. Spawn points for dense volumetric cloud
+      const numPoints = isLowPerfActive ? 500 : 1200;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(numPoints * 3);
+      const colors = new Float32Array(numPoints * 3);
+
+      for (let i = 0; i < numPoints; i++) {
+        const p = new THREE.Vector3();
+        
+        if (shellIdx === 0) {
+          // K-Shell: S-orbital (uniform spherical density envelope)
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          // Distance follows high-probability shell thickness
+          const dist = radius + (randn_bm() * 0.45);
+          p.set(
+            dist * Math.sin(phi) * Math.cos(theta),
+            dist * Math.sin(phi) * Math.sin(theta),
+            dist * Math.cos(phi)
+          );
+        } else if (shellIdx === 1) {
+          // L-Shell: S+P orbitals. Dumbbell probability density nodes.
+          const isLobe = Math.random() > 0.45;
+          if (isLobe) {
+            // p-orbital dumbbell oriented along orbital axis
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            // Proportional cos^2 or sin^2 orbital lobes
+            const lobeWeight = Math.pow(Math.cos(phi), 2);
+            const dist = radius * (0.65 + lobeWeight * 0.8) + (randn_bm() * 0.25);
+            p.set(
+              dist * Math.sin(phi) * Math.cos(theta),
+              dist * Math.sin(phi) * Math.sin(theta),
+              dist * Math.cos(phi)
+            );
+          } else {
+            // standard spherical cloud base
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            const dist = radius * 0.85 + (randn_bm() * 0.35);
+            p.set(
+              dist * Math.sin(phi) * Math.cos(theta),
+              dist * Math.sin(phi) * Math.sin(theta),
+              dist * Math.cos(phi)
+            );
+          }
+        } else {
+          // M/N/O-Shells: Complex d/f orbital lobe clover configurations
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          const petals = shellIdx === 2 ? 4 : 6;
+          // Radiative sinusoidal modulation
+          const orbitalMod = 1.0 + 0.45 * Math.sin(petals * theta) * Math.sin(phi);
+          const dist = radius * orbitalMod * 0.8 + (randn_bm() * 0.28);
+          p.set(
+            dist * Math.sin(phi) * Math.cos(theta),
+            dist * Math.sin(phi) * Math.sin(theta),
+            dist * Math.cos(phi)
+          );
+        }
+
+        // Apply exactly rotated orientation matching the shell's tilt!
+        p.applyAxisAngle(new THREE.Vector3(1, 0, 0), rotX);
+        p.applyAxisAngle(new THREE.Vector3(0, 0, 1), rotZ);
+
+        positions[i * 3] = p.x;
+        positions[i * 3 + 1] = p.y;
+        positions[i * 3 + 2] = p.z;
+
+        // Add subtle quantum color variations (slightly cooler/warmer shades)
+        const pointColor = catColor.clone();
+        if (Math.random() > 0.6) {
+          pointColor.addScalar(0.12);
+        } else {
+          pointColor.addScalar(-0.08);
+        }
+        colors[i * 3] = pointColor.r;
+        colors[i * 3 + 1] = pointColor.g;
+        colors[i * 3 + 2] = pointColor.b;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const pTexture = createCircularParticleTexture();
+      const material = new THREE.PointsMaterial({
+        size: isLowPerfActive ? 0.08 : 0.045,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        map: pTexture,
+      });
+
+      densityCloud = new THREE.Points(geometry, material);
+      densityCloud.userData = { isDensityCloud: true };
+      scene.add(densityCloud);
+    };
+
     const updateSelectedElementAtom = (el: ChemicalElement) => {
       // Clear previous world
       clearElementWorld();
+
+      // Clear previous hit rings
+      hitRings.forEach(hr => {
+        shellGroup.remove(hr);
+        hr.geometry.dispose();
+        if (Array.isArray(hr.material)) {
+          hr.material.forEach(m => m.dispose());
+        } else {
+          hr.material.dispose();
+        }
+      });
+      hitRings = [];
+
+      // Clear previous density cloud
+      if (densityCloud) {
+        scene.remove(densityCloud);
+        densityCloud.geometry.dispose();
+        if (Array.isArray(densityCloud.material)) {
+          densityCloud.material.forEach((m: any) => m.dispose());
+        } else {
+          densityCloud.material.dispose();
+        }
+        densityCloud = null;
+      }
+      selectedShellIndex = null;
 
       // Clear previous orbits & electrons
       activeElectrons.forEach(e => {
@@ -1649,7 +1812,24 @@ export default function ThreeScene({
           blending: THREE.AdditiveBlending,
         });
         const pathRing = new THREE.Line(ringGeom, ringMat);
+        pathRing.userData = { isVisualRing: true, shellIndex: shellIdx, defaultColor: catColor.clone() };
         shellGroup.add(pathRing);
+
+        // Interactive hit ring (invisible Mesh ring for easy hover/click detection)
+        const hitGeom = new THREE.RingGeometry(radius - 0.4, radius + 0.4, 32);
+        const hitMat = new THREE.MeshBasicMaterial({
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.0,
+          depthWrite: false
+        });
+        const hitRing = new THREE.Mesh(hitGeom, hitMat);
+        // Align hitRing to face the camera matching the custom vector rotation logic
+        hitRing.rotation.x = Math.PI / 2 + rotX;
+        hitRing.rotation.z = rotZ;
+        hitRing.userData = { isShellHit: true, shellIndex: shellIdx, radius };
+        shellGroup.add(hitRing);
+        hitRings.push(hitRing);
 
         // 2. Generate whizzing electrons
         const electronMat = new THREE.MeshBasicMaterial({
@@ -1874,6 +2054,43 @@ export default function ThreeScene({
       if (!propsRef.current.isObsEntered) return;
       
       raycaster.setFromCamera(mouse2D, camera);
+
+      // If an element is active, check shell interactions first
+      if (propsRef.current.selectedElement) {
+        const intersects = raycaster.intersectObjects(hitRings);
+        if (intersects.length > 0) {
+          const hitMesh = intersects[0].object;
+          const clickedShellIndex = hitMesh.userData.shellIndex;
+          const radius = hitMesh.userData.radius;
+          
+          if (clickedShellIndex !== undefined) {
+            // Toggle clicked shell index
+            selectedShellIndex = (selectedShellIndex === clickedShellIndex) ? null : clickedShellIndex;
+            
+            // Dispatch custom event to update high-tech HUD specs overlays
+            window.dispatchEvent(new CustomEvent('orbit-shell-clicked', {
+              detail: {
+                selected: selectedShellIndex !== null,
+                shellIndex: clickedShellIndex,
+                shellName: getShellName(clickedShellIndex),
+                electrons: propsRef.current.selectedElement.shells[clickedShellIndex] || 0,
+                radius: radius,
+                element: propsRef.current.selectedElement
+              }
+            }));
+
+            // Play procedural quantum high-end chime
+            import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+              OrbitiumAudio.playUnlockChime();
+            });
+
+            // Rebuild the probabilistic volumetric density cloud
+            rebuildDensityCloud(selectedShellIndex, propsRef.current.selectedElement);
+          }
+          return;
+        }
+      }
+      
       const intersects = raycaster.intersectObjects(
         elementCards.map(c => c.mesh)
       );
@@ -2021,6 +2238,19 @@ export default function ThreeScene({
           clearElementWorld();
           targetFogColor.set(defaultFogHex);
           targetAmbientColor.set(defaultAmbientHex);
+
+          // Clear active shell visualization density cloud
+          if (densityCloud) {
+            scene.remove(densityCloud);
+            densityCloud.geometry.dispose();
+            if (Array.isArray(densityCloud.material)) {
+              densityCloud.material.forEach((m: any) => m.dispose());
+            } else {
+              densityCloud.material.dispose();
+            }
+            densityCloud = null;
+          }
+          selectedShellIndex = null;
         }
       }
 
@@ -2809,10 +3039,16 @@ export default function ThreeScene({
           // Position matching
           el.mesh.position.copy(p);
 
-          // Energetic color flares during quantum excitation
+          // Energetic color flares during quantum excitation or highlighted shell states
+          const isSelectedShell = el.shellIndex === selectedShellIndex;
           if (el.isJumping) {
             el.mesh.scale.setScalar(1.0 + Math.sin(el.jumpRatio * Math.PI) * 1.5);
             (el.mesh.material as THREE.MeshBasicMaterial).color.set('#FFF176'); // glowing bright gold-yellow
+          } else if (isSelectedShell) {
+            // Highlights all electrons belonging to the clicked shell with breathing size & bright quantum color
+            const elBreathe = 2.2 + Math.sin(elapsed * 10.0) * 0.4;
+            el.mesh.scale.setScalar(elBreathe);
+            (el.mesh.material as THREE.MeshBasicMaterial).color.set('#00FFB3'); // neon quantum mint-green
           } else {
             el.mesh.scale.setScalar(1.0);
             (el.mesh.material as THREE.MeshBasicMaterial).color.copy(el.baseColor);
@@ -2842,11 +3078,42 @@ export default function ThreeScene({
           if (el.isJumping) {
             trailMat.color.set('#FFD54F');
             trailMat.opacity = 0.85;
+          } else if (isSelectedShell) {
+            trailMat.color.set('#00FFB3'); // highlighted trail matching the cyan-green resonance
+            trailMat.opacity = 0.95;
           } else {
             trailMat.color.copy(el.baseColor);
             trailMat.opacity = 0.42;
           }
         });
+
+        // Highlight visual path rings according to selected shell status
+        shellGroup.children.forEach(child => {
+          if (child.userData && child.userData.isVisualRing) {
+            const ringLine = child as THREE.Line;
+            const rMat = ringLine.material as THREE.LineBasicMaterial;
+            const ringIdx = ringLine.userData.shellIndex;
+            if (ringIdx === selectedShellIndex) {
+              rMat.color.set('#00FFB3');
+              rMat.opacity = 0.55 + Math.sin(elapsed * 8.0) * 0.3;
+            } else {
+              rMat.color.copy(ringLine.userData.defaultColor);
+              rMat.opacity = 0.18;
+            }
+          }
+        });
+
+        // Slow quantum wave breathing/vibrating of our lovely probability density cloud points
+        if (densityCloud && densityCloud.visible) {
+          const cloudTime = elapsed * 2.2;
+          const scale = 1.0 + Math.sin(cloudTime) * 0.03 + (Math.random() * 0.005);
+          densityCloud.scale.setScalar(scale);
+
+          if (densityCloud.material instanceof THREE.PointsMaterial) {
+            densityCloud.material.opacity = 0.55 + Math.sin(elapsed * 4.5) * 0.18;
+            densityCloud.material.size = (isLowPerfActive ? 0.08 : 0.045) * (1.0 + Math.cos(elapsed * 5.5) * 0.15);
+          }
+        }
 
       } else {
         atomGroup.visible = false;
@@ -3039,6 +3306,29 @@ export default function ThreeScene({
       sharedNucleonGeom.dispose();
       protonMat.dispose();
       neutronMat.dispose();
+
+      // Dispose active density cloud
+      if (densityCloud) {
+        scene.remove(densityCloud);
+        densityCloud.geometry.dispose();
+        if (Array.isArray(densityCloud.material)) {
+          densityCloud.material.forEach((m: any) => m.dispose());
+        } else {
+          densityCloud.material.dispose();
+        }
+        densityCloud = null;
+      }
+
+      // Dispose hit rings
+      hitRings.forEach(hr => {
+        hr.geometry.dispose();
+        if (Array.isArray(hr.material)) {
+          hr.material.forEach(m => m.dispose());
+        } else {
+          hr.material.dispose();
+        }
+      });
+      hitRings = [];
 
       activeElectrons.forEach(e => {
         e.mesh.geometry.dispose();

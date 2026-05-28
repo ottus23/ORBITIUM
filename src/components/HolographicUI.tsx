@@ -83,6 +83,39 @@ export default function HolographicUI({
   const [isPlayingTimeline, setIsPlayingTimeline] = useState(false);
   const [liveDistance, setLiveDistance] = useState<number | null>(null);
 
+  // Selected electron shell info state
+  const [activeShellInfo, setActiveShellInfo] = useState<{
+    shellIndex: number;
+    shellName: string;
+    electrons: number;
+    radius: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setActiveShellInfo(null);
+  }, [selectedElement]);
+
+  useEffect(() => {
+    const handleShellClick = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.selected) {
+        setActiveShellInfo({
+          shellIndex: detail.shellIndex,
+          shellName: detail.shellName,
+          electrons: detail.electrons,
+          radius: detail.radius
+        });
+      } else {
+        setActiveShellInfo(null);
+      }
+    };
+    
+    window.addEventListener('orbit-shell-clicked', handleShellClick);
+    return () => {
+      window.removeEventListener('orbit-shell-clicked', handleShellClick);
+    };
+  }, []);
+
   // New ref for element-detail-sidebar
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -970,18 +1003,52 @@ export default function HolographicUI({
 
                     {/* Schrödinger Energy shells */}
                     <div className="p-3 bg-white/[0.03] border border-white/5 rounded-sm flex flex-col gap-2">
-                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#00FFB3] flex items-center gap-1">
-                        <Atom className="w-3 h-3 text-[#00FFB3]" /> SCHRÖDINGER ENERGY SHELLS
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#00FFB3] flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Atom className="w-3 h-3 text-[#00FFB3]" /> SCHRÖDINGER ENERGY SHELLS
+                        </span>
+                        <span className="text-[7.5px] text-[#EAF2FF]/40 lowercase">click shell to probe</span>
                       </div>
-                      <div className="flex gap-1 items-center font-mono">
-                        {selectedElement.shells.map((eCount, idx) => (
-                          <div key={idx} className="flex-1 p-1 bg-white/5 border border-white/10 rounded flex flex-col items-center">
-                            <span className="text-[6.5px] text-[#EAF2FF]/40">N{idx+1}</span>
-                            <span className="text-[10px] font-black text-[#00FFB3]">{eCount}ᴇ</span>
+                      <div className="flex gap-1 items-center font-mono animate-fade-in">
+                        {selectedElement.shells.map((eCount, idx) => {
+                          const shellLabels = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
+                          const shellLabel = shellLabels[idx] || `S${idx + 1}`;
+                          const isHighlighted = activeShellInfo !== null && activeShellInfo.shellIndex === idx;
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`flex-1 p-1 rounded flex flex-col items-center border transition-all duration-300 ${
+                                isHighlighted 
+                                  ? 'bg-[#00FFB3]/10 border-[#00FFB3]/80 shadow-[0_0_8px_rgba(0,255,179,0.25)] scale-[1.04]'
+                                  : 'bg-white/5 border-white/10 hover:border-white/20'
+                              }`}
+                            >
+                              <span className="text-[6.5px] text-[#EAF2FF]/40">N{idx+1} ({shellLabel})</span>
+                              <span className={`text-[10px] font-black ${isHighlighted ? 'text-white' : 'text-[#00FFB3]'}`}>{eCount}ᴇ</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {activeShellInfo ? (
+                        <div className="mt-1 p-2 bg-[#00FFB3]/5 border border-[#00FFB3]/20 rounded-sm font-mono text-[9px] flex flex-col gap-1.5 animate-fade-in">
+                          <div className="flex justify-between items-center text-[#00FFB3] border-b border-white/5 pb-1">
+                            <span className="font-extrabold uppercase text-[8px] tracking-widest">Active Probe: {activeShellInfo.shellName}-Shell (n={activeShellInfo.shellIndex + 1})</span>
+                            <span className="text-[8.5px] bg-[#00FFB3]/20 px-1 py-0.2 rounded font-black text-white">{activeShellInfo.electrons} Electrons</span>
                           </div>
-                        ))}
-                      </div>
-                      <span className="text-[9px] font-mono text-[#EAF2FF]/50">Configuration: <span className="text-[#EAF2FF]/95 font-bold">{selectedElement.electronConfig}</span></span>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[#EAF2FF]/70">
+                            <div>• Prob. Type: <span className="text-white font-bold">{['S-Orbital', 'S+P Orbitals', 'S+P+D Clover', 'S+P+D+F Nodes'][activeShellInfo.shellIndex] || 'Hybrid Wave'}</span></div>
+                            <div>• Orbital Radius: <span className="text-white font-bold">{(activeShellInfo.radius * 0.53).toFixed(2)} Å</span></div>
+                            <div>• Radial Node Count: <span className="text-white font-bold">{activeShellInfo.shellIndex}</span></div>
+                            <div>• Density Envelope: <span className="text-[#00FFB3] font-bold">95.4% Wave</span></div>
+                          </div>
+                          <div className="mt-1 text-[8px] text-[#EAF2FF]/40 leading-tight italic">
+                            * Volumetric density cloud rendered on 3D canvas represents the calculated wave probability field.
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-[9px] font-mono text-[#EAF2FF]/50">Configuration: <span className="text-[#EAF2FF]/95 font-bold">{selectedElement.electronConfig}</span></span>
+                      )}
                     </div>
 
                     {/* Oxidation states list */}
