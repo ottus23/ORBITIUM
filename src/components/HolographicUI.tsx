@@ -110,6 +110,39 @@ export default function HolographicUI({
   const [discoveredAnomalies, setDiscoveredAnomalies] = useState<any[]>([]);
   const [lastDiscovery, setLastDiscovery] = useState<any | null>(null);
 
+  // Autonomous living multiverse event states
+  const [liveQuantumEvents, setLiveQuantumEvents] = useState<string[]>([
+    "SEC-Ω DETECTOR: TRANSURANIC DECAY RATES STEADY.",
+    "SEC-E CONDENSER: HYDROGEN INJECTION SUCCESSFUL.",
+    "SEC-N: COHERENT AR-NE CORRIDOR STABILIZED AT 100%."
+  ]);
+  const [activeSectorIndex, setActiveSectorIndex] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isObsEntered) return;
+    const interval = setInterval(() => {
+      const eventTemplates = [
+        "SEC-Ω: TRANSURANIC ALPHA FLUCTUATION TO +0.14 mSv.",
+        "SEC-E: INITIATED STELLAR CORE COMPRESSION CYCLE.",
+        "SEC-N: NEON PLASMA SHIELD RE-PHASE COMPLETED.",
+        "SEC-M: MAG-FIELD COHERENCE LEVEL STABILIZED AT 4.2T.",
+        "SEC-S: PRESSURE CORRIDOR SYNTHESIZED MOLECULAR GASES.",
+        "SEC-A: LOCALIZED COUPLING FLUCTUATED SPATIAL DENSITY.",
+        "GRID: IRON CORE ELECTROMAGNETIC SYNERGY PASSIVE PULSE.",
+        "GRID: NEON ATOMIC ATMOSPHERE DENSITY INCREASED.",
+        "COSMIC: NEBULA GAS CLUSTER COMPRESSION DETECTED."
+      ];
+      
+      const randomEvent = eventTemplates[Math.floor(Math.random() * eventTemplates.length)];
+      setLiveQuantumEvents(prev => [randomEvent, ...prev.slice(0, 7)]);
+
+      // dispatch a subtle cosmic pulse to shake the 3D grid
+      window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 0.35 + Math.random() * 0.4 } }));
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [isObsEntered]);
+
   // Private static discovery options database
   const DISCOVERY_DATABASE = [
     {
@@ -734,6 +767,33 @@ export default function HolographicUI({
                     ))}
                   </div>
                 </div>
+
+                {/* LIVE AUTONOMOUS EVENT CONSOLE */}
+                <div className="cyber-panel p-4 rounded-sm flex flex-col gap-2.5 shadow-lg border-[#00B0FF]/25 animate-fade-in select-none">
+                  <div className="text-[9px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00FFB3] animate-ping" />
+                      COSMOS CHRONO-MONITOR
+                    </span>
+                    <span className="text-[7px] text-white/30">sys.matter_clock()</span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-0.5 max-h-36 overflow-y-auto pr-1">
+                    {liveQuantumEvents.map((evt, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`text-[8.2px] font-mono leading-relaxed p-1.5 bg-[#070B14]/80 border ${
+                          idx === 0 
+                            ? 'text-[#00FFB3] border-[#00FFB3]/25 shadow-[inset_0_0_6px_rgba(0,255,179,0.05)]' 
+                            : 'text-[#EAF2FF]/50 border-white/5'
+                        } rounded-sm animate-fade-in`}
+                      >
+                        <span className="text-white/20 mr-1">[{new Date(Date.now() - idx * 8000).toLocaleTimeString([], { hour12: false })}]</span>
+                        {evt}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
 
@@ -971,6 +1031,119 @@ export default function HolographicUI({
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* COSMIC REGIONAL ECOSYSTEMS SECTOR COCKPIT */}
+            <div className="w-full h-[1px] bg-white/10 my-1" />
+            
+            <div className="flex flex-col gap-2.5">
+              <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest font-bold flex justify-between items-center">
+                <span>COSMIC REGIONAL ECOSYSTEMS</span>
+                <span className="text-[7.5px] text-[#00E5FF] font-black uppercase">LIVE OBSERVATORY</span>
+              </div>
+
+              {/* Grid of Sector Tabs */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { name: 'Abyss', code: 'SEC-Ω', color: '#FF1744' },
+                  { name: 'Plasma', code: 'SEC-E', color: '#FF9100' },
+                  { name: 'Lattice', code: 'SEC-M', color: '#00FFB3' },
+                  { name: 'Inert', code: 'SEC-N', color: '#00E5FF' },
+                  { name: 'Storm', code: 'SEC-S', color: '#7C4DFF' },
+                  { name: 'Anomaly', code: 'SEC-A', color: '#E040FB' }
+                ].map((sec, idx) => {
+                  const isActive = activeSectorIndex === idx;
+                  return (
+                    <button
+                      key={sec.code}
+                      onClick={() => {
+                        setActiveSectorIndex(idx);
+                        // trigger camera click feedback and screen shake in 3D scene
+                        window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 0.95 } }));
+                        import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                          OrbitiumAudio.playUnlockChime();
+                        }).catch(() => {});
+                      }}
+                      className={`py-1.5 px-0.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border text-center ${
+                        isActive
+                          ? 'bg-white/5 font-black shadow-[inset_0_0_8px_rgba(255,255,255,0.05)] text-white'
+                          : 'border-white/5 bg-black/20 text-white/40 hover:text-white/70 hover:bg-white/5'
+                      }`}
+                      style={isActive ? { borderColor: sec.color, color: sec.color } : {}}
+                    >
+                      <span className="text-[9px] font-mono tracking-wider">{sec.code}</span>
+                      <span className="text-[7px] opacity-75 capitalize truncate w-full">{sec.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Sector Telemetry Panel */}
+              {(() => {
+                const sectMeta = [
+                  { name: 'Radioactive Abyss', type: 'Transuranic Decay', code: 'SEC-Ω', color: '#FF1744', stats: { temp: '14.8M K', flux: '44.5 mSv', coherent: '12%' }, action: 'Boost Coils' },
+                  { name: 'Plasma Energy Field', type: 'Beta Star Core Fusion', code: 'SEC-E', color: '#FF9100', stats: { temp: '150M K', flux: '1.24 G-deg', coherent: '98%' }, action: 'Ignite Fusion' },
+                  { name: 'Metallic Lattice', type: 'Zero-Ohm Coherence', code: 'SEC-M', color: '#00FFB3', stats: { temp: '4.2 K', flux: '12.4 Tesla', coherent: '100%' }, action: 'Align Field' },
+                  { name: 'Noble Void Envelope', type: 'Inert Buffer Barrier', code: 'SEC-N', color: '#00E5FF', stats: { temp: '77 K', flux: '0.002 bar', coherent: '99%' }, action: 'Saturate Buffer' },
+                  { name: 'Molecular Storm', type: 'Pressure Condensation', code: 'SEC-S', color: '#7C4DFF', stats: { temp: '298 K', flux: '480 Atm', coherent: '45%' }, action: 'Squeeze Core' },
+                  { name: 'Anomaly Warp Fields', type: 'Spacetime Gravitational Warp', code: 'SEC-A', color: '#E040FB', stats: { temp: '0 K', flux: 'G-Flux 1.14', coherent: '3.4%' }, action: 'Distort Space' }
+                ][activeSectorIndex];
+
+                if (!sectMeta) return null;
+
+                // Make beautifully changing metrics for ultra-dynamic live telemetry!
+                const noiseVal = Math.sin(Date.now() / 1500);
+                const noiseValCos = Math.cos(Date.now() / 2500);
+                const powerLevel = (84.5 + noiseVal * 4.2).toFixed(2);
+                const densityFlux = (1.142 + noiseValCos * 0.08).toFixed(3);
+
+                return (
+                  <div className="p-3 bg-[#070B14]/75 border border-white/5 rounded-sm flex flex-col gap-2 animate-fade-in font-mono text-[9px] select-none text-left">
+                    <div className="flex justify-between items-center text-[10.5px] font-bold" style={{ color: sectMeta.color }}>
+                      <span className="capitalize">{sectMeta.name}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 bg-white/5 rounded uppercase font-normal">{sectMeta.type}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-1 py-1.5 border-t border-b border-white/[0.06] text-white/50">
+                      <div>
+                        TEMP: <span className="text-white font-bold">{sectMeta.stats.temp}</span>
+                      </div>
+                      <div>
+                        FLUX: <span className="text-white font-bold">{sectMeta.stats.flux}</span>
+                      </div>
+                      <div>
+                        POWER RATE: <span className="text-white font-bold">{powerLevel} GeV</span>
+                      </div>
+                      <div>
+                        CORE DENSITY: <span className="text-white font-bold">{densityFlux} u³</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-0.5">
+                      <span className="text-white/40 text-[7.5px] uppercase tracking-wider">COHERENCE STATUS:</span>
+                      <span className="font-extrabold" style={{ color: sectMeta.color }}>{sectMeta.stats.coherent} INGRESS</span>
+                    </div>
+
+                    {/* Action button */}
+                    <button
+                      onClick={() => {
+                        // Action trigger
+                        window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 1.85 } }));
+                        import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                          OrbitiumAudio.playUnlockChime();
+                        }).catch(() => {});
+                        
+                        // Push action success message inside live logs!
+                        const actMsg = `${sectMeta.code} OVERDRIVE: ${sectMeta.action.toUpperCase()} COMMENCED. METRICS BALANCED.`;
+                        setLiveQuantumEvents(prev => [actMsg, ...prev.slice(0, 7)]);
+                      }}
+                      className="w-full mt-1 py-1.5 bg-white/5 hover:bg-white/10 hover:text-white transition-all text-white/70 border border-white/10 rounded-sm cursor-pointer hover:shadow-[0_0_10px_rgba(255,255,255,0.06)] uppercase font-extrabold text-[8px] tracking-widest text-center"
+                    >
+                      ENGAGE CORE: {sectMeta.action}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

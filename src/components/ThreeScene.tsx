@@ -1625,6 +1625,24 @@ export default function ThreeScene({
     };
     window.addEventListener('set-cosmic-zoom', handleSetCosmicZoom);
 
+    let autonomousPulseElementIndex: number | null = null;
+    let autonomousPulseStartTime = 0;
+
+    const handleCosmicPulse = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail) {
+        shakeIntensity = customEvent.detail.intensity || 1.2;
+        if (typeof customEvent.detail.atomicNumber === 'number') {
+          const idx = ELEMENTS_DATA.findIndex(el => el.number === customEvent.detail.atomicNumber);
+          if (idx !== -1) {
+            autonomousPulseElementIndex = idx;
+            autonomousPulseStartTime = clock.getElapsedTime();
+          }
+        }
+      }
+    };
+    window.addEventListener('cosmic-pulse', handleCosmicPulse);
+
     const handleReactionStageEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent && customEvent.detail && customEvent.detail.stage === 'stable') {
@@ -3474,6 +3492,7 @@ export default function ThreeScene({
       window.removeEventListener('reset-reactor', handleResetReactor);
       window.removeEventListener('reaction-stage', handleReactionStageEvent);
       window.removeEventListener('set-cosmic-zoom', handleSetCosmicZoom);
+      window.removeEventListener('cosmic-pulse', handleCosmicPulse);
       detachEvents();
       
       // Memory cleanup for geometries & textures
