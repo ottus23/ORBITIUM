@@ -105,6 +105,14 @@ export default function HolographicUI({
     radius: number;
   } | null>(null);
 
+  const [isDensityCloudActive, setIsDensityCloudActive] = useState(true);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('toggle-density-cloud', {
+      detail: { enabled: isDensityCloudActive }
+    }));
+  }, [isDensityCloudActive]);
+
   // Discovery tracking states
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -1308,6 +1316,115 @@ export default function HolographicUI({
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* SUBATOMIC SHELL ANALYZER DEDICATED HUD PANEL */}
+        {isObsEntered && selectedElement && activeShellInfo && (
+          <div 
+            id="subatomic-shell-hud"
+            className="absolute z-50 md:right-[380px] bottom-32 md:bottom-auto md:top-[140px] w-[calc(100%-2rem)] md:w-80 mx-4 md:mx-0 p-5 bg-[#070C1B]/92 backdrop-blur-xl border border-[#00FFB3]/40 rounded-sm shadow-[0_0_25px_rgba(0,255,179,0.22)] animate-fade-in text-[#EAF2FF] select-none pointer-events-auto"
+          >
+            {/* Holographic grid lines & corner elements for futuristic high-end feel */}
+            <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#00FFB3]" />
+            <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#00FFB3]" />
+            <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#00FFB3]" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#00FFB3]" />
+            
+            <div className="flex justify-between items-start mb-3 border-b border-white/10 pb-2">
+              <div>
+                <span className="text-[8px] font-mono tracking-[0.3em] text-[#00FFB3] uppercase">// SUBATOMIC SHELL ANALYZER</span>
+                <h3 className="text-xs font-black tracking-widest text-white uppercase mt-0.5">
+                  Quantum Orb: {activeShellInfo.shellName} ({['k_shell', 'l_shell', 'm_shell', 'n_shell', 'o_shell', 'p_shell', 'q_shell'][activeShellInfo.shellIndex]})
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveShellInfo(null);
+                  window.dispatchEvent(new CustomEvent('orbit-shell-clicked', { detail: { selected: false } }));
+                }}
+                className="w-5 h-5 border border-white/10 hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center text-[#EAF2FF]/50 cursor-pointer transition-colors"
+                title="Dismiss Shell Probe"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Shell Metrics Layout */}
+              <div className="grid grid-cols-2 gap-3 font-mono text-[10px]">
+                <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
+                  <div className="text-white/40 text-[7.5px] uppercase tracking-wider">Shell Index (n)</div>
+                  <div className="text-base font-black text-[#00FFB3] mt-0.5">n = {activeShellInfo.shellIndex + 1}</div>
+                </div>
+                <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
+                  <div className="text-white/40 text-[7.5px] uppercase tracking-wider">Occupancy</div>
+                  <div className="text-base font-black text-[#00E5FF] mt-0.5">
+                    {activeShellInfo.electrons} <span className="text-[10px] font-medium text-white/50">Electrons</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Specific Atomic Orbital Types (s, p, d, f) associated with that shell */}
+              <div className="p-3.5 bg-white/[0.02] border border-white/[0.07] rounded-sm flex flex-col gap-2">
+                <div className="text-white/40 font-mono text-[7.5px] uppercase tracking-widest">Orbital Structure (s, p, d, f)</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { type: 's', label: 's [Spherical]', active: activeShellInfo.shellIndex >= 0, desc: 'Lobe-free uniform spherical wave density.' },
+                    { type: 'p', label: 'p [Dumbbell]', active: activeShellInfo.shellIndex >= 1, desc: 'Two lobes with a single focal nodal plane.' },
+                    { type: 'd', label: 'd [Cloverleaf]', active: activeShellInfo.shellIndex >= 2, desc: 'Four lobes in clover geometry.' },
+                    { type: 'f', label: 'f [Multi-Lobe]', active: activeShellInfo.shellIndex >= 3, desc: 'Complex eight-lobed spatial packet.' }
+                  ].map((orb) => (
+                    <div 
+                      key={orb.type}
+                      className={`flex-1 p-1.5 rounded-sm border text-center font-mono transition-all duration-300 flex flex-col items-center justify-center min-w-[62px] ${
+                        orb.active
+                          ? 'border-[#00FFB3]/40 bg-[#00FFB3]/5 text-white'
+                          : 'border-white/[0.04] bg-white/[0.01] text-white/20'
+                      }`}
+                      title={orb.active ? orb.desc : 'Orbital unpopulated / energetically inaccessible'}
+                    >
+                      <span className={`text-[12px] font-black ${orb.active ? 'text-[#00FFB3]' : 'text-white/20'}`}>{orb.type}</span>
+                      <span className="text-[6px] uppercase tracking-tighter mt-0.5">{orb.active ? 'Active' : 'Locked'}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Dynamically active orbital descriptions */}
+                <div className="font-mono text-[8.2px] text-[#EAF2FF]/55 leading-relaxed mt-1">
+                  <span>Constituent Subshells: </span>
+                  <span className="text-[#00FFB3] font-bold">
+                    {activeShellInfo.shellIndex === 0 && '1s'}
+                    {activeShellInfo.shellIndex === 1 && '2s, 2p'}
+                    {activeShellInfo.shellIndex === 2 && '3s, 3p, 3d'}
+                    {activeShellInfo.shellIndex === 3 && '4s, 4p, 4d, 4f'}
+                    {activeShellInfo.shellIndex >= 4 && `${activeShellInfo.shellIndex + 1}s, ${activeShellInfo.shellIndex + 1}p, ${activeShellInfo.shellIndex + 1}d, ${activeShellInfo.shellIndex + 1}f [complex series]`}
+                  </span>
+                  <p className="text-white/35 text-[7.5px] mt-1 leading-normal italic">
+                    * Shell highlights trigger quantum tunneling simulations. Hover or zoom elements to monitor cloud variations.
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle 'Probability Density Cloud' overlay for individual electron shells */}
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-[9px]">
+                <div className="flex flex-col">
+                  <span className="text-white/50 font-bold uppercase text-[7.5px] tracking-wider">Probability Cloud</span>
+                  <span className="text-white/35 text-[7px] leading-tight font-sans">Augmented wave representation</span>
+                </div>
+                <button
+                  id="btn-toggle-prob-density"
+                  onClick={() => setIsDensityCloudActive(!isDensityCloudActive)}
+                  className={`px-3 py-1.5 rounded-sm border cursor-pointer font-bold transition-all duration-200 uppercase flex items-center gap-1.5 ${
+                    isDensityCloudActive
+                      ? 'bg-[#00FFB3]/15 border-[#00FFB3] text-[#00FFB3] shadow-[0_0_8px_rgba(0,255,179,0.15)]'
+                      : 'bg-white/5 border-white/10 text-white/55 hover:border-white/25 hover:text-white'
+                  }`}
+                >
+                  <Atom className={`w-3.5 h-3.5 ${isDensityCloudActive ? 'animate-spin' : ''}`} style={isDensityCloudActive ? { animationDuration: '4s' } : {}} />
+                  <span>{isDensityCloudActive ? "CLOUD ENABLED" : "CLOUD DISABLED"}</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

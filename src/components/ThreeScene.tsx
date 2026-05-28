@@ -921,12 +921,17 @@ export default function ThreeScene({
       shellIndex: number;
       rotX: number;
       rotZ: number;
+      isTunneling?: boolean;
+      tunnelDuration?: number;
+      tunnelTimer?: number;
+      tunnelRadiusOffset?: number;
     }
     
     let activeElectrons: ExtendedElectron[] = [];
     let selectedShellIndex: number | null = null;
     let hitRings: THREE.Mesh[] = [];
     let densityCloud: THREE.Points | null = null;
+    let isCloudEnabled = true;
 
     // --- 6B. ELEMENT WORLDS ENVIRONMENT GROUP ---
     const elementWorldGroup = new THREE.Group();
@@ -1643,6 +1648,15 @@ export default function ThreeScene({
     };
     window.addEventListener('cosmic-pulse', handleCosmicPulse);
 
+    const handleToggleDensityCloud = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail && typeof customEvent.detail.enabled === 'boolean') {
+        isCloudEnabled = customEvent.detail.enabled;
+        rebuildDensityCloud(selectedShellIndex, propsRef.current.selectedElement);
+      }
+    };
+    window.addEventListener('toggle-density-cloud', handleToggleDensityCloud);
+
     const handleReactionStageEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent && customEvent.detail && customEvent.detail.stage === 'stable') {
@@ -1780,7 +1794,7 @@ export default function ThreeScene({
         densityCloud = null;
       }
 
-      if (shellIdx === null || !el) return;
+      if (shellIdx === null || !el || !isCloudEnabled) return;
 
       const radius = 3.5 + shellIdx * 2.2;
       const primaryColorHex = el.visual?.primaryColor || '#00E5FF';
@@ -2270,7 +2284,7 @@ export default function ThreeScene({
 
             // Play procedural quantum high-end chime
             import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
-              OrbitiumAudio.playUnlockChime();
+              OrbitiumAudio.playShellChime(clickedShellIndex);
             });
 
             // Rebuild the probabilistic volumetric density cloud
@@ -3229,20 +3243,48 @@ export default function ThreeScene({
             }
           }
 
+          // Quantum Tunneling (Flickers or transition instantly between shells when highlighted)
+          const isSelectedShell = el.shellIndex === selectedShellIndex;
+          if (isSelectedShell) {
+            if (!el.isTunneling) {
+              // 0.8% probability per frame to quantum tunnel briefly
+              if (Math.random() < 0.008) {
+                el.isTunneling = true;
+                el.tunnelDuration = 0.15 + Math.random() * 0.25; // 150-400ms duration
+                el.tunnelTimer = 0.0;
+                // Instant transition to neighboring shell (upper or lower)
+                const direction = Math.random() > 0.5 ? 1 : -1;
+                const neighborIdx = Math.max(0, el.shellIndex + direction);
+                const targetRadius = 3.5 + neighborIdx * 2.2;
+                el.tunnelRadiusOffset = targetRadius - el.shellRadius;
+              }
+            } else {
+              el.tunnelTimer = (el.tunnelTimer || 0) + delta * simMultiplier;
+              if (el.tunnelTimer >= (el.tunnelDuration || 0.3)) {
+                el.isTunneling = false;
+                el.tunnelRadiusOffset = 0.0;
+              }
+            }
+          } else {
+            el.isTunneling = false;
+            el.tunnelRadiusOffset = 0.0;
+          }
+
           // Elliptic shell distances
           const rxBase = el.shellRadius;
           const ryBase = el.semiMinorAxis;
 
           // Compute custom excitation wave jump radius
           const orbitJumpMultiplier = el.isJumping ? Math.sin(el.jumpRatio * Math.PI) * 3.2 : 0.0;
+          const tunnelAnimOffset = el.isTunneling ? (el.tunnelRadiusOffset || 0.0) : 0.0;
           
           // Reaction kinetic shell vibrations
           const ringWobble = currentProps.activeReaction 
             ? Math.sin(elapsed * 15.0 + el.angle * 2.0) * 0.18 * currentProps.reactiveIntensity
             : Math.sin(elapsed * 3.5 + el.angle) * 0.02;
 
-          const rx = rxBase + orbitJumpMultiplier + ringWobble;
-          const ry = ryBase + orbitJumpMultiplier + ringWobble;
+          const rx = rxBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
+          const ry = ryBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
 
           const p = new THREE.Vector3(rx * Math.cos(el.angle), 0, ry * Math.sin(el.angle));
 
@@ -3254,15 +3296,16 @@ export default function ThreeScene({
           el.mesh.position.copy(p);
 
           // Energetic color flares during quantum excitation or highlighted shell states
-          const isSelectedShell = el.shellIndex === selectedShellIndex;
           if (el.isJumping) {
             el.mesh.scale.setScalar(1.0 + Math.sin(el.jumpRatio * Math.PI) * 1.5);
             (el.mesh.material as THREE.MeshBasicMaterial).color.set('#FFF176'); // glowing bright gold-yellow
           } else if (isSelectedShell) {
             // Highlights all electrons belonging to the clicked shell with breathing size & bright quantum color
             const elBreathe = 2.2 + Math.sin(elapsed * 10.0) * 0.4;
-            el.mesh.scale.setScalar(elBreathe);
-            (el.mesh.material as THREE.MeshBasicMaterial).color.set('#00FFB3'); // neon quantum mint-green
+            const flickerFactor = el.isTunneling ? (Math.sin(elapsed * 90.0) > 0.0 ? 1.5 : 0.1) : 1.0;
+            el.mesh.scale.setScalar(elBreathe * flickerFactor);
+            // Flicker neon white when actively tunneling, otherwise quantum mint-green
+            (el.mesh.material as THREE.MeshBasicMaterial).color.set(el.isTunneling ? '#FFFFFF' : '#00FFB3');
           } else {
             el.mesh.scale.setScalar(1.0);
             (el.mesh.material as THREE.MeshBasicMaterial).color.copy(el.baseColor);
@@ -3293,8 +3336,8 @@ export default function ThreeScene({
             trailMat.color.set('#FFD54F');
             trailMat.opacity = 0.85;
           } else if (isSelectedShell) {
-            trailMat.color.set('#00FFB3'); // highlighted trail matching the cyan-green resonance
-            trailMat.opacity = 0.95;
+            trailMat.color.set(el.isTunneling ? '#FFFFFF' : '#00FFB3'); // highlighted trail matching the cyan-green resonance or white tunneling
+            trailMat.opacity = el.isTunneling ? 1.0 : 0.95;
           } else {
             trailMat.color.copy(el.baseColor);
             trailMat.opacity = 0.42;
@@ -3493,6 +3536,7 @@ export default function ThreeScene({
       window.removeEventListener('reaction-stage', handleReactionStageEvent);
       window.removeEventListener('set-cosmic-zoom', handleSetCosmicZoom);
       window.removeEventListener('cosmic-pulse', handleCosmicPulse);
+      window.removeEventListener('toggle-density-cloud', handleToggleDensityCloud);
       detachEvents();
       
       // Memory cleanup for geometries & textures

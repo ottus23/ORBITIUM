@@ -529,6 +529,65 @@ class OrbitiumAudioEngine {
     this.updateTetherSound(distance);
   }
 
+  // Plays a procedural harmonic chime corresponding to the clicked shell's energy level / quantum level
+  public playShellChime(shellIndex: number) {
+    if (!this.ctx || this.isMuted) this.init();
+    if (!this.ctx || this.isMuted) return;
+
+    const now = this.ctx.currentTime;
+    
+    // Outer shells (higher shellIndex) correspond to higher energy levels and higher frequencies!
+    // K-shell (0) is base 220Hz (A3), L-shell (1) is 330Hz (E4), M-shell (2) is 440Hz (A4), N-shell (3) is 554.37Hz (C#5/major third), etc.
+    const frequencies = [220, 277.18, 330, 440, 554.37, 659.25, 880];
+    const baseFreq = frequencies[shellIndex % frequencies.length] || (220 + shellIndex * 110);
+    
+    const harmonic1 = baseFreq * 1.5; // Perfect fifth
+    const harmonic2 = baseFreq * 2.0; // Perfect octave
+    const harmonic3 = baseFreq * 2.5; // Major third overhead
+
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const osc3 = this.ctx.createOscillator();
+    
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc3.type = 'sine';
+
+    osc1.frequency.setValueAtTime(baseFreq, now);
+    osc2.frequency.setValueAtTime(harmonic1, now);
+    osc3.frequency.setValueAtTime(harmonic2, now);
+
+    // Subtle quantum slide/vibrato
+    osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.005, now + 0.15);
+    osc2.frequency.exponentialRampToValueAtTime(harmonic1 * 1.008, now + 0.25);
+    osc3.frequency.exponentialRampToValueAtTime(harmonic3, now + 0.5);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2500, now);
+    filter.frequency.exponentialRampToValueAtTime(800, now + 1.2);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    osc3.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc3.start(now);
+    
+    osc1.stop(now + 1.5);
+    osc2.stop(now + 1.5);
+    osc3.stop(now + 1.5);
+  }
+
   // Explosive release acoustic feedback
   public triggerReactionFusingRelease(reactionType?: 'covalent' | 'ionic' | 'explosion') {
     this.playGranularReactionSynth(reactionType || 'explosion');
