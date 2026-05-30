@@ -69,6 +69,73 @@ export interface ChemicalElement {
     medical: string;
     spaceAndEnergy: string;
   };
+
+  // --- THE 10 UNIFIED ORBITIUM KNOWLEDGE ENGINE MODULES ---
+  coreIdentity: {
+    number: number;
+    symbol: string;
+    name: string;
+    mass: number;
+    category: ElementCategory;
+    period: number;
+    group: number;
+    state: 'gas' | 'liquid' | 'solid' | 'synthetic';
+    summary: string;
+  };
+  atomicArchitecture: {
+    protons: number;
+    neutrons: number;
+    electrons: number;
+    electronConfig: string;
+    shells: number[];
+    orbitalBreakdown: string;
+    atomicRadiusPm: number;
+    nuclearProperties: string;
+  };
+  physicalProperties: {
+    density: string;
+    meltingPointK: string;
+    boilingPointK: string;
+    state: 'gas' | 'liquid' | 'solid' | 'synthetic';
+    conductivity: string;
+    electronegativity: number | null;
+    ionizationEnergy: string;
+  };
+  chemicalProperties: {
+    oxidationStates: number[];
+    reactivity: string;
+    valenceElectrons: number;
+    bondingPreferences: string;
+  };
+  cosmicProperties: {
+    cosmicRelevance: string;
+  };
+  biologicalProperties: {
+    biologicalRelevance: string;
+  };
+  historicalProperties: {
+    discoveredBy: string;
+    year: number;
+    era: string;
+    nameOrigin: string;
+    historyDetail: string;
+  };
+  industrialApplications: {
+    industrial: string;
+    technology: string;
+    medical: string;
+    spaceAndEnergy: string;
+  };
+  reactionIntelligence: {
+    stability: string;
+    binarySynthesisSuitability: string[];
+    reactsWith: string[];
+  };
+  orbitiumPersonality: {
+    archetype: string;
+    voice: string;
+    visualConfig: VisualConfig;
+  };
 }
 
 export type TableLayoutMode = 'grid' | 'spiral' | 'sphere' | 'scatter';
