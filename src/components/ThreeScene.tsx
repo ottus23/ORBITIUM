@@ -952,22 +952,19 @@ export default function ThreeScene({
       while (elementWorldGroup.children.length > 0) {
         const child = elementWorldGroup.children[0];
         elementWorldGroup.remove(child);
-        if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          if (child.material instanceof THREE.Material) {
-            child.material.dispose();
-          } else if (Array.isArray(child.material)) {
-            child.material.forEach((m: any) => m.dispose());
-          }
-        } else if (child instanceof THREE.Points) {
-          child.geometry.dispose();
-          if (child.material instanceof THREE.Material) {
-            child.material.dispose();
-          }
-        } else if (child instanceof THREE.Line) {
-          child.geometry.dispose();
-          if (child.material instanceof THREE.Material) {
-            child.material.dispose();
+        
+        // Safely dispose of geometries and materials on any Object3D child
+        if ('geometry' in child && (child as any).geometry) {
+          (child as any).geometry.dispose();
+        }
+        if ('material' in child && (child as any).material) {
+          const mat = (child as any).material;
+          if (Array.isArray(mat)) {
+            mat.forEach((m: any) => {
+              if (m && typeof m.dispose === 'function') m.dispose();
+            });
+          } else if (mat && typeof mat.dispose === 'function') {
+            mat.dispose();
           }
         }
       }
@@ -3719,9 +3716,18 @@ export default function ThreeScene({
       clearElementWorld();
       
       elementCards.forEach(c => {
-        c.material.map?.dispose();
-        c.material.dispose();
-        (c.glowOutline.material as THREE.Material).dispose();
+        if (c.standardTexture) {
+          c.standardTexture.dispose();
+        }
+        if (c.timelineTexture) {
+          c.timelineTexture.dispose();
+        }
+        if (c.material) {
+          c.material.dispose();
+        }
+        if (c.glowOutline && c.glowOutline.material) {
+          (c.glowOutline.material as THREE.Material).dispose();
+        }
       });
 
       sharedCardGeom.dispose();
