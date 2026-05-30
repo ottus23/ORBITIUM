@@ -2714,7 +2714,26 @@ export default function ThreeScene({
 
       // Interpolate adaptive background and atmospheric fog / ambient colors
       currentFogColor.lerp(targetFogColor, 0.035);
-      ambientLight.color.lerp(targetAmbientColor, 0.035);
+      
+      if (currentProps.selectedElement) {
+        const electro = currentProps.selectedElement.electronegativity ?? 2.0;
+        // Shift colors: High electronegativity -> intense high-energy cyan/violet. Low electronegativity -> warm gold/bronze.
+        const shiftColor = new THREE.Color();
+        if (electro > 2.2) {
+          const ratio = Math.min(1.0, (electro - 2.2) / 1.8);
+          shiftColor.setHSL(0.55 + ratio * 0.15, 1.0, 0.45); // vibrant cyan-blue to deep violet
+        } else {
+          const ratio = Math.min(1.0, (2.2 - electro) / 1.5);
+          shiftColor.setHSL(0.04 + ratio * 0.08, 0.85, 0.42); // deep sunset warm amber/bronze
+        }
+        
+        // Slow reactive shifting index
+        const colorModulation = 0.18 + Math.sin(elapsed * (0.3 + electro * 0.35)) * 0.12;
+        const dynamicAmbient = targetAmbientColor.clone().lerp(shiftColor, colorModulation);
+        ambientLight.color.lerp(dynamicAmbient, 0.045);
+      } else {
+        ambientLight.color.lerp(targetAmbientColor, 0.035);
+      }
 
       // Update network lines based on current card mesh positions with elegant real-time pulsing
       if (networkLines && networkLines.geometry.attributes.position) {
@@ -2813,9 +2832,22 @@ export default function ThreeScene({
         }
       }
 
-      // Low frequency breathing of background & spotlight cores
-      ambientLight.intensity = 1.35 + Math.sin(elapsed * 0.65) * 0.18;
-      spotLight.intensity = 3.8 + Math.sin(elapsed * 1.25) * 0.6 + Math.cos(elapsed * 2.8) * 0.3;
+      // Low frequency breathing of background & spotlight cores (Modulated by electronegativity when selected)
+      if (currentProps.selectedElement) {
+        const electro = currentProps.selectedElement.electronegativity ?? 2.0;
+        // Pulse speed scales with electronegativity: highly electronegative reactive elements pulse rapidly; electropositive metals pulse heavy & slow
+        const pulseSpeed = 0.5 + (electro * 0.8);
+        const pulseIntensity = Math.sin(elapsed * pulseSpeed);
+        const baseIntensity = 1.3 + (electro * 0.12);
+        const amp = 0.12 + (electro * 0.06);
+        ambientLight.intensity = baseIntensity + pulseIntensity * amp;
+        
+        // Spot light is also subtly pulsed based on electronegativity, echoing charge attraction strength
+        spotLight.intensity = (3.8 + (electro * 0.4)) + Math.sin(elapsed * (1.1 + electro * 0.3)) * (0.5 + electro * 0.12) + Math.cos(elapsed * 2.8) * 0.2;
+      } else {
+        ambientLight.intensity = 1.35 + Math.sin(elapsed * 0.65) * 0.18;
+        spotLight.intensity = 3.8 + Math.sin(elapsed * 1.25) * 0.6 + Math.cos(elapsed * 2.8) * 0.3;
+      }
 
       // 3. Move and float each element card
       // Raycast ONLY if inside observatory, not viewing detail, and mouse/touch active to save up to 90% CPU
