@@ -14,7 +14,7 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('grid');
   
   // Custom Application Modes
-  const [appMode, setAppMode] = useState<'explorer' | 'bond_lab' | 'timeline'>('explorer');
+  const [appMode, setAppMode] = useState<'observatory' | 'explorer' | 'bond_lab' | 'timeline'>('explorer');
   const [timelineYear, setTimelineYear] = useState<number>(2026);
   
   // Wavefield Modulations Settings

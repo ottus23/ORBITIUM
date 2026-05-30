@@ -41,9 +41,45 @@
 }
 
 @keyframes scan {
-  0% { transform: translateY(0vh); }
-  50% { transform: translateY(100vh); }
-  100% { transform: translateY(0vh); }
+  /* Cycle 1 (0% to 20%) */
+  0% { transform: translateY(0vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  10% { transform: translateY(100vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  20% { transform: translateY(0vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  
+  /* Cycle 2 (20% to 40%) */
+  30% { transform: translateY(100vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  40% { transform: translateY(0vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  
+  /* Cycle 3 (40% to 60%) */
+  50% { transform: translateY(100vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  60% { transform: translateY(0vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  
+  /* Cycle 4 (60% to 80%) */
+  70% { transform: translateY(100vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  80% { transform: translateY(0vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  
+  /* Cycle 5 (80% to 100%) - Dynamic Observatory Glitch Cycle */
+  84% { transform: translateY(50vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  84.5% { transform: translateY(56vh) scaleX(1.3) skewX(6deg); opacity: 0.65; filter: hue-rotate(90deg); }
+  85% { transform: translateY(50vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  90% { transform: translateY(100vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  94% { transform: translateY(40vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  94.5% { transform: translateY(34vh) scaleX(1.4) skewX(-8deg); opacity: 0.55; filter: hue-rotate(240deg); }
+  95% { transform: translateY(40vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+  100% { transform: translateY(0vh) scaleX(1) skewX(0deg); opacity: 1; filter: none; }
+}
+
+@keyframes symbolPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--pulse-color, rgba(0, 229, 255, 0.25)), inset 0 0 3px var(--pulse-color, rgba(0, 229, 255, 0.15));
+    border-color: var(--pulse-color, rgba(0, 229, 255, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--pulse-color, rgba(0, 229, 255, 0.65)), inset 0 0 7px var(--pulse-color, rgba(0, 229, 255, 0.35));
+    border-color: var(--pulse-color, rgba(0, 229, 255, 0.95));
+    transform: scale(1.035);
+  }
 }
 
 @keyframes cyberBreathe {
@@ -52,7 +88,48 @@
 }
 
 .animate-scanline {
-  animation: scan 8s linear infinite;
+  /* 5 cycles * 8s per cycle = 40s total period */
+  animation: scan 40s linear infinite;
+}
+
+.element-symbol-pulse {
+  animation: symbolPulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+#orb-hud-details-preview .energy-field-expansion {
+  background: radial-gradient(circle, var(--en-color, rgba(0, 229, 255, 0.45)) 0%, transparent 75%);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(1);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+#orb-hud-details-preview .relative-symbol-container:hover .energy-field-expansion {
+  animation: energyFieldExpand 1.8s cubic-bezier(0.1, 0.8, 0.2, 1) infinite;
+  opacity: 0.95;
+}
+
+#orb-hud-details-preview .relative-symbol-container:hover .element-symbol-pulse {
+  transform: scale(1.1);
+  box-shadow: 0 0 18px var(--pulse-color, rgba(0, 229, 255, 0.7)), inset 0 0 8px var(--pulse-color, rgba(0, 229, 255, 0.4));
+}
+
+@keyframes energyFieldExpand {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+    box-shadow: 0 0 8px var(--en-color, rgba(0, 229, 255, 0.75)), inset 0 0 4px var(--en-color, rgba(0, 229, 255, 0.5));
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 24px var(--en-color, rgba(0, 229, 255, 0.9)), inset 0 0 10px var(--en-color, rgba(0, 229, 255, 0.6));
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+    box-shadow: 0 0 42px var(--en-color, rgba(0, 229, 255, 0)), inset 0 0 15px var(--en-color, rgba(0, 229, 255, 0));
+  }
 }
 
 .cyber-panel {

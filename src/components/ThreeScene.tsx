@@ -15,7 +15,7 @@ interface ThreeSceneProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   onHoverElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
-  appMode: 'explorer' | 'bond_lab' | 'timeline';
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline';
   timelineYear: number;
   simulationSpeed: number;
   reactiveIntensity: number;
@@ -2586,6 +2586,13 @@ export default function ThreeScene({
         
         rotXTarget *= 0.95;
         rotYTarget *= 0.95;
+      } else if (currentProps.appMode === 'observatory') {
+        // Celestial Observatory cinematic drift
+        cameraTargetX = Math.sin(elapsed * 0.08) * 8.0;
+        cameraTargetY = Math.cos(elapsed * 0.06) * 3.5;
+        cameraTargetZ = 35.0 * zoomScaleMultiplier;
+        rotYTarget = elapsed * 0.03;
+        rotXTarget = -0.08 + Math.cos(elapsed * 0.04) * 0.04;
       } else if (currentProps.appMode === 'bond_lab') {
         // High-end cinematic reaction camera tracking
         if (isReactionStable) {
@@ -2966,6 +2973,10 @@ export default function ThreeScene({
           ci.material.opacity += (0.01 - ci.material.opacity) * 0.2;
           ci.glowOutline.visible = false;
           ci.mesh.visible = ci.material.opacity > 0.02;
+        } else if (currentProps.appMode === 'observatory') {
+          ci.material.opacity += (0.02 - ci.material.opacity) * 0.15;
+          ci.glowOutline.visible = false;
+          ci.mesh.visible = ci.material.opacity > 0.01;
         } else if (currentProps.selectedElement) {
           const isSelected = ci.element.number === currentProps.selectedElement.number;
           ci.material.opacity += ((isSelected ? 1.0 : 0.0) - ci.material.opacity) * 0.15;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Atom, 
   Layers, 
@@ -24,11 +24,13 @@ import {
   Volume2,
   VolumeX,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Orbit
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
 import { ElementExplorationDepth } from './ElementExplorationDepth';
+import ObservatoryHub from './ObservatoryHub';
 
 interface HolographicUIProps {
   selectedElement: ChemicalElement | null;
@@ -36,8 +38,8 @@ interface HolographicUIProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
   onChangeLayoutMode: (mode: TableLayoutMode) => void;
-  appMode: 'explorer' | 'bond_lab' | 'timeline';
-  onChangeAppMode: (mode: 'explorer' | 'bond_lab' | 'timeline') => void;
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline';
+  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline') => void;
   timelineYear: number;
   onChangeTimelineYear: (year: number | ((prev: number) => number)) => void;
   simulationSpeed: number;
@@ -502,6 +504,16 @@ export default function HolographicUI({
     return CATEGORY_COLORS[cat] || { hex: '#00E5FF', label: cat, description: '' };
   };
 
+  const getElectronegativityColor = (en: number | null): string => {
+    if (en === null || en === undefined) return '#00E5FF';
+    if (en < 1.0) return '#7C4DFF';
+    if (en < 1.5) return '#00E5FF';
+    if (en < 2.0) return '#00FFB3';
+    if (en < 2.5) return '#FFD600';
+    if (en < 3.0) return '#FF9100';
+    return '#FF1744';
+  };
+
   // Historical milestones helper
   const epochs = [
     { name: 'Antiquity', year: -5000, desc: 'Metals used in early civilizations.' },
@@ -598,6 +610,7 @@ export default function HolographicUI({
         {isObsEntered && (
           <div className="flex gap-1.5 p-1 bg-[#0A0D1A]/85 border border-[#00E5FF]/20 rounded-md shadow-[0_0_20px_rgba(0,229,255,0.1)] items-center backdrop-blur-md">
             {[
+              { id: 'observatory', label: 'Observatory', icon: Orbit },
               { id: 'explorer', label: 'Explorer', icon: Compass },
               { id: 'bond_lab', label: '3D Bond Reactor', icon: Flame },
               { id: 'timeline', label: 'Timeline History', icon: TrendingUp }
@@ -1602,6 +1615,26 @@ export default function HolographicUI({
           </div>
         )}
 
+        {/* =======================================================
+            CELESTIAL ATLAS OBSERVATORY MASTER DASHBOARD
+            ======================================================= */}
+        {isObsEntered && appMode === 'observatory' && !selectedElement && (
+          <div className="flex-1 w-full flex flex-col justify-between p-4 bg-[#070B14]/75 border border-white/10 rounded backdrop-blur-2xl pointer-events-auto shadow-2xl overflow-hidden max-h-[85vh] md:max-h-[calc(100vh-130px)] select-none">
+            <ObservatoryHub
+              onSelectElementBySymbol={(symbol) => {
+                const found = ELEMENTS_DATA.find(e => e.symbol === symbol);
+                if (found) {
+                  onSelectElement(found);
+                }
+              }}
+              onScaleChange={(scaleId) => {
+                // Trigger customized physical particle waves across visualizers
+                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 1.55 } }));
+              }}
+            />
+          </div>
+        )}
+
         {/* RIGHT HUD: SELECTED ELEMENT DETAILS */}
         {isObsEntered && selectedElement && (
           <div ref={sidebarRef} id="element-detail-sidebar" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-between shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)]">
@@ -1853,9 +1886,26 @@ export default function HolographicUI({
           {!selectedElement && (
             <div id="orb-hud-details-preview" className="px-4 py-3 bg-[#0B1020]/80 backdrop-blur-md border border-white/10 rounded-sm text-left max-w-sm md:max-w-md h-18 font-mono flex items-center justify-between gap-4">
               {hoveredElement ? (
-                <div className="flex items-center gap-3 animate-fade-in">
-                  <div className="w-10 h-10 border border-[#00E5FF]/40 bg-[#070B14] flex items-center justify-center text-md font-black italic select-none" style={{ borderColor: getCatMeta(hoveredElement.category).hex, color: getCatMeta(hoveredElement.category).hex }}>
-                    {hoveredElement.symbol}
+                <div className="flex items-center gap-3 animate-fade-in text-left">
+                  <div className="relative flex items-center justify-center relative-symbol-container w-10 h-10 select-none">
+                    {/* The Energy Field Background Expansion Layer */}
+                    <div 
+                      className="absolute inset-0 rounded-sm pointer-events-none energy-field-expansion"
+                      style={{ 
+                        '--en-color': getElectronegativityColor(hoveredElement.electronegativity)
+                      } as React.CSSProperties}
+                    />
+                    
+                    {/* The Main Dynamic Symbol Border Block */}
+                    <div 
+                      className="relative z-10 w-full h-full border bg-[#070B14]/90 flex items-center justify-center text-md font-black italic element-symbol-pulse transition-all duration-300"
+                      style={{ 
+                        '--pulse-color': getCatMeta(hoveredElement.category).hex, 
+                        color: getCatMeta(hoveredElement.category).hex 
+                      } as React.CSSProperties}
+                    >
+                      {hoveredElement.symbol}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs uppercase font-extrabold text-[#EAF2FF]">{hoveredElement.name} ({hoveredElement.number})</div>
