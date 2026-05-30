@@ -791,6 +791,8 @@ export default function ThreeScene({
       floatOffset: number;
       glowOutline: THREE.LineSegments;
       material: THREE.MeshBasicMaterial;
+      standardTexture: THREE.Texture;
+      timelineTexture: THREE.Texture;
     }
 
     const elementCards: CardMeshInfo[] = [];
@@ -802,7 +804,8 @@ export default function ThreeScene({
     // Pre-draw standard assets for elements on dynamic CanvasTextures
     ELEMENTS_DATA.forEach((el, idx) => {
       const categoryConfig = CATEGORY_COLORS[el.category] || { hex: '#00E5FF' };
-      const cardTexture = createCardTexture(el, categoryConfig.hex);
+      const cardTexture = createCardTexture(el, categoryConfig.hex, false);
+      const timelineTexture = createCardTexture(el, categoryConfig.hex, true);
       
       const cardMat = new THREE.MeshBasicMaterial({
         map: cardTexture,
@@ -841,6 +844,8 @@ export default function ThreeScene({
         floatOffset: Math.random() * Math.PI * 2,
         glowOutline,
         material: cardMat,
+        standardTexture: cardTexture,
+        timelineTexture: timelineTexture,
       });
     });
 
@@ -938,6 +943,9 @@ export default function ThreeScene({
     atomGroup.add(elementWorldGroup);
     
     let activeWorldAnimate: ((elapsed: number, delta: number, simMultiplier: number) => void) | null = null;
+    let atomicRadiusSphere: THREE.Mesh | null = null;
+    let atomicRadiusWireframe: THREE.Mesh | null = null;
+    let atomicRadiusSpawnTime = 0;
     
     const clearElementWorld = () => {
       activeWorldAnimate = null;
@@ -963,6 +971,9 @@ export default function ThreeScene({
           }
         }
       }
+      atomicRadiusSphere = null;
+      atomicRadiusWireframe = null;
+      atomicRadiusSpawnTime = 0;
     };
 
     // --- INTERACTION / DRAG CONTROLS ---
@@ -1182,48 +1193,53 @@ export default function ThreeScene({
     const createHolographic3DLabel = (formula: string, name: string, parentGroup: THREE.Group) => {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
-      canvas.height = 128;
+      canvas.height = 256;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.clearRect(0, 0, 512, 128);
+        ctx.clearRect(0, 0, 512, 256);
         
         // Semi-transparent high-tech hud back plate
-        ctx.fillStyle = 'rgba(7, 11, 20, 0.85)';
+        ctx.fillStyle = 'rgba(7, 12, 27, 0.9)';
         ctx.beginPath();
-        ctx.rect(10, 10, 492, 108);
+        ctx.rect(10, 10, 492, 236);
         ctx.fill();
         
         ctx.strokeStyle = '#00FFB3';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 3.0;
         ctx.stroke();
 
         // High-tech corner bracket styles
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         // Top Left
-        ctx.moveTo(15, 35); ctx.lineTo(15, 15); ctx.lineTo(35, 15);
+        ctx.moveTo(15, 45); ctx.lineTo(15, 15); ctx.lineTo(45, 15);
         // Top Right
-        ctx.moveTo(497, 35); ctx.lineTo(497, 15); ctx.lineTo(477, 15);
+        ctx.moveTo(497, 45); ctx.lineTo(497, 15); ctx.lineTo(467, 15);
         // Bottom Left
-        ctx.moveTo(15, 93); ctx.lineTo(15, 113); ctx.lineTo(35, 113);
+        ctx.moveTo(15, 211); ctx.lineTo(15, 241); ctx.lineTo(45, 241);
         // Bottom Right
-        ctx.moveTo(497, 93); ctx.lineTo(497, 113); ctx.lineTo(477, 113);
+        ctx.moveTo(497, 211); ctx.lineTo(497, 241); ctx.lineTo(467, 241);
         ctx.stroke();
 
-        ctx.font = 'bold 38px sans-serif';
+        // LINE 1: PRIMARY REACTION FORMULA (Perfect center, large hero text)
+        ctx.font = 'bold 44px sans-serif';
         ctx.fillStyle = '#00FFB3';
-        ctx.textAlign = 'left';
-        ctx.fillText(formula, 42, 58);
+        ctx.textAlign = 'center';
+        ctx.fillText(formula, 256, 85);
 
-        ctx.font = 'bold 16px monospace';
+        // LINE 2: REACTION NAME (Centered below formula, dynamic sizing for very long names)
+        let fontSizeName = 22;
+        if (name.length > 30) fontSizeName = 18;
+        if (name.length > 40) fontSizeName = 15;
+        ctx.font = `bold ${fontSizeName}px sans-serif`;
         ctx.fillStyle = '#EAF2FF';
-        ctx.fillText('SYNTHESIZED MATRIX', 42, 92);
+        ctx.fillText(name, 256, 145);
 
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillStyle = 'rgba(234, 242, 255, 0.85)';
-        ctx.textAlign = 'right';
-        ctx.fillText(name, 470, 70);
+        // LINE 3: STATUS OR METADATA
+        ctx.font = 'bold 13px monospace';
+        ctx.fillStyle = 'rgba(234, 242, 255, 0.55)';
+        ctx.fillText('SYNTHESIZED MATRIX // TETHERED CHAMBER', 256, 195);
       }
 
       const tex = new THREE.CanvasTexture(canvas);
@@ -1233,10 +1249,21 @@ export default function ThreeScene({
         opacity: 0.95,
         side: THREE.DoubleSide
       });
-      const geom = new THREE.PlaneGeometry(6.4, 1.6);
+      // Use 2:1 ratio matching the 512x256 resolution
+      const geom = new THREE.PlaneGeometry(6.4, 3.2);
       const mesh = new THREE.Mesh(geom, material);
       
-      mesh.position.set(0, 4.2, 0);
+      // Dynamic positioning to avoid overlapping molecule collision zones and orbit lines
+      let adaptiveHeight = 5.2;
+      if (formula === 'NaCl') {
+        adaptiveHeight = 6.4; // High stack of NaCl lattice meshes
+      } else if (formula.includes('CsOH')) {
+        adaptiveHeight = 5.8; // High CsOH ion group
+      } else if (formula === 'Fe₂O₃' || formula === 'YBCO') {
+        adaptiveHeight = 5.6; // Multi-element complex grids
+      }
+      
+      mesh.position.set(0, adaptiveHeight, 0);
       parentGroup.add(mesh);
       parentGroup.userData.labelMesh = mesh;
     };
@@ -1982,6 +2009,90 @@ export default function ThreeScene({
       targetAmbientColor.copy(generated.targetAmbientColor);
       activeWorldAnimate = generated.activeWorldAnimate;
 
+      // Real calculated atomic radius (in picometers)
+      const getAtomicRadiusPm = (element: ChemicalElement): number => {
+        const knownRadii: Record<number, number> = {
+          1: 37,   // H
+          2: 31,   // He
+          3: 152,  // Li
+          4: 112,  // Be
+          5: 85,   // B
+          6: 77,   // C
+          7: 75,   // N
+          8: 73,   // O
+          9: 72,   // F
+          10: 71,  // Ne
+          11: 186, // Na
+          12: 160, // Mg
+          13: 143, // Al
+          14: 118, // Si
+          15: 110, // P
+          16: 103, // S
+          17: 99,  // Cl
+          18: 98,  // Ar
+          19: 227, // K
+          20: 197, // Ca
+          26: 126, // Fe
+          29: 128, // Cu
+          30: 139, // Zn
+          47: 144, // Ag
+          50: 162, // Sn
+          79: 144, // Au
+          80: 149, // Hg
+          92: 156, // U
+        };
+
+        if (knownRadii[element.number]) {
+          return knownRadii[element.number];
+        }
+
+        // Periodic trend fallback logic: rows (period) expand shells, columns (group) contract them due to charge
+        const periodFactor = element.period * 35;
+        const groupFactor = 150 / (element.group + 0.5);
+        return Math.round(30 + periodFactor + groupFactor);
+      };
+
+      const radiusPm = getAtomicRadiusPm(el);
+      // Map picometers directly to beautiful visual 3D scale units in our scene
+      const visualRadius = 0.5 + (radiusPm * 0.024);
+
+      // Create faint, semi-transparent sphere shell
+      const sphereGeom = new THREE.SphereGeometry(visualRadius, 32, 24);
+      const sphereMat = new THREE.MeshPhongMaterial({
+        color: catColor,
+        transparent: true,
+        opacity: 0.08,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        shininess: 90,
+        specular: catColor,
+      });
+      atomicRadiusSphere = new THREE.Mesh(sphereGeom, sphereMat);
+      atomicRadiusSphere.userData = { isAtomicRadiusVisual: true };
+      // Start with scale at zero for the expansion entrance animation
+      atomicRadiusSphere.scale.set(0, 0, 0);
+      elementWorldGroup.add(atomicRadiusSphere);
+
+      // Create fine wireframe shell of exact radius for the calculated high-tech HUD look
+      const wireGeom = new THREE.SphereGeometry(visualRadius, 20, 16);
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: catColor,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.04,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      atomicRadiusWireframe = new THREE.Mesh(wireGeom, wireMat);
+      atomicRadiusWireframe.userData = { isAtomicRadiusVisual: true };
+      // Start with scale at zero for the expansion entrance animation
+      atomicRadiusWireframe.scale.set(0, 0, 0);
+      elementWorldGroup.add(atomicRadiusWireframe);
+
+      // Store the precise timestamp when this atomic radius visualization was spawned
+      atomicRadiusSpawnTime = clock.getElapsedTime();
+
       // Spawn electron rings based on real structural shells with varying inclinations
       const activeShells = el.shells; // e.g. [2, 8, 1]
       
@@ -2679,6 +2790,32 @@ export default function ThreeScene({
         activeWorldAnimate(elapsed, delta, simMultiplier);
       }
 
+      // Rotate and animate calculated atomic radius shell if available
+      if (currentProps.selectedElement && atomicRadiusSphere && atomicRadiusWireframe) {
+        atomicRadiusWireframe.rotation.y = elapsed * 0.12 * simMultiplier;
+        atomicRadiusWireframe.rotation.x = elapsed * 0.06 * simMultiplier;
+        
+        // Entrance animation: scale-up transition over 1.25 seconds with an ease-out cubic curve
+        const animDuration = 1.25;
+        const animElapsed = elapsed - atomicRadiusSpawnTime;
+        const progress = Math.min(1.0, animElapsed / animDuration);
+        
+        // Cubic ease-out: f(t) = 1 - (1 - t)^3
+        const easeOutMultiplier = 1.0 - Math.pow(1.0 - progress, 3.0);
+        
+        atomicRadiusSphere.scale.setScalar(easeOutMultiplier);
+        atomicRadiusWireframe.scale.setScalar(easeOutMultiplier);
+        
+        // Faint breathing/pulsing opacity for the outer glass shell boundary (gently scaled by entrance progress)
+        if (atomicRadiusSphere.material instanceof THREE.Material) {
+          const baseOpacity = 0.05 + Math.sin(elapsed * 1.8) * 0.015;
+          atomicRadiusSphere.material.opacity = baseOpacity * easeOutMultiplier;
+        }
+        if (atomicRadiusWireframe.material instanceof THREE.Material) {
+          atomicRadiusWireframe.material.opacity = 0.04 * easeOutMultiplier;
+        }
+      }
+
       // Low frequency breathing of background & spotlight cores
       ambientLight.intensity = 1.35 + Math.sin(elapsed * 0.65) * 0.18;
       spotLight.intensity = 3.8 + Math.sin(elapsed * 1.25) * 0.6 + Math.cos(elapsed * 2.8) * 0.3;
@@ -2748,6 +2885,13 @@ export default function ThreeScene({
         }
         const targetQ = new THREE.Quaternion().setFromEuler(rotTarget);
         ci.mesh.quaternion.slerp(targetQ, layoutLerpFactor);
+
+        // Select correct map texture depending on app mode
+        const desiredMap = currentProps.appMode === 'timeline' ? ci.timelineTexture : ci.standardTexture;
+        if (ci.material.map !== desiredMap) {
+          ci.material.map = desiredMap;
+          ci.material.needsUpdate = true;
+        }
 
         // Hover forward thrust inside grid matrices based on discovery status
         const isDiscovered = currentProps.appMode !== 'timeline' || ci.element.year <= currentProps.timelineYear;
@@ -3644,7 +3788,7 @@ export default function ThreeScene({
   }
 
   // Draw element card with high-end sci-fi HUD layouts on offscreen canvas
-  function createCardTexture(el: ChemicalElement, glowHex: string): THREE.Texture {
+  function createCardTexture(el: ChemicalElement, glowHex: string, forceTimeline: boolean = false): THREE.Texture {
     const isMobileDevice = window.innerWidth < 768;
     const canvas = document.createElement('canvas');
     canvas.width = isMobileDevice ? 128 : 256;
@@ -3724,15 +3868,37 @@ export default function ThreeScene({
       ctx.fillStyle = '#EAF2FF';
       ctx.fillText(el.name.toUpperCase(), 128, 205);
 
-      // Sub description configured configurations
-      ctx.font = '11px "JetBrains Mono", monospace';
-      ctx.fillStyle = glowHex;
-      ctx.fillText(el.electronConfig, 128, 235);
+      if (forceTimeline) {
+        // Draw Discovery Year badge
+        ctx.fillStyle = glowHex;
+        ctx.beginPath();
+        ctx.fillRect(48, 220, 160, 26);
+        
+        ctx.font = 'bold 12px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#0B1020'; // High contrast dark text on glowHex color background
+        ctx.textAlign = 'center';
+        const yearText = el.year <= 0 ? 'ANCIENT' : `${el.year} AD`;
+        ctx.fillText(yearText, 128, 237);
 
-      // Bottom state & period indicators
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.fillStyle = 'rgba(234, 242, 255, 0.45)';
-      ctx.fillText(`P ${el.period} | G ${el.group} | ${el.state.toUpperCase()}`, 128, 275);
+        // Bottom era indicator
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(234, 242, 255, 0.45)';
+        let eraType = 'ANCIENT DISCOVERY';
+        if (el.year > 0 && el.year < 1700) eraType = 'CLASSICAL ERA';
+        else if (el.year >= 1700 && el.year < 1900) eraType = 'SCIENTIFIC REV.';
+        else if (el.year >= 1900) eraType = 'MODERN SYNTHESIS';
+        ctx.fillText(eraType, 128, 275);
+      } else {
+        // Sub description configured configurations
+        ctx.font = '11px "JetBrains Mono", monospace';
+        ctx.fillStyle = glowHex;
+        ctx.fillText(el.electronConfig, 128, 235);
+
+        // Bottom state & period indicators
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(234, 242, 255, 0.45)';
+        ctx.fillText(`P ${el.period} | G ${el.group} | ${el.state.toUpperCase()}`, 128, 275);
+      }
     }
 
     const texture = new THREE.CanvasTexture(canvas);

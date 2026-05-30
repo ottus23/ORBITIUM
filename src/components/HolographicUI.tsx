@@ -1398,36 +1398,88 @@ export default function HolographicUI({
 
         {/* MIDDLE OVERLAY (Active reaction notifications/simulations) */}
         {isObsEntered && activeReaction && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 z-30 select-none">
+          <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-4 md:px-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:left-12 lg:left-16 md:translate-x-0 md:top-1/2 md:-translate-y-1/2">
             {reactionStage === 'idle' ? (
-              <div className="px-6 py-4 bg-[#0B1020]/95 border border-[#FF9100]/50 rounded-sm shadow-[0_0_30px_rgba(255,145,0,0.25)] backdrop-blur-lg flex flex-col items-center text-center max-w-sm pointer-events-auto animate-fade-in">
-                <div className="w-10 h-10 border border-dashed border-[#FF9100]/60 rounded-full flex items-center justify-center animate-spin mb-2" style={{ animationDuration: '6s' }}>
+              <div className="w-full max-w-sm sm:max-w-md mx-auto p-6 sm:p-7 bg-[#070C1B]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_35px_rgba(255,145,0,0.2)] backdrop-blur-2xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_45px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
+                
+                {/* Corner Frame accents */}
+                <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+
+                <div className="w-12 h-12 border border-dashed border-[#FF9100]/50 rounded-full flex items-center justify-center animate-spin mb-4" style={{ animationDuration: '7s' }}>
                   <Flame className="w-5 h-5 text-[#FF9100]" />
                 </div>
-                <div className="text-xs font-black tracking-widest text-[#FF9100] uppercase">REACTOR TETHER ACTIVE</div>
-                <p className="text-[10.5px] text-[#EAF2FF]/80 leading-relaxed mt-2">
+                
+                {/* Header text */}
+                <h3 className="text-[10px] sm:text-[11px] font-mono font-black tracking-[0.25em] text-[#FF9100]/90 uppercase">
+                  REACTOR TETHER ACTIVE
+                </h3>
+
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-widest mt-3.5 mb-1">
+                  {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
+                </h1>
+
+                <div className="text-[8.5px] sm:text-[9.5px] font-mono text-[#00E5FF]/80 tracking-widest">
+                  TARGET SYNTHESIS: <span className="font-extrabold text-[#00FFB3]">{activeReaction.productFormula}</span>
+                </div>
+
+                <p className="text-[10.5px] sm:text-[11px] text-[#EAF2FF]/75 leading-relaxed font-light mt-4.5 mb-6 border-t border-white/5 pt-4 max-w-xs sm:max-w-sm">
                   Atomic cores spawned in 3D electromagnetic grid. <span className="text-[#00FFB3] font-bold">Drag either reactant</span> across space into proximity to synthesize <span className="text-[#00E5FF] font-bold">{activeReaction.productFormula}</span>.
                 </p>
+
                 <button
                   onClick={handleCancelReaction}
-                  className="mt-3.5 px-4 py-1.5 bg-red-950/20 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-widest text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2 bg-[#0C1123] border border-red-500/45 hover:border-red-500 text-[9px] font-mono tracking-widest text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/10"
                 >
                   DISMANTLE BEAMS
                 </button>
               </div>
             ) : reactionStage === 'stable' ? (
-              <div className="px-6 py-5 bg-[#0B1020]/95 border border-[#00FFB3]/50 rounded-sm shadow-[0_0_35px_rgba(0,255,179,0.3)] backdrop-blur-lg flex flex-col items-center text-center max-w-sm pointer-events-auto animate-fade-in">
-                <CheckCircle2 className="w-10 h-10 text-[#00FFB3] mb-2 animate-bounce" />
-                <div className="text-[9px] font-mono tracking-widest text-[#00FFB3] uppercase font-black">SYNTHESIS ENVELOPE COMPLETED</div>
-                <div className="text-lg font-extrabold text-[#EAF2FF] tracking-wider my-1 uppercase">{activeReaction.productName}</div>
-                <div className="text-xs font-black font-mono text-[#00E5FF] px-2 py-0.5 bg-[#00E5FF]/10 border border-[#00E5FF]/20 rounded-sm mb-2">{activeReaction.productFormula}</div>
-                <p className="text-[10.5px] text-[#EAF2FF]/75 leading-relaxed font-light mb-4">
+              <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto p-6 sm:p-8 bg-[#070C1B]/95 border border-[#00FFB3]/40 rounded-sm shadow-[0_0_40px_rgba(0,255,179,0.25)] backdrop-blur-2xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_50px_rgba(0,255,179,0.35)] transition-all duration-500 ease-out select-none relative group">
+                
+                {/* Advanced Scientific UI subtle frames/accents */}
+                <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
+                <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
+                <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
+                <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
+
+                {/* Pulsing Science Core Emitter at top */}
+                <div className="w-12 h-12 border border-[#00FFB3]/35 rounded-full flex items-center justify-center bg-[#00FFB3]/5 mb-5 relative group-hover:scale-105 transition-transform duration-500">
+                  <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFB3]/50 animate-spin" style={{ animationDuration: '8s' }} />
+                  <CheckCircle2 className="w-6 h-6 text-[#00FFB3] animate-pulse" />
+                </div>
+
+                {/* LINE 1: PRIMARY REACTION FORMULA */}
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-widest text-[#00FFB3] drop-shadow-[0_0_15px_rgba(0,255,179,0.4)] transition-all duration-300 px-2 line-clamp-2 leading-none">
+                  {activeReaction.productFormula}
+                </h1>
+
+                {/* Separator Line */}
+                <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#00FFB3]/55 to-transparent my-4 sm:my-5" />
+
+                {/* LINE 2: REACTION NAME */}
+                <h2 className="text-base sm:text-lg md:text-xl font-bold text-[#EAF2FF] uppercase tracking-wide leading-snug px-3 max-w-sm sm:max-w-md">
+                  {activeReaction.productName}
+                </h2>
+
+                {/* LINE 3: REACTION STATUS OR METADATA */}
+                <div className="mt-3.5 mb-5 select-none">
+                  <span className="inline-block text-[9px] sm:text-[10px] uppercase font-mono font-black tracking-[0.25em] text-[#00E5FF]/80 bg-[#00E5FF]/10 border border-[#00E5FF]/25 px-3 py-1 rounded-sm shadow-[inset_0_0_8px_rgba(0,229,255,0.05)]">
+                    SYNTHESIZED MATRIX // QUANTUM LOCK
+                  </span>
+                </div>
+
+                {/* DESCRIPTION / SCIENTIFIC LOGS BRIEF */}
+                <p className="text-[10px] sm:text-[11px] md:text-xs text-[#EAF2FF]/70 leading-relaxed font-light font-sans max-w-xs sm:max-w-sm border-t border-white/5 pt-4.5 mb-6">
                   {activeReaction.description}
                 </p>
                 
+                {/* INTERACTIVE CONTROLS */}
                 <button
                   onClick={handleCancelReaction}
-                  className="px-6 py-2 bg-[#070B14] border border-[#00FFB3] hover:bg-[#00FFB3]/15 text-[10px] uppercase font-mono font-bold tracking-widest text-[#00FFB3] transition-all cursor-pointer rounded-sm shadow-[0_0_10px_rgba(0,255,179,0.15)]"
+                  className="w-full sm:w-auto px-8 py-2.5 bg-[#070B14] border border-[#00FFB3]/60 hover:bg-[#00FFB3]/15 text-[10px] uppercase font-mono font-black tracking-widest text-[#00FFB3] transition-all cursor-pointer rounded-sm shadow-[0_0_12px_rgba(0,255,179,0.1)] hover:shadow-[0_0_20px_rgba(0,255,179,0.3)] hover:border-[#00FFB3]"
                 >
                   EJECT & REBOOT COILS
                 </button>
@@ -1859,6 +1911,41 @@ export default function HolographicUI({
           BOTTOM HOVER CARD AND SYSTEM INDICATORS
           ======================================================= */}
       <footer className="w-full flex flex-col gap-4 pointer-events-auto z-40 select-none">
+        
+        {/* ELEMENT CATEGORY COLOR CODE LEGEND */}
+        {isObsEntered && (
+          <div id="orbital-category-legend" className="w-full max-w-7xl mx-auto px-4 py-2 bg-[#0B1020]/90 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-center font-mono animate-fade-in pointer-events-auto">
+            <div className="text-[8px] font-black uppercase text-[#00E5FF] tracking-widest border-r border-white/10 pr-3 mr-1 hidden lg:block">
+              grid.category_index()
+            </div>
+            {Object.entries(CATEGORY_COLORS).map(([key, cat]) => (
+              <div 
+                key={key} 
+                className="flex items-center gap-1.5 group cursor-help relative"
+              >
+                {/* Glowing indicator dot with category color */}
+                <div 
+                  className="w-2.5 h-2.5 rounded-sm border border-black/40 transition-transform group-hover:scale-125 duration-300"
+                  style={{ 
+                    backgroundColor: cat.hex,
+                    boxShadow: `0 0 10px ${cat.hex}88`
+                  }} 
+                />
+                
+                {/* Label */}
+                <span className="text-[9px] uppercase tracking-wider text-[#EAF2FF]/70 group-hover:text-white transition-colors">
+                  {cat.label}
+                </span>
+
+                {/* Cybernetic Tooltip Hover Box */}
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-250 z-50 p-2.5 w-48 bg-[#070C1B]/95 border border-[#00E5FF]/20 rounded-sm shadow-2xl text-left font-mono">
+                  <div className="text-[9.5px] font-bold uppercase tracking-wide" style={{ color: cat.hex }}>{cat.label}</div>
+                  <div className="text-[8.5px] text-[#EAF2FF]/70 leading-normal mt-1 font-light">{cat.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         
         {/* TIMELINE SLIDER SCALED OVERLAY */}
         {isObsEntered && appMode === 'timeline' && (
