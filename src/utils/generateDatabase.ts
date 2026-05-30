@@ -130,6 +130,196 @@ const RAW_ELEMENTS: Array<[number, string, string, number, ElementCategory, numb
   [118, "Og", "Oganesson", 294, "noble-gas", 7, 18, "synthetic"]
 ];
 
+function getVisualConfig(num: number, symbol: string, name: string, category: ElementCategory): VisualConfig {
+  let primaryColor = "#8D99AE";
+  let secondaryGlowColor = "rgba(141, 153, 174, 0.4)";
+  let atmosphereType: 'gas' | 'crystal' | 'plasma' | 'liquid' | 'decay' | 'metal' = 'metal';
+  let particleStyle: 'nebula' | 'stellar' | 'lightning' | 'droplet' | 'decay-ray' | 'ring' = 'ring';
+  let energyBehavior: 'fusion' | 'lattice' | 'discharge' | 'fluid' | 'radioactive' | 'metallic' = 'metallic';
+  let lightingStyle = "Specular metallic highlights";
+  let environmentFeel = "Cold structural chamber";
+  let motionStyle: 'floating' | 'structured' | 'electric' | 'oscillating' | 'decay' | 'interlocking' = 'structured';
+
+  const catColors: Record<ElementCategory, string> = {
+    'alkali-metal': '#FF5722',
+    'alkaline-earth': '#FFD600',
+    'transition-metal': '#8D99AE',
+    'post-transition-metal': '#00FFB3',
+    'metalloid': '#00E676',
+    'reactive-nonmetal': '#7C4DFF',
+    'halogen': '#D500F9',
+    'noble-gas': '#00E5FF',
+    'lanthanide': '#FF80AB',
+    'actinide': '#39FF14'
+  };
+
+  primaryColor = catColors[category] || '#ffffff';
+  secondaryGlowColor = primaryColor + "66"; // 40% transparency
+
+  // Category based defaults
+  if (category === 'noble-gas') {
+    atmosphereType = 'plasma';
+    particleStyle = 'stellar';
+    energyBehavior = 'discharge';
+    lightingStyle = "Luminous, gas-discharge luminescence";
+    environmentFeel = "Glow vacuum chamber";
+    motionStyle = 'oscillating';
+  } else if (category === 'alkali-metal') {
+    atmosphereType = 'metal';
+    particleStyle = 'lightning';
+    energyBehavior = 'discharge';
+    lightingStyle = "Violent electric silver discharges";
+    environmentFeel = "High-voltage containment vault";
+    motionStyle = 'electric';
+  } else if (category === 'reactive-nonmetal') {
+    atmosphereType = 'gas';
+    particleStyle = 'nebula';
+    energyBehavior = 'fusion';
+    lightingStyle = "Soft, atmospheric diffuse glow";
+    environmentFeel = "Gaseous planetary nebula";
+    motionStyle = 'floating';
+  } else if (category === 'halogen') {
+    atmosphereType = 'gas';
+    particleStyle = 'lightning';
+    energyBehavior = 'discharge';
+    lightingStyle = "Corrosive violet gaseous fumes";
+    environmentFeel = "Hazmat gaseous extraction module";
+    motionStyle = 'electric';
+  } else if (category === 'alkaline-earth') {
+    atmosphereType = 'metal';
+    particleStyle = 'ring';
+    energyBehavior = 'lattice';
+    lightingStyle = "Gleaming alkaline brilliant reflection";
+    environmentFeel = "Seismic subterranean geological cave";
+    motionStyle = 'structured';
+  } else if (category === 'actinide' || num > 83) {
+    atmosphereType = 'decay';
+    particleStyle = 'decay-ray';
+    energyBehavior = 'radioactive';
+    lightingStyle = "Eerie isotope Cherenkov blue radiation";
+    environmentFeel = "Sub-critical reactor core chamber";
+    motionStyle = 'decay';
+  } else if (category === 'metalloid') {
+    atmosphereType = 'crystal';
+    particleStyle = 'ring';
+    energyBehavior = 'lattice';
+    lightingStyle = "Semi-conductive crystalline specular flare";
+    environmentFeel = "Clean silicon cleanroom workstation";
+    motionStyle = 'structured';
+  } else if (category === 'post-transition-metal') {
+    atmosphereType = 'liquid';
+    particleStyle = 'droplet';
+    energyBehavior = 'fluid';
+    lightingStyle = "Soft metallic sheen with liquid highlights";
+    environmentFeel = "Thermal cooling system loop";
+    motionStyle = 'floating';
+  }
+
+  // Premium element specific overrides
+  if (num === 1) { // Hydrogen
+    primaryColor = "#00E5FF";
+    secondaryGlowColor = "rgba(0, 229, 255, 0.4)";
+    atmosphereType = "gas";
+    particleStyle = "nebula";
+    energyBehavior = "fusion";
+    lightingStyle = "Soft primordial blue-violet ambient glow";
+    environmentFeel = "Boundless Cosmic Space";
+    motionStyle = "floating";
+  } else if (num === 2) { // Helium
+    primaryColor = "#FF80AB";
+    secondaryGlowColor = "rgba(255, 128, 171, 0.4)";
+    atmosphereType = "plasma";
+    particleStyle = "stellar";
+    energyBehavior = "discharge";
+    lightingStyle = "Glowing pinkish-orange helium discharge";
+    environmentFeel = "Ionized Star Outer Atmosphere";
+    motionStyle = "oscillating";
+  } else if (num === 6) { // Carbon
+    primaryColor = "#8E24AA";
+    secondaryGlowColor = "rgba(142, 36, 170, 0.4)";
+    atmosphereType = "crystal";
+    particleStyle = "ring";
+    energyBehavior = "lattice";
+    lightingStyle = "Crystalline diamond geometric specularity";
+    environmentFeel = "Perfect Graphene Matrix Lattice";
+    motionStyle = "structured";
+  } else if (num === 7) { // Nitrogen
+    primaryColor = "#3F51B5";
+    secondaryGlowColor = "rgba(63, 81, 181, 0.4)";
+    atmosphereType = "gas";
+    particleStyle = "nebula";
+    energyBehavior = "fusion";
+    lightingStyle = "Atmospheric deep-blue cold luminescence";
+    environmentFeel = "Cryogenic Nitrogen Flask Room";
+    motionStyle = "floating";
+  } else if (num === 8) { // Oxygen
+    primaryColor = "#03A9F4";
+    secondaryGlowColor = "rgba(3, 169, 244, 0.4)";
+    atmosphereType = "gas";
+    particleStyle = "nebula";
+    energyBehavior = "fusion";
+    lightingStyle = "Vibrant pale blue respiratory light rings";
+    environmentFeel = "Planetary Biosphere Dome";
+    motionStyle = "oscillating";
+  } else if (num === 10) { // Neon
+    primaryColor = "#FF3D00";
+    secondaryGlowColor = "rgba(255, 61, 0, 0.4)";
+    atmosphereType = "plasma";
+    particleStyle = "stellar";
+    energyBehavior = "discharge";
+    lightingStyle = "Brilliant reddish-orange luminous neon discharge";
+    environmentFeel = "Tokyo Luminous Terminal Way";
+    motionStyle = "electric";
+  } else if (num === 11) { // Sodium
+    primaryColor = "#FF9100";
+    secondaryGlowColor = "rgba(255, 145, 0, 0.4)";
+    atmosphereType = "metal";
+    particleStyle = "lightning";
+    energyBehavior = "discharge";
+    lightingStyle = "Signature yellow-orange spectral line emission";
+    environmentFeel = "Electrolytic Containment Chamber";
+    motionStyle = "electric";
+  } else if (num === 14) { // Silicon
+    primaryColor = "#00E676";
+    secondaryGlowColor = "rgba(0, 230, 118, 0.4)";
+    atmosphereType = "crystal";
+    particleStyle = "ring";
+    energyBehavior = "lattice";
+    lightingStyle = "Semi-metallic gray reflection with green tint";
+    environmentFeel = "Intel Fab Clean Lab Floor";
+    motionStyle = "structured";
+  } else if (num === 26) { // Iron
+    primaryColor = "#CFD8DC";
+    secondaryGlowColor = "rgba(207, 216, 220, 0.4)";
+    atmosphereType = "metal";
+    particleStyle = "ring";
+    energyBehavior = "metallic";
+    lightingStyle = "Bright magnetic field steel specularity";
+    environmentFeel = "Deep Planetary Molten Core Hub";
+    motionStyle = "interlocking";
+  } else if (num === 92) { // Uranium
+    primaryColor = "#76FF03";
+    secondaryGlowColor = "rgba(118, 255, 3, 0.4)";
+    atmosphereType = "decay";
+    particleStyle = "decay-ray";
+    energyBehavior = "radioactive";
+    lightingStyle = "Eerie fluorescent radioactive green luminescence";
+    environmentFeel = "Sub-critical Breeder Reactor Cell";
+    motionStyle = "decay";
+  }
+
+  return {
+    primaryColor,
+    secondaryGlowColor,
+    atmosphereType,
+    particleStyle,
+    energyBehavior,
+    lightingStyle,
+    environmentFeel,
+    motionStyle
+  };
+}
+
 function getAtomicRadiusPm(num: number): number {
   const knownRadii: Record<number, number> = {
     1: 37, 2: 31, 3: 152, 4: 112, 5: 85, 6: 77, 7: 75, 8: 73, 9: 72, 10: 71,
@@ -409,285 +599,1267 @@ function getConductivityStyle(num: number, category: ElementCategory, state: str
   return "Moderate electrical conductibility of metallic post-transition alloys.";
 }
 
-function getApplications(num: number, name: string) {
-  const customApps: Record<number, { industrial: string; technology: string; medical: string; spaceAndEnergy: string }> = {
+function getBlock(num: number, group: number): 's' | 'p' | 'd' | 'f' {
+  if (num === 1 || num === 2) return 's';
+  if (num >= 57 && num <= 71) return 'f';
+  if (num >= 89 && num <= 103) return 'f';
+  if (group === 1 || group === 2) return 's';
+  if (group >= 3 && group <= 12) return 'd';
+  return 'p';
+}
+
+function getCrystalStructure(num: number, category: ElementCategory, state: string): string {
+  if (state === 'gas') return "Hexagonal (solid phase at extreme low temp)";
+  if (state === 'liquid') {
+    if (num === 80) return "Rhombohedral (below -39°C solid phase)";
+    if (num === 35) return "Orthorhombic (below -7°C solid phase)";
+    return "Liquid";
+  }
+  if (category === 'alkali-metal') return "Body-Centered Cubic (BCC)";
+  if (category === 'alkaline-earth') {
+    if (num === 12 || num === 20) return "Face-Centered Cubic (FCC)";
+    return "Hexagonal Close-Packed (HCP)";
+  }
+  if (category === 'transition-metal') {
+    const fcc = [29, 47, 78, 79];
+    const hcp = [22, 27, 30, 40, 75];
+    if (fcc.includes(num)) return "Face-Centered Cubic (FCC)";
+    if (hcp.includes(num)) return "Hexagonal Close-Packed (HCP)";
+    return "Body-Centered Cubic (BCC)";
+  }
+  if (category === 'metalloid') {
+    if (num === 14) return "Diamond Cubic Covalent Lattice";
+    return "Rhombohedral Complex Multi-Center Lattice";
+  }
+  if (category === 'noble-gas') return "Face-Centered Cubic (FCC) (solid state below boiling point)";
+  if (category === 'halogen') return "Orthorhombic Crystalline Sheet Structure";
+  if (category === 'lanthanide') return "Double Hexagonal Close-Packed (DHCP)";
+  if (category === 'actinide') {
+    if (num === 92) return "Orthorhombic metallic lattice";
+    return "Body-Centered Cubic (BCC)";
+  }
+  return "Simple Hexagonal / Complex Cubic Lattice structure";
+}
+
+function getThermalConductivity(num: number, category: ElementCategory): string {
+  const custom: Record<number, string> = {
+    1: "0.1805 W/(m·K)",
+    2: "0.1513 W/(m·K)",
+    6: "2000 W/(m·K) (Diamond) / 140 W/(m·K) (Graphite)",
+    7: "0.0258 W/(m·K)",
+    8: "0.0265 W/(m·K)",
+    10: "0.0491 W/(m·K)",
+    11: "142 W/(m·K)",
+    14: "149 W/(m·K)",
+    26: "80.4 W/(m·K)",
+    29: "401 W/(m·K)",
+    47: "429 W/(m·K)",
+    79: "318 W/(m·K)",
+    92: "27.5 W/(m·K)"
+  };
+  if (custom[num]) return custom[num];
+  if (category === 'noble-gas' || category === 'halogen' || category === 'reactive-nonmetal') return "Low (Gas-Insulated under STP)";
+  if (category === 'alkali-metal') return "High (~100-140 W/(m·K))";
+  if (category === 'transition-metal') return "Very High (~50-300 W/(m·K)) due to d-shell free electron coupling";
+  return "~20-80 W/(m·K) moderate thermal dissipation";
+}
+
+function getElectricalConductivity(num: number, category: ElementCategory): string {
+  const custom: Record<number, string> = {
+    1: "Insulator (0 S/m)",
+    2: "Insulator (0 S/m)",
+    6: "Insulator in diamond form / Highly anisotropic conductor in graphite form (3 x 10^5 S/m)",
+    7: "Insulator (0 S/m)",
+    8: "Insulator (0 S/m)",
+    10: "Insulator (0 S/m)",
+    11: "2.1 x 10^7 S/m",
+    14: "Selective semiconductor (~2.5 x 10^-4 S/m, highly variable based on doping and temperature)",
+    26: "1.0 x 10^7 S/m",
+    29: "5.9 x 10^7 S/m",
+    47: "6.3 x 10^7 S/m",
+    79: "4.1 x 10^7 S/m",
+    92: "3.6 x 10^6 S/m"
+  };
+  if (custom[num]) return custom[num];
+  if (category === 'noble-gas' || category === 'halogen' || category === 'reactive-nonmetal') return "0 S/m (Insulator)";
+  if (category === 'metalloid') return "Semiconductive (~10^-3 to 10^2 S/m, thermically adjustable)";
+  if (category === 'alkali-metal') return "High metal conduction (~1.5 x 10^7 S/m)";
+  if (category === 'transition-metal') return "Exceptional (~1.0 x 10^7 to 4.5 x 10^7 S/m) electron travel";
+  return "Moderate conductivity (~1.0 x 10^6 S/m)";
+}
+
+function getMagneticProperties(num: number, category: ElementCategory): string {
+  const fero = [26, 27, 28, 64, 65, 66];
+  if (fero.includes(num)) return "Ferromagnetic (exhibits powerful spontaneous permanent magnetic ordering)";
+  const diamagnetic = [2, 10, 18, 29, 36, 47, 54, 79, 80, 81, 82, 83, 86, 14, 32];
+  if (diamagnetic.includes(num)) return "Diamagnetic (weakly repelled by magnetic fields, maintaining zero atomic unpaired spins)";
+  if (category === 'noble-gas') return "Diamagnetic";
+  return "Paramagnetic (weakly attracted by external magnetic fields due to presence of unpaired orbital spins)";
+}
+
+function getHardness(num: number, state: string, category: ElementCategory): string {
+  if (num === 6) return "10.0 (Mohs scale) (Diamond) / < 1.0 (Mohs scale) (Graphite)";
+  if (num === 14) return "7.0 (Mohs scale) (scratches glass easily)";
+  if (num === 26) return "4.0 (Mohs scale) / High Brinell structural persistence";
+  if (num === 79) return "2.5 (Mohs scale) / Highly malleable under direct pressure";
+  if (num === 92) return "6.0 (Mohs scale) / Rigid heavy metallic density";
+  if (state === 'gas' || state === 'liquid') return "N/A (Non-solid at standard temperatures)";
+  if (category === 'alkali-metal') return "Soft: ~0.4-0.6 (Mohs scale) (can be sliced cleanly with a laboratory knife)";
+  if (category === 'alkaline-earth') return "Moderate: ~1.5-2.5 (Mohs scale) (soft metallic)";
+  if (category === 'transition-metal') return "Hard: ~4.0-6.5 (Mohs scale) / Tensile durable";
+  if (category === 'metalloid') return "Brittle and hard: ~3.0-6.0 (Mohs scale)";
+  return "Soft solid: ~1.0-3.0 (Mohs scale)";
+}
+
+function getElectronAffinity(num: number, category: ElementCategory): string {
+  const custom: Record<number, string> = {
+    1: "-72.8 kJ/mol",
+    2: "21 kJ/mol (endothermic, resists electron capture)",
+    6: "-121.8 kJ/mol",
+    7: "-6.8 kJ/mol",
+    8: "-141.0 kJ/mol",
+    10: "29 kJ/mol (strongly resists ionization expansion)",
+    11: "-52.8 kJ/mol",
+    14: "-134.1 kJ/mol",
+    26: "-15.7 kJ/mol",
+    79: "-222.8 kJ/mol (highly favorable electron binding)",
+    92: "-50.9 kJ/mol"
+  };
+  if (custom[num]) return custom[num];
+  if (category === 'halogen') return `${-349 + (num % 5) * 15} kJ/mol (extremely favorable, highly exothermic)`;
+  if (category === 'noble-gas') return "Positive / Endothermic (stable fully-closed shell resists additional electron)";
+  if (category === 'alkali-metal') return "-45 to -60 kJ/mol (moderately favorable to fill s-subshell)";
+  return "~-20 to -110 kJ/mol (moderately exothermic)";
+}
+
+function getReactivityProfile(num: number, category: ElementCategory): string {
+  if (num === 1) return "Highly reactive, combustible fuel source. Readily ignites in oxygen to form water.";
+  if (num === 6) return "Thermodynamically stable under standard conditions but reacts readily at high temperatures with oxygen and halogens.";
+  if (num === 14) return "Relatively inert metalloid. Combines with halogens and oxygen at elevated temperatures, forming highly stable SiO₂.";
+  if (num === 26) return "Active post-transition metal. Corrodes progressively in moist oxygen atmospheres (rusts) and dissolves quickly in mineral acids.";
+  if (num === 79) return "Chemically extremely inert noble metal. Does not rust, tarnish, or react with standard acids; dissolves only in hot Aqua Regia.";
+  if (num === 92) return "Highly chemically active radioactive metal. Tarnishes rapidly in air and reacts readily with water, halogens, and dilute acids.";
+  if (category === 'noble-gas') return "Exhibits near-perfect chemical inertness. Holds zero oxidation states under normal chemical conditions.";
+  if (category === 'alkali-metal') return "Extremely high reactivity. Reacts with atmospheric oxygen and water violently (exothermic release of hydrogen gas).";
+  if (category === 'halogen') return "Powerful, corrosive oxidizing agent. Instantly attacks metals, carbon compounds, and organelle structures.";
+  return "Moderate reactivity. Forms oxides slowly, reacting with hot mineral acids and active molecular halogens.";
+}
+
+function getBondingCharacteristics(num: number, category: ElementCategory): string {
+  if (num === 1) return "Prefers a single covalent sharing bond, but establishes polar hydrogen couplings with nitrogen, oxygen, and fluorine.";
+  if (num === 6) return "Forms versatile sp, sp², and sp³ tetrahedral, trigonal planar, or linear covalent carbon-carbon chains and network grids.";
+  if (num === 14) return "Forms robust sp³ tetrahedral covalent molecular lattices, creating high-temperature polymeric silicates and structures.";
+  if (num === 26) return "Coordinates with ligands via d-orbital hybridization. Shares electrons via high-density multi-directional metallic bond meshes.";
+  if (num === 79) return "Favors heavy d-hybridized aurophilic and covalent bonds under rare high-oxidation states, stable metallic bonding in native gold.";
+  if (num === 92) return "Highly complex actinide coordination. Excels at participating in multicenter bonding utilizing f-orbital combinations.";
+  if (category === 'noble-gas') return "Resists all chemical bonding under standard states due to highly stable closed-shell valence outer configuration.";
+  if (category === 'alkali-metal') return "Exclusively forms ionic bonds, yielding highly stable halophilic single-valence ionic salt crystals.";
+  if (category === 'halogen') return "Forms highly polar ionic bonds with alkali metals or strong single covalent bonds with reactive nonmetals.";
+  return "Prefers covalent d-orbital electron sharing or directional coordination metallic lattices.";
+}
+
+function getCosmicData(num: number, category: ElementCategory) {
+  let stellarOrigin = "Supernova shockwaves and neutron star merges";
+  let nucleosynthesisProcess = "Stellar nucleosynthesis sequences";
+  let cosmicAbundance = "~0.001 mg/kg";
+  let earthAbundance = "~5.0 mg/kg";
+  let planetaryPresence = "Sourced inside planetary Core / Solid mantle systems";
+  let stellarPresence = "Trace constituents inside stellar convective atmospheres";
+
+  if (num === 1) {
+    stellarOrigin = "Primordial Big Bang nucleosynthesis";
+    nucleosynthesisProcess = "Big Bang baryonic cooling and cooling proton collapse";
+    cosmicAbundance = "73.9% of all cosmic baryonic matter by mass";
+    earthAbundance = "0.14% of Earth's crust by weight, abundant in Oceans";
+    planetaryPresence = "Constitutes massive fluid bulk of Gas Giants like Jupiter and Neptune";
+    stellarPresence = "Dominant primary fuel initiating stellar main-sequence fusion engines";
+  } else if (num === 2) {
+    stellarOrigin = "Big Bang nucleosynthesis and ongoing main-sequence stellar fusion";
+    nucleosynthesisProcess = "Primordial proton-proton chain and CNO stellar cycle";
+    cosmicAbundance = "24.0% of cosmic baryonic matter by mass";
+    earthAbundance = "0.008 mg/kg - extremely rare as a gas in Earth's crust";
+    planetaryPresence = "Concentrated in stellar wind layers and Jupiter's upper atmosphere";
+    stellarPresence = "Crucial product of stellar hydrogen burning in main-sequence stellar cores";
+  } else if (num === 6) {
+    stellarOrigin = "Asymptotic Giant Branch (AGB) stars and massive supernovae";
+    nucleosynthesisProcess = "Triple-Alpha process inside massive red giant stars";
+    cosmicAbundance = "0.5% by weight of the universe";
+    earthAbundance = "200 mg/kg - primary solid component of planetary biological soils";
+    planetaryPresence = "Abundant as methane and carbon dioxide in Venus and Titan atmospheres";
+    stellarPresence = "Primary catalyst driving the CNO carbon-nitrogen-oxygen stellar fusion loops";
+  } else if (num === 7) {
+    stellarOrigin = "Core helium burning in massive stars and supernovae";
+    nucleosynthesisProcess = "CNO stellar cycle and massive stellar shells";
+    cosmicAbundance = "0.1% by weight";
+    earthAbundance = "19 mg/kg in Earth's crust, 78.1% of terrestrial atmosphere";
+    planetaryPresence = "Liquid nitrogen oceans on Pluto and thick chemical atmosphere on Titan";
+    stellarPresence = "Actively utilized in intermediate stellar catalytic cycle zones";
+  } else if (num === 8) {
+    stellarOrigin = "Helium burning and explosive carbon burning in massive stars";
+    nucleosynthesisProcess = "Alpha-process fusion inside massive star core shells";
+    cosmicAbundance = "1.0% by weight (third most abundant element in Cosmos)";
+    earthAbundance = "46.1% of Earth's crust by weight (most abundant element in crusts)";
+    planetaryPresence = "Pervasive in silicate minerals of rocky planets and water-ice moons";
+    stellarPresence = "Abundant reactant in advanced stellar onion-layer burning phases";
+  } else if (num === 10) {
+    stellarOrigin = "Carbon burning in extremely massive stars";
+    nucleosynthesisProcess = "Alpha-process nucleosynthesis during pre-supernova stages";
+    cosmicAbundance = "0.13% by mass of cosmic universe";
+    earthAbundance = "0.005 mg/kg - highly depleted due to atmospheric gas slip";
+    planetaryPresence = "Present in trace ice atmospheres of remote planetary bodies";
+    stellarPresence = "Deploys neon-cyan plasma emission profiles in young stellar nebulas";
+  } else if (num === 11) {
+    stellarOrigin = "Carbon burning in massive stellar structures";
+    nucleosynthesisProcess = "Explosive stellar carbon burning and s-process absorption";
+    cosmicAbundance = "20 mg/kg throughout interstellar gas grids";
+    earthAbundance = "2.3% of Earth's crust (fifth most abundant crust metal)";
+    planetaryPresence = "Forms sodium halides in liquid oceans and solid salt deposits of rocky worlds";
+    stellarPresence = "Sodium D-line absorption profiles highly prominent in G-type solar atmospheres";
+  } else if (num === 14) {
+    stellarOrigin = "Oxygen burning inside massive stellar cores and supernovae";
+    nucleosynthesisProcess = "Alpha-capture process during carbon/oxygen stellar core collapse";
+    cosmicAbundance = "0.07% by weight of the cosmic mass budget";
+    earthAbundance = "28.2% of Earth's crust by weight (second most abundant crust element)";
+    planetaryPresence = "Provides the structural quartz and silicate rocks comprising rocky planet mantles";
+    stellarPresence = "High concentration in metallic-abundance population I stellar envelopes";
+  } else if (num === 26) {
+    stellarOrigin = "Core silicon burning in massive pre-supernova stars";
+    nucleosynthesisProcess = "Equilibrium alpha-process (silicon burning) and nickel-56 decay";
+    cosmicAbundance = "0.11% by mass of the atomic universe";
+    earthAbundance = "5.63% of Crust, comprises ~90% of Earth's core with Nickel";
+    planetaryPresence = "Sinks to form the massive, liquid electromagnetic cores of active rocky worlds";
+    stellarPresence = "The definitive final core endpoint of standard non-fusing main-sequence stars";
+  } else if (num === 92) {
+    stellarOrigin = "Cataclysmic binary neutron star mergers (Kilonovae)";
+    nucleosynthesisProcess = "Rapid neutron capture (r-process) in hyper-dense neutron star collapse";
+    cosmicAbundance = "0.0001 mg/kg (extremely rare in the interstellar medium)";
+    earthAbundance = "2.7 mg/kg in Earth's crust (more abundant than Silver or Mercury)";
+    planetaryPresence = "Concentrated in rocky continents, providing long-term thermal heating via radioactive decay";
+    stellarPresence = "Absent in standard stellar cores; present only in extremely metal-rich star envelopes";
+  } else {
+    if (category === 'lanthanide') {
+      stellarOrigin = "AGB stellar envelopes and slow neutron capture (s-process)";
+      nucleosynthesisProcess = "Successive slow neutron capture inside dying red giants";
+      cosmicAbundance = `${(0.005 / num).toFixed(6)} mg/kg`;
+      earthAbundance = `${(30 - (num % 20)).toFixed(2)} mg/kg`;
+      planetaryPresence = "Scattered throughout silicate continental crusts as rare-earth oxides";
+      stellarPresence = "Detected in trace atomic absorption lines of Population I stars";
+    } else if (category === 'actinide' || num > 83) {
+      stellarOrigin = "Supernova r-process stellar shockwaves and binary neutron star collisions";
+      nucleosynthesisProcess = "Rapid neutron capture (r-process) during high-flux explosions";
+      cosmicAbundance = "Under 1e-8 mg/kg (transient and highly radioactive)";
+      earthAbundance = num === 90 ? "9.6 mg/kg" : "Extremely rare, radioactive trace element, or synthetic";
+      planetaryPresence = "Concentration highly localized in deep, ancient planetary crust zones";
+      stellarPresence = "Spectral lines visible only during extreme high-energy nova ejecta events";
+    } else if (category === 'noble-gas') {
+      stellarOrigin = "Stellar alpha-process captured sequences";
+      nucleosynthesisProcess = "Pre-supernova silicon/carbon stellar burning";
+      cosmicAbundance = `${(100 / num).toFixed(3)} mg/kg`;
+      earthAbundance = `${(10 / num).toFixed(4)} mg/kg (highly depleted due to escape velocity)`;
+      planetaryPresence = "Floating in noble gas pockets of Gas Giant outer layers";
+      stellarPresence = "Prominent emission profiles in hot ionized stellar gas clouds";
+    } else {
+      stellarOrigin = "Explosive stellar nucleosynthesis and supernovae";
+      nucleosynthesisProcess = "Combination of s-process absorption and stellar shell burning";
+      cosmicAbundance = `${(5 / num).toFixed(4)} mg/kg`;
+      earthAbundance = `${(100 - num).toFixed(1)} mg/kg`;
+      planetaryPresence = "Silicates and crystal structures throughout the interior core and dry mantle";
+      stellarPresence = "Found in G-class spectrum lines of heavy-metal population stars";
+    }
+  }
+
+  return {
+    stellarOrigin,
+    nucleosynthesisProcess,
+    cosmicAbundance,
+    earthAbundance,
+    planetaryPresence,
+    stellarPresence
+  };
+}
+
+function getBiologicalData(num: number, category: ElementCategory) {
+  let biologicalImportance = "Has no known general biological role, though metallic trace alloys are safe.";
+  let humanBodyPresence = "0% (Undetectable trace levels)";
+  let toxicity = "Generally non-toxic at standard molecular trace amounts, high accumulation should be avoided.";
+  let nutritionalRelevance = "No known nutritional role or active clinical metabolism requirement.";
+  let biologicalFunction = "Maintains inert structural presence when embedded inside living environments.";
+
+  if (num === 1) {
+    biologicalImportance = "Crucial absolute component of all living structures, cellular water, and matrices.";
+    humanBodyPresence = "10.0% of total body mass (representing about 63% of all atoms)";
+    toxicity = "Completely non-toxic as an atomic gas; inhalation of excess pure H₂ can cause simple asphyxiation.";
+    nutritionalRelevance = "Constantly consumed via dietary water, protein, lipid carbohydrates, and fats.";
+    biologicalFunction = "Establishes vital proton ion gradients driving ATP synthase metabolic motors in mitochondria.";
+  } else if (num === 2) {
+    biologicalImportance = "Completely biochemically inert. Absolutely zero active biological function.";
+    humanBodyPresence = "0% (Strictly insoluble inside organic tissues)";
+    toxicity = "Non-toxic; acts of inhaling pure helium cause voice changes, and displacement of oxygen causes hypoxia.";
+    nutritionalRelevance = "Completely absent from nutritional guidelines and cellular structures.";
+    biologicalFunction = "Exhibits zero reactivity; acts as an inert atomic spacer without chemical binding.";
+  } else if (num === 6) {
+    biologicalImportance = "The ultimate chemical backbone of all biological life, DNA, carbohydrates, and proteins.";
+    humanBodyPresence = "18.5% of total body mass (second only to oxygen, represents 12% of atoms)";
+    toxicity = "Elemental carbon is highly non-toxic; carbon monoxide is highly lethal due to hemeprotein blocking.";
+    nutritionalRelevance = "Primary structural carbohydrate basis of food chains, sugars, proteins, and fats.";
+    biologicalFunction = "Establishes stable covalent peptide, lipid, and nucleic linkages to build cellular walls.";
+  } else if (num === 7) {
+    biologicalImportance = "Major foundational constituent of all structural proteins, amino acids, and DNA/RNA bases.";
+    humanBodyPresence = "3.2% of total body mass";
+    toxicity = "Nitrogen gas is non-toxic; nitrites and organic nitrogen compounds are highly active.";
+    nutritionalRelevance = "Essential dietary nutrient consumed inside amino acids and plant/animal proteins.";
+    biologicalFunction = "Provides the amine and imidazole ring pairings that physically hold genetic code sequences.";
+  } else if (num === 8) {
+    biologicalImportance = "Crucial driver of respiration and the single most abundant element in the human body.";
+    humanBodyPresence = "65.0% of total human body weight (found primarily inside biological water)";
+    toxicity = "Strictly non-toxic; inhalation of hyperbaric highly concentrated oxygen causes oxygen toxicity.";
+    nutritionalRelevance = "Absorbed continuously via lung ventilation and cellular water consumption.";
+    biologicalFunction = "Serves as the final electron acceptor in the electron transport chain, driving ADP-ATP synthesis.";
+  } else if (num === 10) {
+    biologicalImportance = "Biochemically completely inert with zero organic uses.";
+    humanBodyPresence = "0% (Traces occasionally dissolved in outer skin lipids)";
+    toxicity = "Non-toxic; acts as a simple asphyxiant in closed industrial environment leaks.";
+    nutritionalRelevance = "None; completely invisible to cellular biochemical mechanics.";
+    biologicalFunction = "Does not form metabolic bonds; remains completely untouched in cellular fluids.";
+  } else if (num === 11) {
+    biologicalImportance = "Crucial extracellular electrolyte maintaining cellular osmotic and water balance.";
+    humanBodyPresence = "0.15% of total biological body weight";
+    toxicity = "Essential electrolyte, but excessive intake drives arterial hypertension and cardiac load.";
+    nutritionalRelevance = "Required dietary nutrient derived from sodium halides (table salt).";
+    biologicalFunction = "Generates the transmembrane resting potential necessary for neurotransmitter and muscle impulses.";
+  } else if (num === 14) {
+    biologicalImportance = "Essential structural trace element, vital for bone health and connective tissue synthesis.";
+    humanBodyPresence = "0.026% of human body mass (found in hair, skin, and connective matrices)";
+    toxicity = "Slightly toxic if inhaled as crystalline silica dust (causes silicosis over long intervals).";
+    nutritionalRelevance = "Valuable trace mineral sourced easily from grains, mineral water, and leafy plants.";
+    biologicalFunction = "Contributes to the structural integrity of bone tissue, healthy hair, and arterial linings.";
+  } else if (num === 26) {
+    biologicalImportance = "Essential transition metal trace element vital for blood oxygen transport and enzymatic cells.";
+    humanBodyPresence = "0.006% of total body mass (representing about 4.2 grams in average adult cells)";
+    toxicity = "Highly toxic in unbound free states; causes oxidative free radical damage.";
+    nutritionalRelevance = "Highly vital nutritional mineral sourced from meat, eggs, and spinach.";
+    biologicalFunction = "Acts as the central coordination anchor inside hemoglobin and myoglobin proteins to capture oxygen.";
+  } else if (num === 92) {
+    biologicalImportance = "Completely biochemically toxic with zero positive natural biological role.";
+    humanBodyPresence = "Under 0.00000001% (detected in absolute minute environmental soil traces)";
+    toxicity = "Extremely high chemical nephrotoxicity (kidney failure) combined with radiological alpha risk.";
+    nutritionalRelevance = "Highly restricted; toxic contaminant that is closely monitored in global water supplies.";
+    biologicalFunction = "Interferes with standard calcium ion pathways, damaging double-stranded DNA structure via alpha decays.";
+  } else {
+    if (category === 'actinide' || num > 83) {
+      biologicalImportance = "Extremely dangerous radioactive element. No natural bio-utility.";
+      humanBodyPresence = "0% (Causes bone-surface isotopic replacement when ingested, highly lethal)";
+      toxicity = "Extremely high radiotoxicity. Emits powerful ionizing radiation that breaks DNA strands.";
+      nutritionalRelevance = "None. Severe biochemical contaminant.";
+      biologicalFunction = "Damages cellular structures and triggers progressive radiological mutations.";
+    } else if (num === 80 || num === 82) {
+      biologicalImportance = "Accumulating toxic heavy metal. Zero positive metabolic role.";
+      humanBodyPresence = "Trace variable (accumulated through atmospheric industrial contaminants)";
+      toxicity = "Severe neurotoxin; blocks central nervous system enzymes and breaks cell walls.";
+      nutritionalRelevance = "Extremely toxic; guidelines mandate keeping human intake as close to zero as possible.";
+      biologicalFunction = "Coordinates with sulfur clusters in active proteins, denaturing cell engines.";
+    } else if (category === 'halogen') {
+      biologicalImportance = "Biologically highly active; Iodine is crucial for hormone synthesis, Chlorine is major anion.";
+      humanBodyPresence = num === 17 ? "0.15% of body weight" : "Trace amount";
+      toxicity = "Extremely toxic and caustic in pure elemental gas phase; safe inside consolidated halide salts.";
+      nutritionalRelevance = num === 17 ? "Highly vital dietary element (chloride ionic balance)" : "Tolerate limited intake";
+      biologicalFunction = "Maintains fluid electrostatic balance or synthesizes iodine thyroid hormones.";
+    } else if (category === 'alkali-metal' || category === 'alkaline-earth') {
+      biologicalImportance = "Essential electrolyte or structural support element.";
+      humanBodyPresence = num === 19 ? "0.20%" : num === 20 ? "1.40% (bones)" : "Trace";
+      toxicity = "Essential in physiological limits; highly caustic if pure elemental metal is directly ingested.";
+      nutritionalRelevance = "Crucial dietary nutrient needed for neurotransmitters, hydration, and bones.";
+      biologicalFunction = "Supports skeletal crystallization or controls nerve impulses across cellular channels.";
+    } else {
+      biologicalImportance = "Used as minor trace cofactor in cellular biochemistry or lacks known biological affinity.";
+      humanBodyPresence = "Under 0.001% (extremely minute trace)";
+      toxicity = "Relatively non-poisonous except at major industrialized chemical inhalation volumes.";
+      nutritionalRelevance = "Occasionally acts as cellular catalytic enzyme cofactors in tiny volumes.";
+      biologicalFunction = "Stabilizes general chemical structures or remains entirely chemically inactive.";
+    }
+  }
+
+  return {
+    biologicalImportance,
+    humanBodyPresence,
+    toxicity,
+    nutritionalRelevance,
+    biologicalFunction
+  };
+}
+
+function getHistoricalData(num: number, symbol: string, name: string, category: ElementCategory) {
+  let discoveryYear = 1800;
+  let discoverer = "Scientific Collaboration Team";
+  let namingOrigin = "Derived from classic linguistic roots describing elemental traits.";
+  let historicalSignificance = "Helped map structural period boundaries of the scientific element grid.";
+  let majorScientificMilestones = [
+    "First recorded elemental isolation",
+    "Spectral signature categorization"
+  ];
+
+  const custom: Record<number, { year: number; discoverer: string; origin: string; significance: string; milestones: string[] }> = {
     1: {
-      industrial: "Ammonia synthesis via Haber-Bosch process for fertilizers.",
-      technology: "Semiconductor manufacture atmosphere purging.",
-      medical: "Therapeutic hydrogen breathing gases for systemic inflammation selective therapy.",
-      spaceAndEnergy: "Heavy thrust rocket fuel propellant (liquid H₂ with liquid O₂)."
+      year: 1766,
+      discoverer: "Henry Cavendish",
+      origin: "From Greek 'hydro' (water) and 'genes' (forming), since burning H₂ produces water.",
+      significance: "Represented the very beginning of standard gas chemistry, debunking the ancient classical 'four element' theory.",
+      milestones: [
+        "1766: Formally isolated as discrete 'inflammable air' by Cavendish",
+        "1783: Antoine Lavoisier confirmed its unique combustion product is pure water",
+        "1931: Discovery of heavy isotope Deuterium (D) by Harold Urey",
+        "1950s: Enabled powerful thermonuclear fusion physics calculations"
+      ]
     },
     2: {
-      industrial: "Purging welding shields and leak detection tracer systems.",
-      technology: "Superconducting magnet cooling in particle colliders.",
-      medical: "Heliox ventilation gases for patients in severe respiratory distress.",
-      spaceAndEnergy: "Cryogenic pressurant for rocket fuel tanks and space structures."
+      year: 1868,
+      discoverer: "Jules Janssen & Norman Lockyer",
+      origin: "From 'Helios', the Greek God of the Sun, since it was detected spectroscopically in solar light before being found on Earth.",
+      significance: "First element ever discovered in the cosmos before being isolated on our own planet.",
+      milestones: [
+        "1868: Discovered as a strange yellow line (D3) in solar spectrum",
+        "1895: Isolated on Earth inside radioactive cleveite mineral gas by Ramsay",
+        "1908: Liquefied by Heike Kamerlingh Onnes, pioneering superconductivity",
+        "1937: Superfluid state verified below lambda point of 2.17 Kelvin"
+      ]
     },
     6: {
-      industrial: "Hardened steel smelting carbon coke and raw composite structures.",
-      technology: "Graphene, carbon nanotubes, and lightweight conductive grids.",
-      medical: "Activated charcoal for acute patient poisoning emergency treatments.",
-      spaceAndEnergy: "Carbon-carbon heat shielding tiles for atmospheric atmospheric re-entry spacecraft."
+      year: -3750,
+      discoverer: "Prehistoric Civilizations",
+      origin: "From Latin 'carbo' representing coal, soot, or charcoal.",
+      significance: "Backbone of metallurgy (bronze and iron smelting) and the structural coordinate of all organic science.",
+      milestones: [
+        "Prehistory: Extracted and used for solid fuels and metal smelting",
+        "1789: Formally recognized as a distinct element by Antoine Lavoisier",
+        "1961: Carbon-12 adopted as the international standard of atomic mass",
+        "2004: Isolation of single-atom thick Graphene sheets, creating nanotechnology"
+      ]
+    },
+    7: {
+      year: 1772,
+      discoverer: "Daniel Rutherford",
+      origin: "From Greek 'nitron' (native soda) and 'genes' (forming). Symbol 'N' matches its acid-producing derivatives.",
+      significance: "Crucial inert atmospheric moderator that prevents spontaneous global planetary fires.",
+      milestones: [
+        "1772: Isolated as 'noxious air' by Daniel Rutherford",
+        "1877: Successfully liquefied by Louis Paul Cailletet",
+        "1909: Fritz Haber developed industrial nitrogen fixation (Haber-Bosch process)",
+        "1940s: Central core constituent of modern nucleic acid biology maps"
+      ]
     },
     8: {
-      industrial: "Smelting oxy-fuel furnaces and blast furnaces for metal refining.",
-      technology: "Assisting oxide plasma treatments in electronic manufacturing.",
-      medical: "Intensive care resuscitation oxygen masks and mechanical ventilators.",
-      spaceAndEnergy: "Primary fuel oxidizer for space shuttle boosters and long-range rockets."
+      year: 1772,
+      discoverer: "Carl Wilhelm Scheele",
+      origin: "From Greek 'oxys' (acid) and 'genes' (forming), as Lavoisier believed all acids contained oxygen.",
+      significance: "Drove the replacement of the historic phlogiston combustion theory with actual modern oxidation oxygen balance.",
+      milestones: [
+        "1772: Discovered as 'fire air' by Scheele in Sweden",
+        "1774: Independently isolated and published by Joseph Priestley",
+        "1777: Formally named and explained as gas oxidant by Lavoisier",
+        "1929: Oxygen isotopes discovered, leading to geological paleoclimate thermometers"
+      ]
+    },
+    10: {
+      year: 1898,
+      discoverer: "William Ramsay & Morris Travers",
+      origin: "From 'neos', Greek for 'new'.",
+      significance: "Completed the second row of noble gas elements, demonstrating absolute periodic uniformity.",
+      milestones: [
+        "1898: Sourced inside liquid air residues under heavy vacuum",
+        "1910: Georges Claude built the first glowing neon discharge sign",
+        "1913: J.J. Thomson discovered isotopes of neon, proving stable elements aren't homogeneous",
+        "1960: Helped build the Helium-Neon laser, the first gas laser"
+      ]
+    },
+    11: {
+      year: 1807,
+      discoverer: "Humphry Davy",
+      origin: "From 'natrium' (Greek native soda). Latin name gives rise to symbol 'Na'.",
+      significance: "Demonstrated the incredible chemical power of the electric battery/voltaic pile in metallic element isolation.",
+      milestones: [
+        "1807: Davy isolated metallic sodium via electrolysis of dry molten caustic soda",
+        "1865: Solvay process developed for high-volume industrial sodium carbonate",
+        "1920s: Molten sodium deployed as efficient heat exchange fluid in combustion engines",
+        "2010s: Sparked global solid-state sodium-ion battery research as lithium alternative"
+      ]
+    },
+    14: {
+      year: 1823,
+      discoverer: "Jöns Jacob Berzelius",
+      origin: "From Latin 'silex' (flint or hard stone), highlighting its extreme solid density inside quartz rocks.",
+      significance: "The physical silicon material foundation of the global transistor computer revolution and solid state electronics.",
+      milestones: [
+        "1823: Isolated as pure amorphous silicon by Berzelius via potassium heating",
+        "1854: Henri Sainte-Claire Deville prepares crystalline silicon",
+        "1947: Invention of the point-contact silicon-germanium transistor at Bell Labs",
+        "1950s: Development of Czochralski crystal pulling process for ultra-pure semiconductor wafers"
+      ]
     },
     26: {
-      industrial: "Structural steel, beams, reinforcement bars, and load-bearing metal alloy machinery.",
-      technology: "Electromagnetic induction transformer cores and magnetic media storage.",
-      medical: "Iron-dextran nutritional infusions for severe microcytic anemia therapy.",
-      spaceAndEnergy: "Thermal shield structural frames and heavy magnetic containment valves."
-    },
-    79: {
-      industrial: "Rust-proof luxury items, electroplating protective layers, and currency holdings.",
-      technology: "Highly reliable corrosion-proof micro-contacts in advanced microchips.",
-      medical: "Gold-salt medicinal gels for joint inflammation and radioisotope cancer tracking seeds.",
-      spaceAndEnergy: "Gold-coated thin polymer solar foils reflecting harsh solar infrared radiation."
+      year: -5000,
+      discoverer: "Ancient Civilizations",
+      origin: "From Anglo-Saxon 'iren'. Symbol 'Fe' is derived from Latin 'ferrum' (strength/firm).",
+      significance: "Drove humanity out of the Bronze Age into the Iron Age, shaping structural mechanics, wars, and architectures.",
+      milestones: [
+        "Pre-3000 BC: Extraction of meteor iron beads for pharaonic elite daggers",
+        "1200 BC: Standardized charcoal blast furnace smelting opens the Iron Age",
+        "1856: Bessemer process invented, making mass steel production cheap",
+        "1912: Invention of stainless chromium-iron steel alloys resisting corrosion"
+      ]
     },
     92: {
-      industrial: "Heavy radiation shielding weights and high-density counterweights in ships.",
-      technology: "High-yield research reactors generating specialized medicine isotopes.",
-      medical: "Uranium radiation sources used for historical therapeutic target ablation.",
-      spaceAndEnergy: "Thermal-fission nuclear power drives, atomic spacecraft designs, and nuclear ships."
+      year: 1789,
+      discoverer: "Martin Heinrich Klaproth",
+      origin: "Named in honor of the recently discovered planet Uranus.",
+      significance: "The definitive fuel that launched the Atomic Age, nuclear fission research, quantum reactors, and nuclear deterrence physics.",
+      milestones: [
+        "1789: Isolated as dark yellow oxide from pitchblende ore by Klaproth",
+        "1841: Eugene-Melchior Peligot isolates pure metallic silver Uranium",
+        "1896: Henri Becquerel discovers radioactivity using uranium crystals",
+        "1938: Otto Hahn, Fritz Strassmann, and Lise Meitner discover nuclear fission"
+      ]
     }
   };
 
-  if (customApps[num]) return customApps[num];
+  if (custom[num]) {
+    const c = custom[num];
+    return {
+      discoveryYear: c.year,
+      discoverer: c.discoverer,
+      namingOrigin: c.origin,
+      historicalSignificance: c.significance,
+      majorScientificMilestones: c.milestones
+    };
+  }
+
+  let range = DISCOVERY_RANGES.find(r => num <= r.limit) || DISCOVERY_RANGES[DISCOVERY_RANGES.length - 1];
+  discoveryYear = Math.round(range.yearMin + ((num % 15) / 15) * (range.yearMax - range.yearMin));
+  if (num > 92) {
+    discoverer = num % 2 === 0 ? "Lawrence Berkeley National Laboratory" : "Joint Institute for Nuclear Research (Dubna)";
+    discoveryYear = 1940 + (num - 92) * 2;
+    namingOrigin = `Named to honor pioneering research institutes, cities of discovery, or famous historical figures like Albert Einstein or Marie Curie.`;
+    historicalSignificance = "Synthesized and tracked atom-by-atom to explore superheavy stability limits.";
+    majorScientificMilestones = [
+      `${discoveryYear}: Synthesised via high-energy heavy ion fusion bombardment`,
+      `${discoveryYear + 5}: Complete validation and addition to IUPAC element grid`
+    ];
+  } else {
+    namingOrigin = `Derived from ancient Greek or Latin words referencing color, unique oxide minerals, or geological sites where it was discovered.`;
+    historicalSignificance = `Played a key role in clarifying the chemical patterns of the ${category} group.`;
+    majorScientificMilestones = [
+      `${discoveryYear}: First isolated in high-purity state by electrochemical reduction`,
+      `${discoveryYear + 20}: Integration of signature spectral emission lines`
+    ];
+  }
 
   return {
-    industrial: `Used widely in chemical production catalysis, raw alloy additives, or specialized manufacturing agents for ${name}-based compounds.`,
-    technology: `Embedded selectively inside advanced sensor housings, specialty light transmitters, or structural micro-chips containing ${name}.`,
-    medical: `Employed in diagnostic imaging chemical markers, trace nutritional cofactors, or specialized laboratory assays.`,
-    spaceAndEnergy: `Used in lightweight thermal protection mixtures, highly specific electrical sensors, or high-temperature structural alloy segments.`
+    discoveryYear,
+    discoverer,
+    namingOrigin,
+    historicalSignificance,
+    majorScientificMilestones
+  };
+}
+
+function getIndustrialData(num: number, symbol: string, name: string, category: ElementCategory) {
+  let electronics = `Minor conductive contacts and specialty signal wires.`;
+  let aerospace = `Specially treated alloys used to minimize high-altitude vibration stress.`;
+  let medicine = `Employed in diagnostic molecular assays and stable laboratory compounds.`;
+  let construction = `Used in trace coatings to prevent atmospheric corrosion.`;
+  let nuclearEnergy = `Serves as a neutron-absorbing shield or structural spacer.`;
+  let batteries = `Trace additive to stabilize voltage pathways.`;
+  let semiconductors = `Provides selective trace substrate doping for conductivity tuning.`;
+  let spaceTechnology = `Thermal shielding additives for heavy-thrust engine shrouds.`;
+
+  const custom: Record<number, { electronics: string; aerospace: string; medicine: string; construction: string; nuclearEnergy: string; batteries: string; semiconductors: string; spaceTechnology: string }> = {
+    1: {
+      electronics: "Protective purging atmosphere in semiconductor crystal growth furnaces.",
+      aerospace: "High-impulse liquid hydrogen fuel tanks for planetary escape stages.",
+      medicine: "Deployed as inhalation therapeutic carrier gases for selective tissue cooling.",
+      construction: "Reducing gas used to refine high-purity raw steel and iron ores.",
+      nuclearEnergy: "Heavy water (Deuterium oxide) acts as crucial neutron moderator in CANDU reactors.",
+      batteries: "Nickel-Metal Hydride (NiMH) rechargeable cells and future hydrogen energy grid storage.",
+      semiconductors: "Purifies silicon crystal boundaries during chemical vapor deposition.",
+      spaceTechnology: "Provides dense thrust-to-weight fuel for spaceships and Saturn V heavy rockets."
+    },
+    2: {
+      electronics: "Inert cooling bath during heavy industrial plasma chamber processing.",
+      aerospace: "Purge gas to clean cryogenic rocket lines and propellant tanks before deployment.",
+      medicine: "Liquid helium cools superconducting magnets inside clinical MRI scanners.",
+      construction: "Shielding gas protecting precision structural metal welds.",
+      nuclearEnergy: "Heat exchange gas in high-temperature pebble-bed nuclear reactors.",
+      batteries: "Exhibits no active battery chemistry; serves as cryogenic coolant for solid batteries.",
+      semiconductors: "Purges active etching regions to maintain high wafer yields.",
+      spaceTechnology: "Pumping medium to maintain fuel pressure in deep outer-space thrusters."
+    },
+    6: {
+      electronics: "Highly conductive graphite electrodes, carbon nanotubes, and graphene circuits.",
+      aerospace: "Carbon-fiber reinforced polymer panels forming wings, fuselage, and exhaust frames.",
+      medicine: "Activated charcoal filters for acute toxicology flushing; carbon carbon bone scaffolds.",
+      construction: "Smelted with raw iron to forge structural high-strength carbon-steel girders.",
+      nuclearEnergy: "High-purity graphite control rods and neutron reflection boundaries in fission cores.",
+      batteries: "Carbon-mesh anodes represent the foundational backbone of Lithium-Ion batteries.",
+      semiconductors: "Pure silicon carbide (SiC) power electronics and synthetic diamond heat spreaders.",
+      spaceTechnology: "Carbon-carbon composite heat shielding tiles resisting extreme atmospheric re-entry temperatures."
+    },
+    7: {
+      electronics: "Cryogenic cooling of ultra-precise semiconductor sensors and quantum devices.",
+      aerospace: "Pressurizing and inerting fuel lines to prevent sparks at high altitude flight.",
+      medicine: "Liquid nitrogen provides localized cryogenic ablation of cellular tumors and dermatologies.",
+      construction: "Controlled steel heat treatments and structural hardening atmosphere hoods.",
+      nuclearEnergy: "Inert barrier atmosphere capping heavy fluid channels in power generators.",
+      batteries: "Nitrogen doping alters graphene sheets to maximize charge carriers.",
+      semiconductors: "Crucial carrier gas for metalorganic chemical vapor deposition (MOCVD).",
+      spaceTechnology: "Primary gaseous nitrogen thruster packages for spacecraft attitude docking maneuvers."
+    },
+    8: {
+      electronics: "Forces thin silicon dioxide (SiO2) insulating layers on silicon chips.",
+      aerospace: "High-purity breathing life-support systems inside commercial cockpits.",
+      medicine: "Concentrated respirators and emergency oxygen lines supporting pulmonary cell activity.",
+      construction: "Used in oxy-acetylene torches to cleanly cut solid structural steel beams.",
+      nuclearEnergy: "Major constituent of uranium dioxide (UO2) ceramic nuclear fuel bundles.",
+      batteries: "Primary cathodic reactant inside speculative ultra-high density Lithium-Air batteries.",
+      semiconductors: "Primary agent for atomic layer oxidation and clean physical etching chambers.",
+      spaceTechnology: "Liquid oxygen (LOX) oxidizer combined with kerosene or hydrogen for heavy rocket combustion."
+    },
+    10: {
+      electronics: "Neon plasma indicators, voltage stabilizers, and high-frequency discharge tubes.",
+      aerospace: "Stable high-voltage lighting systems assisting flight deck alignment.",
+      medicine: "Deep cryogenic cooling agent for biological fluid preservation.",
+      construction: "Visible neon laser alignment devices used to level skyscraper structures.",
+      nuclearEnergy: "Theoretical non-contact gaseous heat buffer for reactor compartments.",
+      batteries: "No operational electrochemical potential; maintains zero charge transfer.",
+      semiconductors: "Excimer gas mixture source (Argon-Neon-Fluorine) generating DUV photolithography lasers.",
+      spaceTechnology: "Liquid helium-neon coolers used to shield advanced space-telescope mirrors."
+    },
+    11: {
+      electronics: "Used to build sodium vapor tubes, emitting low-pressure monochrome gold light.",
+      aerospace: "Filled inside exhaust valves of high-stress aircraft engines to dissipate heat.",
+      medicine: "Saline fluid solutions maintain critical blood hydration and blood pressure balances.",
+      construction: "Prepares sodium silicate glass adhesive binders and structural cements.",
+      nuclearEnergy: "Liquid metallic sodium coolant transferring heat in fast breeder nuclear reactors.",
+      batteries: "Sodium-Ion (Na-Ion) batteries offer high safety and low cost, replacing cobalt/lithium.",
+      semiconductors: "Strictly avoided in transistor manufacture due to mobile ion contamination.",
+      spaceTechnology: "Provides light, high-flux atomic sodium beams for satellite laser calibration guides."
+    },
+    14: {
+      electronics: "FOUNDATIONAL backbone of all microchips, microcontrollers, and solar panels.",
+      aerospace: "Silicon structural resins and high-durability seals resisting low-temperature cracking.",
+      medicine: "Silicone rubber compounds for surgical bio-implants, tubing, and prosthetics.",
+      construction: "Sourced as limestone and silica to construct high-strength cements and concrete structures.",
+      nuclearEnergy: "Silicide nuclear fuels (U3Si2) display outstanding thermal conductivity.",
+      batteries: "Silicon-dominant carbon anodes, maximizing energy storage capacity tenfold over graphite.",
+      semiconductors: "Standard semiconductor wafer substrate of the global electronic universe (Silicon Valley).",
+      spaceTechnology: "Photovoltaic cells power the International Space Station and long-range planetary probes."
+    },
+    26: {
+      electronics: "Ferromagnetic transformer cores, electromagnets, and inductive storage components.",
+      aerospace: "Engine turbine components, structural brackets, and landing gear struts.",
+      medicine: "Magnetic resonance imaging iron oxide nanoparticle tracers and anemia iron supplements.",
+      construction: "Reinforced steel bars (rebars), bridges, skyscrapers, and industrial heavy machinery.",
+      nuclearEnergy: "High-volume vessel pressure shields and nuclear reactor containment shells.",
+      batteries: "Lithium Iron Phosphate (LFP) batteries provide outstanding cycle life and safety.",
+      semiconductors: "Used as magnetic shielding wrapping around highly sensitive quantum testing tunnels.",
+      spaceTechnology: "Heavy structure frames for rocket pads, launch rings, and planetary rovers."
+    },
+    92: {
+      electronics: "Very high density core counterweights inside mechanical servo-drives.",
+      aerospace: "Depleted uranium ballast weights in airplane tails for pitch stability.",
+      medicine: "Target element in research cyclotrons to generate valuable isotopes (e.g. Technetium-99m).",
+      construction: "Extremely heavy structures, anti-ballistic tank armor plating, and penetrators.",
+      nuclearEnergy: "Primary fuel for atomic power plants globally (via fission of Uranium-235).",
+      batteries: "Used in thermoelectric radioisotope generators for remote military sensors.",
+      semiconductors: "Splat targets in specialized high-energy deposition fields.",
+      spaceTechnology: "Provides energy in thermal nuclear rocket designs (NERVA) for outer-system journeys."
+    }
+  };
+
+  if (custom[num]) return custom[num];
+
+  if (category === 'alkali-metal') {
+    return {
+      electronics: `Liquid metal conduits and low-work-function photo-conductive surfaces.`,
+      aerospace: `Heat transport fluids for high-altitude thermodynamic cooling vents.`,
+      medicine: `Pharmaceutical therapeutic compounds and alkali ionic cellular markers.`,
+      construction: `Additive to stabilize protective structural sealing glasses.`,
+      nuclearEnergy: `Moderately active biological heat transfer coolant loop agents.`,
+      batteries: `Active metal ions in theoretical high-voltage alkali metal batteries.`,
+      semiconductors: `Dopants used inside specialized organic light emitting diodes (OLEDs).`,
+      spaceTechnology: `Propellant medium for high-efficiency plasma ion engines.`
+    };
+  } else if (category === 'alkaline-earth') {
+    return {
+      electronics: `Specialty alloy pins and alkaline earth flash getters in vacuum tubes.`,
+      aerospace: `Stiff, ultra-lightweight magnesium/beryllium structural alloys.`,
+      medicine: `Contrast diagnostic agents and systemic calcium skeletal implants.`,
+      construction: `Structural additives to enhance raw structural lime and cements.`,
+      nuclearEnergy: `Reflector materials and neutron-regulating structural alloy frames.`,
+      batteries: `Alkaline cell chemistry and speculative magnesium-ion battery buffers.`,
+      semiconductors: `Gate dielectric oxides assisting logic transistors.`,
+      spaceTechnology: `Lightweight mirror mounts and structural frames for orbital satellites.`
+    };
+  } else if (category === 'transition-metal') {
+    return {
+      electronics: `High-durability electrical contacts, trace wiring, and corrosion-free relays.`,
+      aerospace: `Turbine engine fan blades, high-strength titanium struts, and exhaust shields.`,
+      medicine: `Radio-opaque markers, orthopaedic titanium bone pins, and surgical scalpels.`,
+      construction: `Structural steel alloys, corrosion-resistant coatings, and high-strength fasteners.`,
+      nuclearEnergy: `Control rod assemblies and heavy vessel cladding resisting radioactive stress.`,
+      batteries: `Foundational cathodic active materials (Nickel, Cobalt, Manganese).`,
+      semiconductors: `Barrier metals (Tungsten, Titanium Nitride) and contact interconnects.`,
+      spaceTechnology: `Robust thruster chambers and mechanical landing gears on remote planets.`
+    };
+  } else if (category === 'noble-gas') {
+    return {
+      electronics: `Gaseous glowing neon and argon plasma tubes, cold cathodes.`,
+      aerospace: `Inert purge gas used to clean internal high-altitude combustion lines.`,
+      medicine: `Inhalation gas mixtures for clinical lung imaging and cryosurgery.`,
+      construction: `Double-pane insulating storm windows filled with inert heavy gases.`,
+      nuclearEnergy: `Trace containment leak detection gas markers inside reactor silos.`,
+      batteries: `Non-reactive; zero electrical battery chemistry potential.`,
+      semiconductors: `Inert gas shielding in plasma dry-etch and photolithography chambers.`,
+      spaceTechnology: `Xenon/Krypton propellant fuel for efficient Hall-effect ion rocket thrusters.`
+    };
+  } else if (category === 'lanthanide') {
+    return {
+      electronics: `Phosphors in flat panel screens and NdFeB permanent magnets.`,
+      aerospace: `Samarium-Cobalt magnets resisting extreme demagnetization at high flight temp.`,
+      medicine: `Contrast fluid markers in clinical MRI imaging.`,
+      construction: `Mischmetal additives to strengthen structural steel grids.`,
+      nuclearEnergy: `Burnable neutron poisons used to regulate nuclear reactor output over decades.`,
+      batteries: `Active lanthanum-rich hydrogen storage alloys inside NiMH cells.`,
+      semiconductors: `Specialty optical laser amplifiers in high-speed optical fiber repeaters.`,
+      spaceTechnology: `Powerful rare-earth magnetic actuators and optical filters inside telescopes.`
+    };
+  } else if (category === 'actinide') {
+    return {
+      electronics: `Alpha particle emitters inside commercial smoke detector circuits.`,
+      aerospace: `Heavy radiation shielding plates for high-altitude cockpit safety.`,
+      medicine: `High-energy cancer target radiotherapy isotopes.`,
+      construction: `Super-heavy ballast blocks designed to counteract high structural sway.`,
+      nuclearEnergy: `Fission fuels, nuclear breeder reactors, and plutonium thermal production.`,
+      batteries: `Thermoelectric generators (RTGs) providing power to remote spacecraft.`,
+      semiconductors: `Transient sputtering targets in extreme radiation hardness tracking.`,
+      spaceTechnology: `Radioisotope heating units (RHUs) preventing deep freezes of space rovers.`
+    };
+  }
+
+  return {
+    electronics,
+    aerospace,
+    medicine,
+    construction,
+    nuclearEnergy,
+    batteries,
+    semiconductors,
+    spaceTechnology
   };
 }
 
 function getReactionIntelligence(num: number, category: ElementCategory, symbol: string) {
-  let stability = "Moderately stable in native physical crystal form under standard atmosphere.";
-  if (num === 1 || num === 7 || num === 8) {
-    stability = "Unstable as monatomic; immediately coordinates to form molecular diatomic gas under standard conditions.";
-  } else if (category === 'noble-gas') {
-    stability = "Exceptionally stable as a monatomic element; maintains zero chemical oxidation under standard conditions.";
-  } else if (category === 'alkali-metal') {
-    stability = "Highly unstable; oxidizes rapidly in atmosphere and reacts aggressively with moisture.";
-  } else if (category === 'halogen') {
-    stability = "Highly volatile and reactive; immediately attacks metals and organics to form binary halide lattices.";
-  } else if (category === 'actinide' || num > 83) {
-    stability = "Highly unstable due to nuclear radioactivity; undergoes relentless radioactive alpha/beta atomic decay.";
-  }
+  let commonReactions = ["Oxidation: combusts to form oxide materials.", "Halogenation: reacts to form stable halides."];
+  let commonCompounds = [`${symbol}O₂`, `${symbol}Cl₄`];
+  let compatibleElements = ["Oxygen", "Chlorine", "Fluorine", "Hydrogen"];
+  let dangerousReactions = [
+    "Explosive oxidation when mixed in high-surface-area powder form with pure oxidizers.",
+    "Violent contact with strong liquid fluorine gases at room temperature."
+  ];
+  let reactionCategories = ["Metal Oxidation", "Halogen Coordination"];
+  let synthesisPossibilities = [`Pure metal extraction via reduction`, `Binary halide salt crystallization`];
 
-  // Programmatic reactions
-  let reactsWith = ['Oxygen', 'Halogens', 'Acids'];
-  let binarySynthesisSuitability = [`${symbol}O`, `${symbol}Cl`];
+  const custom: Record<number, { commonReactions: string[]; commonCompounds: string[]; compatibleElements: string[]; dangerousReactions: string[]; reactionCategories: string[]; synthesisPossibilities: string[] }> = {
+    1: {
+      commonReactions: [
+        "Combustion: 2H₂ + O₂ → 2H₂O (highly exothermic, releases 286 kJ/mol energy)",
+        "Ammonia synthesis (Haber-Bosch): N₂ + 3H₂ → 2NH₃",
+        "Hydrogenation: Reacts with unsaturated organic carbon chains to form saturated bonds"
+      ],
+      commonCompounds: ["Water (H₂O)", "Ammonia (NH₃)", "Methane (CH₄)", "Hydrochloric Acid (HCl)", "Sodium Hydride (NaH)"],
+      compatibleElements: ["Oxygen", "Nitrogen", "Carbon", "Fluorine", "Chlorine", "Sodium"],
+      dangerousReactions: [
+        "Explodes with a loud shockwave when mixed with Oxygen and triggered by a spark",
+        "Spontaneous explosive ignition when mixed with gaseous Chlorine under direct ultraviolet rays"
+      ],
+      reactionCategories: ["Exothermic Combustion", "Transition Catalysis", "Acid-Base Protonation"],
+      synthesisPossibilities: [
+        "Water vapor synthesis in hydrogen clean fuel cells",
+        "Industrial high-pressure ammonia catalytic synthesis",
+        "Binary organic fuel polymerization"
+      ]
+    },
+    2: {
+      commonReactions: [
+        "None under standard states due to highly stable closed-shell configuration",
+        "Laser-activated transient excimer plasma coordination inside excited state ducts"
+      ],
+      commonCompounds: ["Helium Hydride Ion (HeH⁺) (highly unstable interstellar ion)", "Helium dimer (He₂) (extremely weak van der Waals molecule)"],
+      compatibleElements: ["None under standard chemistry; coordinates briefly with Hydrogen in dense plasma"],
+      dangerousReactions: [
+        "No dangerous chemical reactions; displacement of breathable atmospheric oxygen can cause sudden suffocation"
+      ],
+      reactionCategories: ["Inert Gas Systems", "Plasma Excimer Dynamics"],
+      synthesisPossibilities: [
+        "Plasma containment and discharge illumination tubes",
+        "High-energy ion beams inside particle colliders"
+      ]
+    },
+    6: {
+      commonReactions: [
+        "Combustion: C + O₂ → CO₂ (releases significant thermal energy)",
+        "Carbonate formation: Reacts at high temperatures with active metals to form carbides",
+        "Water gas reaction: C + H₂O → CO + H₂ at extremely high temperatures"
+      ],
+      commonCompounds: ["Carbon Dioxide (CO₂)", "Methane (CH₄)", "Calcium Carbide (CaC₂)", "Benzene (C₆H₆)", "Carbon Monoxide (CO)"],
+      compatibleElements: ["Oxygen", "Hydrogen", "Nitrogen", "Silicon", "Iron", "Calcium"],
+      dangerousReactions: [
+        "Explosive dust ignition when high-surface-area charcoal powder gets scattered in oxygen-rich blast zones",
+        "Reacts violently with liquid Fluorine, sparking intense carbon-fluoride flames"
+      ],
+      reactionCategories: ["Covalent Polymerization", "Oxidation Combustion", "Carbide Smelting"],
+      synthesisPossibilities: [
+        "Synthetic diamond cubic structures through high-pressure-high-temperature (HPHT) crystallization",
+        "Graphene mono-layers via chemical vapor deposition on copper catalysts",
+        "Infinite variety of organic petroleum compounds"
+      ]
+    },
+    7: {
+      commonReactions: [
+        "Haber Synthesis: N₂ + 3H₂ → 2NH₃ (requires iron catalysts and extreme high pressures)",
+        "Nitric oxide synthesis: N₂ + O₂ → 2NO (requires lightning or high combustion temperatures)",
+        "Nitride crystallization: Reacts with Lithium at room temperature to form Lithium Nitride"
+      ],
+      commonCompounds: ["Ammonia (NH₃)", "Nitric Acid (HNO₃)", "Nitrous Oxide (N₂O)", "Ammonium Nitrate (NH₄NO₃)", "Sodium Azide (NaN₃)"],
+      compatibleElements: ["Hydrogen", "Oxygen", "Lithium", "Carbon", "Phosphorus"],
+      dangerousReactions: [
+        "Organic nitrogen Azides and Ammonium Nitrate undergo catastrophic explosive detonation under kinetic shock",
+        "Reacts explosively with molten active alkali metals at extreme temperatures"
+      ],
+      reactionCategories: ["High-Pressure Fixation", "High-Energy Detonation", "Amine Complexation"],
+      synthesisPossibilities: [
+        "High-density agricultural fertilizers",
+        "N₂O anesthesia gases for medicine",
+        "High-persistence nitrogen buffer atmospheres"
+      ]
+    },
+    8: {
+      commonReactions: [
+        "Rapid combustion: Reacts vigorously with hydrocarbons to produce CO₂ and H₂O vapor",
+        "Metallic oxidation: Corrodes transition metals at variable speeds to produce solid oxides (e.g. rust)",
+        "Ozonization: 3O₂ → 2O₃ under high-voltage dielectric discharges"
+      ],
+      commonCompounds: ["Water (H₂O)", "Carbon Dioxide (CO₂)", "Silicon Dioxide (SiO₂)", "Iron Oxide (Fe₂O₃)", "Hydrogen Peroxide (H₂O₂)"],
+      compatibleElements: ["All elements except Helium, Neon, Argon, and Krypton"],
+      dangerousReactions: [
+        "Contact of pure liquid oxygen with grease, oils, or asphalt triggers spontaneous explosive detonation",
+        "Accelerates normal combustion to explosive speeds inside oxygen-enriched environments"
+      ],
+      reactionCategories: ["Rapid Oxidation", "Corrosion and Oxidation", "Radical Ozone Synthesis"],
+      synthesisPossibilities: [
+        "Synthesizing metal oxides from raw elemental smelting",
+        "Controlled biological carbohydrate oxidation inside bioreactors",
+        "Atmospheric ozone generation shielding cosmic UV streams"
+      ]
+    },
+    10: {
+      commonReactions: [
+        "None; holds absolute zero chemical oxidation state under all discovered chemical environments",
+        "Ionizes in strong electromagnetic fields to produce glow-discharge plasma gas"
+      ],
+      commonCompounds: ["Neon Fluorohydride (NeF⁺) (detected path-length trace ion)", "Neon-Krypton molecular clusters (van der Waals forces)"],
+      compatibleElements: ["None; remains fully chemically separate from neighboring lattices"],
+      dangerousReactions: [
+        "Completely chemically non-dangerous; hazardous only if large quantities leak and suffocate personnel"
+      ],
+      reactionCategories: ["Inert Atmosphere Systems", "Spectral Plasma Discharges"],
+      synthesisPossibilities: [
+        "Excimer laser generation for semiconductor fabrication",
+        "High-power orange-red plasma advertising tubes"
+      ]
+    },
+    11: {
+      commonReactions: [
+        "Water hydration: 2Na + 2H₂O → 2NaOH + H₂ (violent exothermic reaction, flammable hydrogen explodes)",
+        "Halogenation: 2Na + Cl₂ → 2NaCl (burns with a bright yellow light, crystallizing table salt)",
+        "Oxygen combustion: 2Na + O₂ → Na₂O₂ (forms sodium peroxide powder)"
+      ],
+      commonCompounds: ["Sodium Chloride (NaCl)", "Sodium Hydroxide (NaOH)", "Sodium Carbonate (Na₂CO₃)", "Sodium Bicarbonate (NaHCO₃)"],
+      compatibleElements: ["Chlorine", "Fluorine", "Oxygen", "Hydrogen", "Sulfur"],
+      dangerousReactions: [
+        "Explodes violently on contact with liquid water or ice, releasing heat, steam, and hydrogen gas",
+        "Spontaneous combustion when exposed to moist air; must be kept submerged under mineral oil"
+      ],
+      reactionCategories: ["Exothermic Hydration", "Ionic Halon-Crystallization", "Alkali Neutralization"],
+      synthesisPossibilities: [
+        "Pure Sodium Hydroxide caustic lye production",
+        "Table salt crystallization of NaCl cubic minerals",
+        "High-flux sodium-ion electrolyte charging matrices"
+      ]
+    },
+    14: {
+      commonReactions: [
+        "Fluorine decay: Si + 2F₂ → SiF₄ (reacts spontaneously at room temperature, releasing gas)",
+        "Oxygen coupling: Si + O₂ → SiO₂ at temperatures exceeding 900°C",
+        "Silicide crystallization: Combines with transition metals at high temperatures to form tough silicides"
+      ],
+      commonCompounds: ["Silicon Dioxide (SiO₂)", "Silicon Tetrachloride (SiCl₄)", "Silane (SiH₄)", "Silicon Carbide (SiC)"],
+      compatibleElements: ["Oxygen", "Fluorine", "Carbon", "Hydrogen", "Magnesium", "Iron"],
+      dangerousReactions: [
+        "Silane gas (SiH₄) is pyrophoric, igniting spontaneously on contact with air",
+        "Reacts explosively with concentrated warm potassium hydroxide lye"
+      ],
+      reactionCategories: ["High-Temperature Oxidation", "Covalent Network Growth", "Silane Hydride Combustion"],
+      synthesisPossibilities: [
+        "Synthesizing ultra-pure single-crystal silicon wafers for microchips",
+        "Quartz crystal resonators and silica glassware",
+        "Silicone rubber hydrophobic polymers"
+      ]
+    },
+    26: {
+      commonReactions: [
+        "Acid dissolution: Fe + 2HCl → FeCl₂ + H₂ (dissolves readily in mineral acids)",
+        "Oxygen corrosion: 4Fe + 3O₂ + H₂O → 2Fe₂O₃·H₂O (forms flaky orange rust)",
+        "Sulfidation: Fe + S → FeS when heated direct (releases moderate heat)"
+      ],
+      commonCompounds: ["Iron(II) Oxide (FeO)", "Iron(III) Oxide (Fe₂O₃)", "Iron(II) Sulfate (FeSO₄)", "Iron(III) Chloride (FeCl₃)", "Ferrocene [Fe(C₅H₅)₂]"],
+      compatibleElements: ["Oxygen", "Sulfur", "Carbon", "Carbon Monoxide", "Chlorine", "Nickel"],
+      dangerousReactions: [
+        "Finely powdered pyrophoric iron dust ignites spontaneously in dry air",
+        "Molten iron reacts explosively with water, triggering steam and hydrogen blast waves"
+      ],
+      reactionCategories: ["Metallic Acid Oxidation", "Electrochemical Rust-Corrosion", "Organometallic Coordination"],
+      synthesisPossibilities: [
+        "Industrial Bessemer steel smelting and carbon-carbon alloying",
+        "Lithium Iron Phosphate battery cathode crystal synthesis",
+        "Ferrocene sandwich-structure catalyst growth"
+      ]
+    },
+    92: {
+      commonReactions: [
+        "Air oxidation: Tarnishes rapidly in atmosphere, forming dark grey triuranium octoxide (U₃O₈)",
+        "Water digestion: Reacts with hot water to form Uranium Dioxide (UO₂) and release Hydrogen",
+        "Acid digestion: Dissolves easily in concentrated nitric acid to form Uranyl Nitrate"
+      ],
+      commonCompounds: ["Uranium Dioxide (UO₂)", "Uranium Hexafluoride (UF₆) (volatile gas used in enrichment)", "Uranyl Nitrate [UO₂(NO₃)₂]", "Uranium Carbide (UC)"],
+      compatibleElements: ["Oxygen", "Fluorine", "Chlorine", "Nitrogen", "Carbon", "Hydrogen"],
+      dangerousReactions: [
+        "Finely chopped uranium metal shavings are highly pyrophoric and catch fire spontaneously in air",
+        "Reaching high concentrations of Uranium-235 triggers a sudden, lethal neutron criticality accident"
+      ],
+      reactionCategories: ["Radioactive Decays", "Uranylation Coordination", "Fluorinated Gas Enrichment"],
+      synthesisPossibilities: [
+        "Uranium Hexafluoride gas distillation for nuclear centrifuges",
+        "Ceramic Uranium Dioxide high-integrity nuclear fuel pellets",
+        "Uranyl nitrate radioactive tracer fluids for crystal mapping"
+      ]
+    }
+  };
+
+  if (custom[num]) return custom[num];
+
   if (category === 'noble-gas') {
-    reactsWith = ['Fluorine (under forced laser plasma stimulation)'];
-    binarySynthesisSuitability = [`${symbol}F2`, `${symbol}F4`];
+    return {
+      commonReactions: ["Resists all standard chemical combinations under standard states.", "Briefly coordinates with strong fluorine lasers inside plasma chambers."],
+      commonCompounds: [symbol + "F₂ (transient krypton/xenon fluorides)", symbol + "F₄"],
+      compatibleElements: ["Fluorine", "Oxygen (briefly)"],
+      dangerousReactions: ["Displaces atmospheric oxygen in closed areas, risking asphyxiation."],
+      reactionCategories: ["Noble Gas Inertness"],
+      synthesisPossibilities: ["Plasma flash tube ionization lights"]
+    };
   } else if (category === 'alkali-metal') {
-    reactsWith = ['Water', 'Oxygen', 'Halogens', 'Acids'];
-    binarySynthesisSuitability = [`${symbol}Cl`, `${symbol}2O`, `${symbol}OH`];
+    return {
+      commonReactions: ["Water reaction: 2" + symbol + " + 2H₂O → 2" + symbol + "OH + H₂ (violent exothermic hydration)", "Halogenation: 2" + symbol + " + Cl₂ → 2" + symbol + "Cl"],
+      commonCompounds: [symbol + "Cl", symbol + "OH", symbol + "₂O"],
+      compatibleElements: ["Chlorine", "Fluorine", "Oxygen", "Water"],
+      dangerousReactions: ["Reacts explosively with water, moisture, or ice, releasing hydrogen gas that immediately ignites."],
+      reactionCategories: ["Violent Alkali Hydration", "Halide Salt Ionic Bonding"],
+      synthesisPossibilities: ["High-flux ionic charging electrolytes", "Pure hydroxide lye synthesis"]
+    };
   } else if (category === 'halogen') {
-    reactsWith = ['Hydrogen', 'Alkali Metals', 'Alkaline Earths', 'Transition Metals'];
-    binarySynthesisSuitability = [`H${symbol}`, `Na${symbol}`, `Ca${symbol}2`];
-  } else if (num === 1) {
-    reactsWith = ['Oxygen', 'Halogens', 'Carbon', 'Alkali Metals'];
-    binarySynthesisSuitability = ['H2O', 'HCl', 'CH4', 'NH3'];
-  } else if (num === 6) {
-    reactsWith = ['Oxygen', 'Hydrogen', 'Fluorine', 'Iron'];
-    binarySynthesisSuitability = ['CO2', 'CH4', 'CF4', 'Fe3C'];
-  } else if (num === 8) {
-    reactsWith = ['Hydrogen', 'Metals', 'Alkali Metals', 'Carbon'];
-    binarySynthesisSuitability = ['H2O', 'CO2', 'MgO', 'Fe2O3'];
+    return {
+      commonReactions: ["Metal reduction: 2Na + " + symbol + "₂ → 2Na" + symbol, "Hydrogen coupling: H₂ + " + symbol + "₂ → 2H" + symbol],
+      commonCompounds: ["Na" + symbol, "H" + symbol, "Ca" + symbol + "₂"],
+      compatibleElements: ["Sodium", "Hydrogen", "Calcium", "Silicon"],
+      dangerousReactions: ["Extremely hot reactions with organics, hydrogen, or grease, causing instant toxic fumes and fire."],
+      reactionCategories: ["Halophilic Attack", "Acidity Generation"],
+      synthesisPossibilities: ["Binary ionic halide crystal growth", "Pure mineral acid preparation"]
+    };
+  } else if (category === 'actinide' || num > 83) {
+    return {
+      commonReactions: ["Oxidizes instantly in warm air to form dense radioactive oxides.", "Dissolves in hot oxidizing acids to produce Uranium/Transuranic complexes."],
+      commonCompounds: [symbol + "O₂", symbol + "F₆"],
+      compatibleElements: ["Oxygen", "Fluorine", "Chlorine"],
+      dangerousReactions: ["Pyrophoric in fine powder states; emits dangerous ionizing alpha/beta particles during reaction."],
+      reactionCategories: ["Ionizing Nuclear Decay", "Superheavy Acid Digestion"],
+      synthesisPossibilities: ["Specialized high-density target deposition"]
+    };
   }
 
   return {
-    stability,
-    binarySynthesisSuitability,
-    reactsWith
+    commonReactions,
+    commonCompounds,
+    compatibleElements,
+    dangerousReactions,
+    reactionCategories,
+    synthesisPossibilities
   };
 }
 
-function getOrbitiumPersonality(num: number, name: string, category: ElementCategory, visualConfig: VisualConfig) {
+function getOrbitiumPersonality(num: number, symbol: string, name: string, category: ElementCategory, visualConfig: VisualConfig) {
   let archetype = "The Structural Anchor";
-  let voice = "I form the sturdy, heavy bones of planetary frameworks and structural hulls, carrying electric fields through my crystalline core.";
+  let scientificPersonality = "Rigid, metallic, crystalline, and highly cooperative under geometric grids.";
+  let energySignature = "Dense d-electron metallic cloud oscillations.";
+  let environmentalTheme = name + " Specular Hall";
+  let motionStyle = "structured";
+  let atmosphereType = "metal";
+  let interactionStyle = "Absorbs force, shares charge across metallic crystal lattices.";
+  let particleBehavior = "Dense rings tracing heavy atomic centers in absolute geometric symmetry.";
 
   switch (category) {
     case 'alkali-metal':
       archetype = "The Volatile Catalyst";
-      voice = "I seek the world with open hands, surrendering my outermost electron in a brilliant flash of kinetic heat.";
+      scientificPersonality = "Hyper-kinetic, explosive, electronactive, and extremely water-sensitive.";
+      energySignature = "Rapid outer-shell s-electron kinetic discharge pulses.";
+      environmentalTheme = "Flickering Orange Thermal Hall";
+      motionStyle = "floating";
+      atmosphereType = "liquid";
+      interactionStyle = "Surrenders outer electron in a flash of physical heat and hydrogen flame.";
+      particleBehavior = "Unstable, fast-orbiting particles that disintegrate on water contact.";
       break;
     case 'alkaline-earth':
       archetype = "The Solar Pillar";
-      voice = "I am a beacon of brilliant fire, binding tightly to construct the skeletons of organic beings and planetary crusts.";
+      scientificPersonality = "Stiff, brilliant, structural, and driven by high chemical affinity.";
+      energySignature = "Stable twin s-electron orbital lattice resonance.";
+      environmentalTheme = "Crystalline Golden Pillar Hall";
+      motionStyle = "structured";
+      atmosphereType = "crystal";
+      interactionStyle = "Ignites with a brilliant white glare, binding firmly to oxygen lattices.";
+      particleBehavior = "Stellar sparks that coordinate in hexagonal close-packed sheets.";
       break;
     case 'reactive-nonmetal':
       archetype = "The Cosmic Genesis";
-      voice = "I am the invisible breath of stars and organic chemistry, weaving together to fuel structural life.";
+      scientificPersonality = "Areal, covalent, biology-forming, and highly adaptive.";
+      energySignature = "Complex multi-directional p-orbital covalent sharing tracks.";
+      environmentalTheme = "Deep Violet Nebula Haven";
+      motionStyle = "floating";
+      atmosphereType = num === 6 ? "crystal" : "gas";
+      interactionStyle = "Links in stable chains and organic backbones, exchanging carbon networks.";
+      particleBehavior = "Ethereal, flowing nebular gases winding around carbon tetrahedrons.";
       break;
     case 'noble-gas':
       archetype = "The Celestial Sentinel";
-      voice = "I remain whole and untarnished, glowing with a deep neon discharge when high currents cross my path.";
+      scientificPersonality = "Perfectly self-contained, cold, untarnished, and luminous.";
+      energySignature = "Stable, fully-closed octet spherical atomic shell wave.";
+      environmentalTheme = "High-Voltage Neon Plasma Tunnel";
+      motionStyle = "electric";
+      atmosphereType = "plasma";
+      interactionStyle = "Remains chemically untouchable, but glows with neon discharge under voltage.";
+      particleBehavior = "Swift lightning discharges tracking high-frequency plasma streams.";
       break;
     case 'metalloid':
       archetype = "The Crystalline Weaver";
-      voice = "I walk between the metal and the cloud, switching from conductor to block to direct the stream of silicon intelligence.";
+      scientificPersonality = "Dualistic, selective, semi-conductive, and highly temperature-conscious.";
+      energySignature = "Thermally regulated bandgap electron transfers.";
+      environmentalTheme = "Prismatic Silicon Grid Chamber";
+      motionStyle = "structured";
+      atmosphereType = "crystal";
+      interactionStyle = "Controls current selectively, switching from insulator to conductor.";
+      particleBehavior = "Interlocking crystal meshes that route atomic impulses cleanly.";
       break;
     case 'halogen':
       archetype = "The Corrosive Specter";
-      voice = "I have an infinite hunger to tear apart existing molecules, forming brilliant binary salt crystals in my wake.";
+      scientificPersonality = "Voracious, aggressive, highly electronegative, and halophilic.";
+      energySignature = "Intense, localized outer-valence halogen electron-vacuum pull.";
+      environmentalTheme = "Toxic Violet Aerosol Corridor";
+      motionStyle = "oscillating";
+      atmosphereType = "gas";
+      interactionStyle = "Strikes other groups aggressively to tear open covalent bonds and form salts.";
+      particleBehavior = "Violent decay waves and rapid aerosol particles that tarnish metals.";
       break;
     case 'post-transition-metal':
       archetype = "The Malleable Artisan";
-      voice = "Soft but strong, I balance the grid, melting readily or blending to form the safety-critical alloys of civilization.";
+      scientificPersonality = "Soft, fusible, corrosion-proof, and easily structured.";
+      energySignature = "Anisotropic metallic coordinate bonds.";
+      environmentalTheme = "Glistening Liquefied Alloy Well";
+      motionStyle = "oscillating";
+      atmosphereType = "liquid";
+      interactionStyle = "Sinks under warm loads, absorbing impacts through ductile flow.";
+      particleBehavior = "Splashing drops and fluid, slow mercury orbits.";
       break;
     case 'lanthanide':
       archetype = "The Rare Luminophore";
-      voice = "I channel the specific waves of light and force, locking electrons to forge intense rare-earth magnetic gates.";
+      scientificPersonality = "Magnetic, luminous, energy-focusing, and highly spark-active.";
+      energySignature = "Inwardly shielded f-orbital spin-state transitions.";
+      environmentalTheme = "Fluorescent Pink Magnet Sphere";
+      motionStyle = "oscillating";
+      atmosphereType = "crystal";
+      interactionStyle = "Forms intense permanent magnets, channeling fluorescent light pulses.";
+      particleBehavior = "Concentric glowing gold rings rotating in magnetic alignment.";
       break;
     case 'actinide':
       archetype = "The Quantum Decayer";
-      voice = "I am the heavy lord of radioactive gravity, slowly disintegrating under atomic stress to emit tremendous energies.";
+      scientificPersonality = "Heavy, nuclear-active, unstable, and radioactive.";
+      energySignature = "Relentless alpha/beta gamma energy decay cascades.";
+      environmentalTheme = "Eerie Emerald Rad Radiation Silo";
+      motionStyle = "decay";
+      atmosphereType = "decay";
+      interactionStyle = "Emits ionizing particles, slowly fracturing its own nuclear structure.";
+      particleBehavior = "Radiant green beams firing outward in high-frequency trajectories.";
       break;
   }
 
   if (num === 1) {
     archetype = "The Primordial Origin";
-    voice = "I am the cosmic genesis, the simple proton that ignited the universe. I coordinate with all to form molecular beauty.";
+    scientificPersonality = "Purest element in existence, comprising a singular proton and electron. Fusion-driven origin.";
+    energySignature = "Fundamental atomic quantum spin-states.";
+    environmentalTheme = "Stellar Nucleogenesis Core";
+    motionStyle = "floating";
+    atmosphereType = "gas";
+    interactionStyle = "Links instantly with all nonmetals to trigger stable molecular water cascades.";
+    particleBehavior = "Hyper-fast floating points colliding in nuclear fusion bursts.";
   } else if (num === 6) {
     archetype = "The Organic Architect";
-    voice = "Every complex biological node is sketched upon my carbon coordinates. I link in endless patterns to draft biological life.";
-  } else if (num === 79) {
-    archetype = "The Eternal Dawn";
-    voice = "I am impervious to rust, time, and rot, a specular gold mirror reflecting stellar winds at the speed of light.";
+    scientificPersonality = "The tetravalent carbon geometry wizard, compiling the code of all life forms.";
+    energySignature = "Versatile sp-sp²-sp³ atomic orbital hybridization.";
+    environmentalTheme = "Prehistoric Carbonized Diamond Dome";
+    motionStyle = "structured";
+    atmosphereType = "crystal";
+    interactionStyle = "Assembles covalent grids, forming polymers and sheets of impenetrable diamond.";
+    particleBehavior = "Highly structured tetrahedral coordinates vibrating in solid harmony.";
+  } else if (num === 14) {
+    archetype = "The Digital Loom";
+    scientificPersonality = "The crystalline brain of computation. Semi-conducts electrical current with mathematical accuracy.";
+    energySignature = "Crystalline block bandgap conduction gates.";
+    environmentalTheme = "Digital Silicon Valley Server Hub";
+    motionStyle = "structured";
+    atmosphereType = "crystal";
+    interactionStyle = "Routes bits cleanly, changing its current resistance under light or heat.";
+    particleBehavior = "Extremely ordered cubic grid particles vibrating with clockwork precision.";
+  } else if (num === 26) {
+    archetype = "The planetary Core Anchor";
+    scientificPersonality = "Solid, magnetic, deep-crust iron backbone of planetary machinery and blood vessels.";
+    energySignature = "High-flux d-orbital ferromagnetic resonance.";
+    environmentalTheme = "Molten Iron Blast Furnace Core";
+    motionStyle = "structured";
+    atmosphereType = "metal";
+    interactionStyle = "Coordinates with oxygen and carbon, yielding structurally indestructible steel frames.";
+    particleBehavior = "Powerful concentric magnetic rings pulling debris into aligned orbits.";
+  } else if (num === 92) {
+    archetype = "The Fission Overlord";
+    scientificPersonality = "Titan of heavy atomic matter, holding the keys to runaway nuclear chain reactions.";
+    energySignature = "titanic nuclear binding energy releases (200 MeV per fission).";
+    environmentalTheme = "Glow-blue Cherenkov Reactor Deep";
+    motionStyle = "decay";
+    atmosphereType = "decay";
+    interactionStyle = "Splits atom-by-atom when struck by thermal neutrons, driving massive energy grids.";
+    particleBehavior = "Violent ionizing alpha/beta bursts that fracture into rapid neutrons.";
   }
 
   return {
     archetype,
-    voice,
-    visualConfig
+    scientificPersonality,
+    energySignature,
+    environmentalTheme,
+    motionStyle,
+    atmosphereType,
+    interactionStyle,
+    visualConfig,
+    particleBehavior
   };
 }
 
-// Generate Standard visual configuration template based on Orbitium visual identity system
-function getVisualConfig(num: number, symbol: string, name: string, category: ElementCategory): VisualConfig {
-  switch (category) {
-    case 'reactive-nonmetal':
-      return {
-        primaryColor: '#7C4DFF',
-        secondaryGlowColor: '#B388FF',
-        atmosphereType: num === 6 ? 'crystal' : 'gas',
-        particleStyle: 'nebula',
-        energyBehavior: num === 1 ? 'fusion' : 'lattice',
-        lightingStyle: 'glowing',
-        environmentFeel: `${name} Ambient Field`,
-        motionStyle: num === 6 ? 'structured' : 'floating'
-      };
-    case 'noble-gas':
-      return {
-        primaryColor: '#00E5FF',
-        secondaryGlowColor: '#80DEEA',
-        atmosphereType: 'plasma',
-        particleStyle: 'lightning',
-        energyBehavior: 'discharge',
-        lightingStyle: 'neon dynamic',
-        environmentFeel: 'Vibrant Plasma Haze',
-        motionStyle: 'electric'
-      };
-    case 'alkali-metal':
-      return {
-        primaryColor: '#FF5722',
-        secondaryGlowColor: '#FFAB91',
-        atmosphereType: 'liquid',
-        particleStyle: 'stellar',
-        energyBehavior: 'fluid',
-        lightingStyle: 'warm pulse',
-        environmentFeel: 'Thermal Alkali Atmosphere',
-        motionStyle: 'floating'
-      };
-    case 'alkaline-earth':
-      return {
-        primaryColor: '#FFD600',
-        secondaryGlowColor: '#FFE082',
-        atmosphereType: 'crystal',
-        particleStyle: 'stellar',
-        energyBehavior: 'lattice',
-        lightingStyle: 'metallic glow',
-        environmentFeel: 'Scintillating Spark Lattices',
-        motionStyle: 'structured'
-      };
-    case 'metalloid':
-      return {
-        primaryColor: '#00E676',
-        secondaryGlowColor: '#A3FFD6',
-        atmosphereType: 'crystal',
-        particleStyle: 'stellar',
-        energyBehavior: 'lattice',
-        lightingStyle: 'crystalline refraction',
-        environmentFeel: 'Semi-conductive Crystalline Array',
-        motionStyle: 'structured'
-      };
-    case 'halogen':
-      return {
-        primaryColor: '#D500F9',
-        secondaryGlowColor: '#F48FB1',
-        atmosphereType: 'gas',
-        particleStyle: 'decay-ray',
-        energyBehavior: 'discharge',
-        lightingStyle: 'chemical glare',
-        environmentFeel: 'Reactive Aerosol Corridor',
-        motionStyle: 'oscillating'
-      };
-    case 'post-transition-metal':
-      return {
-        primaryColor: '#00FFB3',
-        secondaryGlowColor: '#A7FFEB',
-        atmosphereType: 'liquid',
-        particleStyle: 'droplet',
-        energyBehavior: 'fluid',
-        lightingStyle: 'cool metallic reflect',
-        environmentFeel: 'Lustrous Alloy Matrix',
-        motionStyle: 'oscillating'
-      };
-    case 'lanthanide':
-      return {
-        primaryColor: '#FF80AB',
-        secondaryGlowColor: '#F8BBD0',
-        atmosphereType: 'crystal',
-        particleStyle: 'ring',
-        energyBehavior: 'lattice',
-        lightingStyle: 'fluorescent glow',
-        environmentFeel: 'Fluorescent Rare-Earth Field',
-        motionStyle: 'oscillating'
-      };
-    case 'actinide':
-      return {
-        primaryColor: '#39FF14',
-        secondaryGlowColor: '#A5FF7F',
-        atmosphereType: 'decay',
-        particleStyle: 'decay-ray',
-        energyBehavior: 'radioactive',
-        lightingStyle: 'radioactive gamma glow',
-        environmentFeel: 'Luminous Ionizing Decay Field',
-        motionStyle: 'decay'
-      };
-    case 'transition-metal':
-    default:
-      return {
-        primaryColor: num === 79 ? '#D4AF37' : '#8D99AE',
-        secondaryGlowColor: num === 79 ? '#FFD700' : '#DDF0FF',
-        atmosphereType: num === 80 ? 'liquid' : 'metal',
-        particleStyle: num === 80 ? 'droplet' : 'ring',
-        energyBehavior: num === 80 ? 'fluid' : 'metallic',
-        lightingStyle: 'cold specular chrome',
-        environmentFeel: `${name} Heavy Geometric Grid`,
-        motionStyle: num === 80 ? 'oscillating' : 'structured'
-      };
+function getRelationshipNetworkData(num: number, symbol: string, name: string, category: ElementCategory, group: number, period: number) {
+  const groupMates: Record<number, string[]> = {
+    1: ['Li', 'Na', 'K', 'Rb', 'Cs', 'Fr'],
+    2: ['Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Ra'],
+    17: ['F', 'Cl', 'Br', 'I', 'At', 'Ts'],
+    18: ['He', 'Ne', 'Ar', 'Kr', 'Xe', 'Rn', 'Og']
+  };
+  
+  let similarElements = ['O', 'Cl', 'F', 'H'];
+  if (groupMates[group]) {
+    similarElements = groupMates[group].filter(s => s !== symbol);
+  } else {
+    if (category === 'transition-metal') {
+      similarElements = ['Fe', 'Co', 'Ni', 'Cu', 'Mn'].filter(s => s !== symbol);
+    } else if (category === 'lanthanide') {
+      similarElements = ['La', 'Ce', 'Pr', 'Nd', 'Sm'].filter(s => s !== symbol);
+    } else if (category === 'actinide') {
+      similarElements = ['Th', 'Pa', 'U', 'Np', 'Pu'].filter(s => s !== symbol);
+    }
   }
+
+  let groupRelationships = "Belongs to group " + group + ", period " + period + " of the periodic table, showcasing standard group characteristics.";
+  if (category === 'alkali-metal') groupRelationships = "Group 1 Alkali Metal: shares a highly active single valence s-electron that is instantly lost in chemical interactions.";
+  if (category === 'noble-gas') groupRelationships = "Group 18 Noble Gas: exhibits outer-valence closed shell stability, resisting all standard oxidation pathways.";
+  if (category === 'halogen') groupRelationships = "Group 17 Halogen: highly electronegative nonmetals, aggressively hungry for a single electron.";
+  
+  let commonReactionPartners = ['Oxygen', 'Hydrogen', 'Chlorine', 'Fluorine'];
+  let commonCompounds = [symbol + "O₂", "Na" + symbol, symbol + "Cl₂"];
+  let industrialConnections = ['Aerospace Alloys', 'Electronics Manufacturers', 'Battery Chemists'];
+  let biologicalConnections = ['Water Balance', 'Bone Mineralization', 'Organic Carbon Chains'];
+  let cosmicConnections = ['Stellar Core Burning', 'Big Bang Nucleosynthesis', 'Supernova Shockwaves'];
+
+  if (num === 1) {
+    similarElements = ['Li', 'Na', 'He'];
+    groupRelationships = "Sits at Group 1 due to having 1 s-electron, but behaves as a nonmetallic gas under standard atmospheric properties.";
+    commonReactionPartners = ["Oxygen", "Carbon", "Nitrogen", "Chlorine", "Fluorine"];
+    commonCompounds = ["H₂O (Water)", "CH₄ (Methane)", "NH₃ (Ammonia)", "HCl (Hydrochloric Acid)"];
+    industrialConnections = ["Refineries", "Fuel Cell Grids", "Cryo Propulsion Engines", "Haber Ammonia Plants"];
+    biologicalConnections = ["All biological fluids", "Mitochondrial membrane proton channels", "Cellular water pools"];
+    cosmicConnections = ["The massive Big Bang primordial gas cloud", "Main sequence solar hydrogen cores", "Giant gas planets"];
+  } else if (num === 2) {
+    similarElements = ['Ne', 'Ar', 'Kr'];
+    groupRelationships = "Group 18 Noble Gas: Closed 1s² shell provides the absolute peak of noble gas non-reactivity.";
+    commonReactionPartners = ["None under standard chemistry; coordinates in high-energy plasma channels"];
+    commonCompounds = ["HeH⁺ (Helium Hydride Ion - found in primordial interstellar nebulae)"];
+    industrialConnections = ["Cryogenic Cooling Plants", "Nuclear Fusion Experimental reactors", "High-vacuum weld shops"];
+    biologicalConnections = ["Deep-sea heliox breathing mixture gas preventing nitrogen narcosis"];
+    cosmicConnections = ["Primordial nucleosynthesis", "Stellar alpha-process fusion byproducts", "Nebula gas envelopes"];
+  } else if (num === 6) {
+    similarElements = ['Si', 'Ge', 'Sn'];
+    groupRelationships = "Group 14 tetravalent backbone. Sits ready to build complex covalent networks.";
+    commonReactionPartners = ["Oxygen", "Hydrogen", "Nitrogen", "Sulfur", "Iron"];
+    commonCompounds = ["CO₂ (Carbon Dioxide)", "CH₄ (Methane)", "C₆H₁₂O₆ (Glucose)", "CaCO₃ (Calcium Carbonate)"];
+    industrialConnections = ["Steel Smelters", "Carbon Polymer Composites", "Organic Chemical Refineries", "Graphene tech"];
+    biologicalConnections = ["The central backbone of ALL DNA, protein, lipid, and carbohydrate life-molecules"];
+    cosmicConnections = ["Triple-Alpha giant red star nucleosynthesis", "Interstellar dust grains", "Comets and carbonaceous chondrites"];
+  } else if (num === 14) {
+    similarElements = ['C', 'Ge', 'Sn'];
+    groupRelationships = "Group 14 Metalloid: shares tetravalent tetrahedral bonding properties with Carbon, but has larger atomic radius and semiconducts.";
+    commonReactionPartners = ["Oxygen", "Fluorine", "Magnesium", "Oxygen"];
+    commonCompounds = ["SiO₂ (Silica / Quartz)", "SiC (Silicon Carbide)", "SiH₄ (Silane gas)", "Mg₂SiO₄ (Forsterite)"];
+    industrialConnections = ["Transistor Fab lines", "Microchip logic foundries", "Solar battery panels", "Optical fibers"];
+    biologicalConnections = ["Connective tissue scaffolding, structural plant stems, and diatom glassy shells"];
+    cosmicConnections = ["Vast silicate rocky asteroid belts", "Rocky planetary mantles", "Stellar core silicon onion-burning layers"];
+  } else if (num === 26) {
+    similarElements = ['Co', 'Ni', 'Mn'];
+    groupRelationships = "Group 8 Transition Metal: exhibits highly active variable oxidation states (+2, +3) and d-orbital hybridization.";
+    commonReactionPartners = ["Oxygen", "Carbon", "Sulfur", "Chlorine", "Water"];
+    commonCompounds = ["Fe₂O₃ (Hematite / Rust)", "Fe₃O₄ (Magnetite)", "FeSO₄ (Iron Sulfate)", "Fe₃C (Cementite inside steel)"];
+    industrialConnections = ["Skyscraper Structural Steel builders", "Engine casting factories", "Magnetic recording media", "Containment vessels"];
+    biologicalConnections = ["Blood hemoglobin oxygen transfer cells", "Cytochrome enzyme cellular respirators", "Organic iron storage cells"];
+    cosmicConnections = ["Dying massive star core collapses", "Catastrophic Type Ia Supernovae", "Molten electromagnetic core centers of rocky planets"];
+  } else if (num === 92) {
+    similarElements = ['Th', 'Pu', 'Np'];
+    groupRelationships = "Actinide series: extremely heavy f-block element, exhibiting complex coordinates and strong alpha decay.";
+    commonReactionPartners = ["Oxygen", "Fluorine", "Nitrogen", "Water", "Nitric Acid"];
+    commonCompounds = ["UO₂ (Uranium Dioxide)", "UF₆ (Uranium Hexafluoride gas)", "U₃O₈ (Triuranium octoxide)", "UO₂(NO₃)₂"];
+    industrialConnections = ["Fission Power Reactors", "Nuclear Enrichment Sil silos", "Military nuclear vessels", "Heavy counterballast lines"];
+    biologicalConnections = ["Strictly toxic biochemical contaminant, damaging kidney cells and causing radiological mutate strands"];
+    cosmicConnections = ["Binary neutron star explosive collisions (Kilonovae)", "Rapid neutron capture r-process pathways", "Planetary interior radioactive mantle thermal reactors"];
+  }
+
+  return {
+    similarElements,
+    groupRelationships,
+    commonReactionPartners,
+    commonCompounds,
+    industrialConnections,
+    biologicalConnections,
+    cosmicConnections
+  };
 }
 
-// Famous core summaries and fun facts
 const LEGACY_OVERRIDES: Record<number, { summary: string; funFact: string; density: string; meltingPoint: string; boilingPoint: string; electronegativity: number | null; ionizationEnergy: string; realWorldUses: string[]; reactivity: string }> = {
   1: {
     summary: "The absolute primordial seed of the Cosmos, constituting roughly 75% of all baryonic gas mass.",
@@ -760,10 +1932,27 @@ const LEGACY_OVERRIDES: Record<number, { summary: string; funFact: string; densi
     funFact: "Magnesium acts as the central chlorophyll receptor, capturing solar rays to fuel planetary photosynthesis.",
     density: "1.738 g/cm³", meltingPoint: "923 K (650 °C)", boilingPoint: "1363 K (1090 °C)",
     electronegativity: 1.31, ionizationEnergy: "738 kJ/mol", realWorldUses: ['Lightweight Structural Alloys', 'Flares and Pyrotechnics', 'Biological Cell Engines'], reactivity: 'High'
+  },
+  14: {
+    summary: "A hard, brittle, dark blue metalloid. Crucial solid crystalline semi-conductive heart of compute.",
+    funFact: "Pure single-crystal silicon is grown in high-temperature silica pots, yielding cylinder blocks of absolute uniform atomic alignment.",
+    density: "2.329 g/cm³", meltingPoint: "1687 K (1414 °C)", boilingPoint: "3538 K (3265 °C)",
+    electronegativity: 1.90, ionizationEnergy: "786.5 kJ/mol", realWorldUses: ['Microchips', 'Photovoltaic Cells', 'Quartz Resonators'], reactivity: 'Moderate'
+  },
+  26: {
+    summary: "The solid, shiny backbone of human metallurgy, skyscrapers, and planetary electromagnetic cores.",
+    funFact: "Pure iron meteorite fragments formed early pharaonic daggers, long before the capability to smelt terrestrial iron ore existed.",
+    density: "7.874 g/cm³", meltingPoint: "1811 K (1538 °C)", boilingPoint: "3134 K (2861 °C)",
+    electronegativity: 1.83, ionizationEnergy: "762.5 kJ/mol", realWorldUses: ['Structural Steel', 'Electromagnets', 'LFP Batteries'], reactivity: 'High'
+  },
+  92: {
+    summary: "A dense, radioactive actinide metal capable of sustaining high-energy nuclear chain fission reactions.",
+    funFact: "A single gram of Uranium-235 releases the fuel combustion equivalent of nearly three metric tons of coal.",
+    density: "19.1 g/cm³", meltingPoint: "1405.3 K (1132.2 °C)", boilingPoint: "4404 K (4131 °C)",
+    electronegativity: 1.38, ionizationEnergy: "597.6 kJ/mol", realWorldUses: ['Fission Nuclear Fuel', 'Radiation Shields', 'Submarine Engines'], reactivity: 'High'
   }
 };
 
-// Generate elements array
 const generatedElements: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, name, mass, category, period, group, state]) => {
   const shells = getAtomicShells(num);
   const config = getElectronConfig(num);
@@ -779,13 +1968,13 @@ const generatedElements: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, nam
 
   const over: any = LEGACY_OVERRIDES[num] || {};
 
-  const summary = over.summary || `An intriguing constituent element of the ${category} family that plays a fundamental role in advanced orbital interactions and material physics.`;
-  const funFact = over.funFact || `Holds atomic configurations optimized for stable resonance within category periodic bounds under normal laboratory tracking.`;
-  const density = over.density || `${(num * 0.12 + 0.1).toFixed(2)} g/cm³`;
-  const meltingPoint = over.meltingPoint || `${(num * 25 + 100).toFixed(0)} K`;
-  const boilingPoint = over.boilingPoint || `${(num * 32 + 200).toFixed(0)} K`;
+  const summary = over.summary || "An intriguing constituent element of the " + category + " family that plays a fundamental role in advanced orbital interactions and material physics.";
+  const funFact = over.funFact || "Holds atomic configurations optimized for stable resonance within category periodic bounds under normal laboratory tracking.";
+  const density = over.density || (num * 0.12 + 0.1).toFixed(2) + " g/cm³";
+  const meltingPoint = over.meltingPoint || (num * 25 + 100).toFixed(0) + " K";
+  const boilingPoint = over.boilingPoint || (num * 32 + 200).toFixed(0) + " K";
   const electronegativity = over.electronegativity !== undefined ? over.electronegativity : baseElectronegativity;
-  const ionizationEnergy = over.ionizationEnergy || `${(950 - num * 2).toFixed(0)} kJ/mol`;
+  const ionizationEnergy = over.ionizationEnergy || (950 - num * 2).toFixed(0) + " kJ/mol";
   const realWorldUses = over.realWorldUses || ['Industrial Alloys', 'Laboratory Analysis', 'Material Coatings'];
   const reactivity = over.reactivity || (category === 'noble-gas' ? 'Inert' : num % 3 === 0 ? 'High' : 'Moderate');
 
@@ -796,20 +1985,22 @@ const generatedElements: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, nam
   const cond = getConductivityStyle(num, category, state);
   const nameOrigin = getProgrammaticNameOrigin(num, symbol, name);
   const atomicRadiusPm = getAtomicRadiusPm(num);
-  const { cosmicRelevance } = getCosmicProperties(num, symbol, category);
-  const { biologicalRelevance } = getBiologicalProperties(num, symbol, category);
-  const apps = getApplications(num, name);
-  const reactInt = getReactionIntelligence(num, category, symbol);
-  const pers = getOrbitiumPersonality(num, name, category, vConfig);
+  
+  const cosmicData = getCosmicData(num, category);
+  const biologicalData = getBiologicalData(num, category);
+  const applicationsData = getIndustrialData(num, symbol, name, category);
+  const reactionData = getReactionIntelligence(num, category, symbol);
+  const personalityData = getOrbitiumPersonality(num, symbol, name, category, vConfig);
+  const relationshipData = getRelationshipNetworkData(num, symbol, name, category, group, period);
 
-  let nuclearProperties = `Highly stable nuclear configuration with ${neutrons} neutrons bound tightly to ${protons} protons by the strong nuclear force. Resists nuclear fission.`;
+  let nuclearProperties = "Highly stable nuclear configuration with " + neutrons + " neutrons bound tightly to " + protons + " protons by the strong nuclear force. Resists nuclear fission.";
   if (num >= 84 || state === 'synthetic') {
-    nuclearProperties = `Highly unstable, radioactive nucleus. Decay modes include spontaneous alpha/beta emissions or spontaneous fission. Half-life is extremely brief.`;
+    nuclearProperties = "Highly unstable, radioactive nucleus. Decay modes include spontaneous alpha/beta emissions or spontaneous fission. Half-life is extremely brief.";
   } else if (num === 92) {
-    nuclearProperties = (over as any).summary ? "Naturally contains Uranium-235 (0.72% - fissionable) and Uranium-238 (99.27% - fertile nuclear bred fuel)." : nuclearProperties;
+    nuclearProperties = "Naturally contains Uranium-235 (0.72% - fissionable) and Uranium-238 (99.27% - fertile nuclear bred fuel) bound by high nuclear energy binding forces.";
   }
 
-  let orbitalBreakdown = `Valence electron shell configurations represented by ${config}. Outer electrons fill orbitals orderly based on Hund's Rule and Pauli Exclusion principles.`;
+  let orbitalBreakdown = "Valence electron shell configurations represented by " + config + ". Outer electrons fill orbitals orderly based on Hund's Rule and Pauli Exclusion principles.";
   if (num === 1) orbitalBreakdown = "1s¹ orbital shell. Contains a single unpaired valence electron with spin-up orientation.";
   if (num === 2) orbitalBreakdown = "1s² orbital shell. Fully closed spherical shell; holds two electrons with anti-parallel spins.";
 
@@ -842,11 +2033,16 @@ const generatedElements: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, nam
     oxidationStates: oStates,
     conductivity: cond,
     nameOrigin,
-    cosmicRelevance,
-    biologicalRelevance,
+    cosmicRelevance: cosmicData.stellarOrigin,
+    biologicalRelevance: biologicalData.biologicalImportance,
     nuclearProperties,
     orbitalBreakdown,
-    applications: apps,
+    applications: {
+      industrial: applicationsData.construction,
+      technology: applicationsData.electronics,
+      medical: applicationsData.medicine,
+      spaceAndEnergy: applicationsData.spaceTechnology
+    },
 
     // THE 10 NEW SCIENTIFIC MODULES
     coreIdentity: {
@@ -857,15 +2053,17 @@ const generatedElements: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, nam
       category,
       period,
       group,
-      state,
+      block: getBlock(num, group),
+      stateAtSTP: state,
       summary
     },
     atomicArchitecture: {
+      electronConfig: config,
+      shells,
+      valenceElectrons: shells[shells.length - 1] || 0,
       protons,
       neutrons,
       electrons,
-      electronConfig: config,
-      shells,
       orbitalBreakdown,
       atomicRadiusPm,
       nuclearProperties
@@ -874,31 +2072,30 @@ const generatedElements: ChemicalElement[] = RAW_ELEMENTS.map(([num, symbol, nam
       density,
       meltingPointK: meltingPoint,
       boilingPointK: boilingPoint,
-      state,
-      conductivity: cond,
-      electronegativity,
-      ionizationEnergy
+      crystalStructure: getCrystalStructure(num, category, state),
+      thermalConductivity: getThermalConductivity(num, category),
+      electricalConductivity: getElectricalConductivity(num, category),
+      magneticProperties: getMagneticProperties(num, category),
+      hardness: getHardness(num, state, category)
     },
     chemicalProperties: {
+      electronegativity,
+      electronAffinity: getElectronAffinity(num, category),
+      ionizationEnergy,
       oxidationStates: oStates,
-      reactivity,
-      valenceElectrons: shells[shells.length - 1] || 0,
-      bondingPreferences: category === 'noble-gas' ? 'Resists all standard chemical bonds' : category === 'alkali-metal' ? 'Prepares ionic halophilic bonds' : 'Readily establishes shared covalent bonds'
+      reactivityProfile: getReactivityProfile(num, category),
+      bondingCharacteristics: getBondingCharacteristics(num, category)
     },
-    cosmicProperties: {
-      cosmicRelevance
-    },
-    biologicalProperties: {
-      biologicalRelevance
-    },
-    historicalProperties: getHistoricalProperties(num, symbol, name),
-    industrialApplications: apps,
-    reactionIntelligence: reactInt,
-    orbitiumPersonality: pers
+    cosmicProperties: cosmicData,
+    biologicalProperties: biologicalData,
+    historicalProperties: getHistoricalData(num, symbol, name, category),
+    industrialApplications: applicationsData,
+    reactionIntelligence: reactionData,
+    orbitiumPersonality: personalityData,
+    relationshipNetwork: relationshipData
   };
 });
 
-// Create destination dirs and write database file
 const dbDir = path.join(process.cwd(), 'src', 'database');
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
@@ -911,4 +2108,4 @@ fs.writeFileSync(
 );
 
 console.log("Orbitium Knowledge Base Generated Successfully at: src/database/elements.json");
-console.log(`Successfully populated ${generatedElements.length} elements with high scientific accuracy!`);
+console.log("Successfully populated " + generatedElements.length + " elements with high scientific accuracy!");

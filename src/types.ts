@@ -79,15 +79,17 @@ export interface ChemicalElement {
     category: ElementCategory;
     period: number;
     group: number;
-    state: 'gas' | 'liquid' | 'solid' | 'synthetic';
+    block: 's' | 'p' | 'd' | 'f';
+    stateAtSTP: 'gas' | 'liquid' | 'solid' | 'synthetic';
     summary: string;
   };
   atomicArchitecture: {
+    electronConfig: string;
+    shells: number[];
+    valenceElectrons: number;
     protons: number;
     neutrons: number;
     electrons: number;
-    electronConfig: string;
-    shells: number[];
     orbitalBreakdown: string;
     atomicRadiusPm: number;
     nuclearProperties: string;
@@ -96,45 +98,79 @@ export interface ChemicalElement {
     density: string;
     meltingPointK: string;
     boilingPointK: string;
-    state: 'gas' | 'liquid' | 'solid' | 'synthetic';
-    conductivity: string;
-    electronegativity: number | null;
-    ionizationEnergy: string;
+    crystalStructure: string;
+    thermalConductivity: string;
+    electricalConductivity: string;
+    magneticProperties: string;
+    hardness: string;
   };
   chemicalProperties: {
+    electronegativity: number | null;
+    electronAffinity: string;
+    ionizationEnergy: string;
     oxidationStates: number[];
-    reactivity: string;
-    valenceElectrons: number;
-    bondingPreferences: string;
+    reactivityProfile: string;
+    bondingCharacteristics: string;
   };
   cosmicProperties: {
-    cosmicRelevance: string;
+    stellarOrigin: string;
+    nucleosynthesisProcess: string;
+    cosmicAbundance: string;
+    earthAbundance: string;
+    planetaryPresence: string;
+    stellarPresence: string;
   };
   biologicalProperties: {
-    biologicalRelevance: string;
+    biologicalImportance: string;
+    humanBodyPresence: string;
+    toxicity: string;
+    nutritionalRelevance: string;
+    biologicalFunction: string;
   };
   historicalProperties: {
-    discoveredBy: string;
-    year: number;
-    era: string;
-    nameOrigin: string;
-    historyDetail: string;
+    discoveryYear: number;
+    discoverer: string;
+    namingOrigin: string;
+    historicalSignificance: string;
+    majorScientificMilestones: string[];
   };
   industrialApplications: {
-    industrial: string;
-    technology: string;
-    medical: string;
-    spaceAndEnergy: string;
+    electronics: string;
+    aerospace: string;
+    medicine: string;
+    construction: string;
+    nuclearEnergy: string;
+    batteries: string;
+    semiconductors: string;
+    spaceTechnology: string;
   };
   reactionIntelligence: {
-    stability: string;
-    binarySynthesisSuitability: string[];
-    reactsWith: string[];
+    commonReactions: string[];
+    commonCompounds: string[];
+    compatibleElements: string[];
+    dangerousReactions: string[];
+    reactionCategories: string[];
+    synthesisPossibilities: string[];
   };
   orbitiumPersonality: {
     archetype: string;
-    voice: string;
+    scientificPersonality: string;
+    energySignature: string;
+    environmentalTheme: string;
+    motionStyle: string;
+    atmosphereType: string;
+    interactionStyle: string;
     visualConfig: VisualConfig;
+    particleBehavior: string;
+  };
+  relationshipNetwork: {
+    similarElements: string[];
+    groupRelationships: string;
+    commonReactionPartners: string[];
+    commonCompounds: string[];
+    industrialConnections: string[];
+    biologicalConnections: string[];
+    cosmicConnections: string[];
   };
 }
 
