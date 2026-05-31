@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { ELEMENTS_DATA, CATEGORY_COLORS } from '../data';
 import { buildProceduralAtomWorld } from '../utils/atomWorldGenerator';
+import { OrbitiumKnowledgeEngine } from '../utils/KnowledgeEngine';
 
 interface ThreeSceneProps {
   selectedElement: ChemicalElement | null;
@@ -27,11 +28,17 @@ interface ThreeSceneProps {
 }
 
 const BOND_ENERGIES: Record<string, { value: number; unit: string; color: string; maxLimit: number }> = {
-  'NaCl': { value: 787, unit: 'kJ/mol', color: '#D500F9', maxLimit: 2000 },      // Ionic, purple/pink
-  'H₂O': { value: 926, unit: 'kJ/mol', color: '#00E5FF', maxLimit: 2000 },       // Covalent, cyan
-  'CsOH + H₂': { value: 1120, unit: 'kJ/mol', color: '#FF3D00', maxLimit: 2000 }, // Explosive, orange-red
-  'CO₂': { value: 1616, unit: 'kJ/mol', color: '#FFD700', maxLimit: 2000 },      // Double covalent, yellow-gold
-  'Fe₂O₃': { value: 480, unit: 'kJ/mol', color: '#FF9100', maxLimit: 2000 },      // Slow ionic, bronze/rust
+  'NaCl': { value: 787, unit: 'kJ/mol', color: '#D500F9', maxLimit: 4000 },      // Ionic, purple/pink
+  'H₂O': { value: 926, unit: 'kJ/mol', color: '#00E5FF', maxLimit: 4000 },       // Covalent, cyan
+  'CsOH + H₂': { value: 1120, unit: 'kJ/mol', color: '#FF3D00', maxLimit: 4000 }, // Explosive, orange-red
+  'CO₂': { value: 1616, unit: 'kJ/mol', color: '#FFD700', maxLimit: 4000 },      // Double covalent, yellow-gold
+  'Fe₂O₃': { value: 480, unit: 'kJ/mol', color: '#FF9100', maxLimit: 4000 },      // Slow ionic, bronze/rust
+  'SiO₂': { value: 1475, unit: 'kJ/mol', color: '#00E676', maxLimit: 4000 },     // Network covalent, emerald
+  'NH₃': { value: 1173, unit: 'kJ/mol', color: '#7C4DFF', maxLimit: 4000 },      // Pyramidal, violet
+  'CH₄': { value: 1656, unit: 'kJ/mol', color: '#FFEA00', maxLimit: 4000 },      // Tetrahedral, yellow
+  'HCl': { value: 431, unit: 'kJ/mol', color: '#D500F9', maxLimit: 4000 },       // Dumbbell polar, fuchsia
+  'Li₂O': { value: 2908, unit: 'kJ/mol', color: '#FF5722', maxLimit: 4000 },     // High lattice ionic, orange
+  'UF₆': { value: 3120, unit: 'kJ/mol', color: '#39FF14', maxLimit: 4000 }       // Hexafluoride heavy actinide, neon-lime
 };
 
 export default function ThreeScene({
@@ -361,6 +368,81 @@ export default function ThreeScene({
     });
     const networkLines = new THREE.LineSegments(networkGeom, networkMat);
     scene.add(networkLines);
+
+    // --- 3C-2. ORBITIUM RELATIONSHIP NETWORK WEB ---
+    const relationshipWebGroup = new THREE.Group();
+    scene.add(relationshipWebGroup);
+
+    // Reusable single cylinder geometry aligned along Z axis (length = 1)
+    const unitFilamentGeom = new THREE.CylinderGeometry(1, 1, 1, 6);
+    unitFilamentGeom.rotateX(Math.PI / 2);
+
+    interface RelationshipMeshInfo {
+      mesh: THREE.Mesh;
+      material: THREE.MeshBasicMaterial;
+      fromIdx: number;
+      toIdx: number;
+      baseRadius: number;
+      flickerFrequency: number;
+      deltaEN: number;
+    }
+
+    const relationshipFilaments: RelationshipMeshInfo[] = [];
+
+    // Scan ELEMENTS_DATA for relationship connections and build the web
+    ELEMENTS_DATA.forEach((elA, idxA) => {
+      const affinityNodes = OrbitiumKnowledgeEngine.generateAffinityMap(elA.symbol);
+      affinityNodes.forEach(node => {
+        const idxB = ELEMENTS_DATA.findIndex(e => e.symbol === node.symbol);
+        // Only add unique pairs to avoid duplicate overlapping filaments
+        if (idxB !== -1 && idxB > idxA) {
+          const elB = ELEMENTS_DATA[idxB];
+          const enA = elA.electronegativity ?? 1.8; // Default to mid-electronegativity if null
+          const enB = elB.electronegativity ?? 1.8;
+          const deltaEN = Math.abs(enA - enB);
+
+          // Filament radius scales with electronegativity difference (highly ionic is thicker and bold)
+          const filamentRadius = 0.015 + 0.05 * Math.max(0.1, deltaEN);
+
+          // Flicker frequency also scales with electronegativity difference (high charge leads to fast kinetics)
+          const flickerFrequency = 3.5 + 11.0 * Math.max(0.1, deltaEN);
+
+          // Select color based on category and connection type
+          let colorHex = '#00FFB3'; // default neon green
+          if (node.connectionType === 'same-group') {
+            colorHex = '#7C4DFF'; // electric purple
+          } else if (node.connectionType === 'similar-electronegativity') {
+            colorHex = '#00E5FF'; // cyan
+          } else if (node.connectionType === 'reactive-affinity') {
+            colorHex = '#FFD500'; // gold
+          } else if (node.connectionType === 'isoelectronic') {
+            colorHex = '#FF007F'; // magenta
+          }
+
+          const filMat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(colorHex),
+            transparent: true,
+            opacity: 0.35,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            side: THREE.DoubleSide
+          });
+
+          const filMesh = new THREE.Mesh(unitFilamentGeom, filMat);
+          relationshipWebGroup.add(filMesh);
+
+          relationshipFilaments.push({
+            mesh: filMesh,
+            material: filMat,
+            fromIdx: idxA,
+            toIdx: idxB,
+            baseRadius: filamentRadius,
+            flickerFrequency: flickerFrequency,
+            deltaEN: deltaEN
+          });
+        }
+      });
+    });
 
     const hoverNetworkGeom = new THREE.BufferGeometry();
     const hoverNetworkPos = new Float32Array(32 * 2 * 3); // Max 32 connections highlight
@@ -1483,6 +1565,148 @@ export default function ThreeScene({
             }
           }
         }
+      } else if (formula === 'SiO₂') {
+        // Covalent network glass/quartz tetrahedron
+        const siGeom = new THREE.SphereGeometry(1.1, 28, 28);
+        const siMat = new THREE.MeshPhongMaterial({ color: '#8888AA', emissive: '#1A1A2E', shininess: 80 });
+        const si = new THREE.Mesh(siGeom, siMat);
+        group.add(si);
+
+        const oGeom = new THREE.SphereGeometry(0.8, 24, 24);
+        const oMat = new THREE.MeshPhongMaterial({ color: '#FF1744', emissive: '#400000', shininess: 70 });
+        const oCoords = [
+          new THREE.Vector3(1.4, 1.4, 1.4),
+          new THREE.Vector3(-1.4, -1.4, 1.4),
+          new THREE.Vector3(-1.4, 1.4, -1.4),
+          new THREE.Vector3(1.4, -1.4, -1.4)
+        ];
+
+        oCoords.forEach((coord) => {
+          const oMesh = new THREE.Mesh(oGeom, oMat);
+          oMesh.position.copy(coord);
+          group.add(oMesh);
+          createCovalentBond(si.position, oMesh.position, group, '#8888AA', '#FF1744');
+        });
+      } else if (formula === 'NH₃') {
+        // Trigonal Pyramidal Ammonia
+        const nGeom = new THREE.SphereGeometry(1.15, 28, 28);
+        const nMat = new THREE.MeshPhongMaterial({ color: '#7C4DFF', emissive: '#250B5E', shininess: 80 });
+        const nitrogen = new THREE.Mesh(nGeom, nMat);
+        nitrogen.position.set(0, 0.6, 0);
+        group.add(nitrogen);
+
+        const hGeom = new THREE.SphereGeometry(0.55, 20, 20);
+        const hMat = new THREE.MeshPhongMaterial({ color: '#EAF2FF', emissive: '#1B2735', shininess: 60 });
+        const hCoords = [
+          new THREE.Vector3(1.6, -0.6, 0.0),
+          new THREE.Vector3(-0.8, -0.6, 1.38),
+          new THREE.Vector3(-0.8, -0.6, -1.38)
+        ];
+
+        hCoords.forEach((coord) => {
+          const hMesh = new THREE.Mesh(hGeom, hMat);
+          hMesh.position.copy(coord);
+          group.add(hMesh);
+          createCovalentBond(nitrogen.position, hMesh.position, group, '#7C4DFF', '#EAF2FF');
+        });
+      } else if (formula === 'CH₄') {
+        // Tetrahedral Methane
+        const cGeom = new THREE.SphereGeometry(1.1, 28, 28);
+        const cMat = new THREE.MeshPhongMaterial({ color: '#3A3F47', emissive: '#0F1012', shininess: 90 });
+        const carbon = new THREE.Mesh(cGeom, cMat);
+        group.add(carbon);
+
+        const hGeom = new THREE.SphereGeometry(0.55, 20, 20);
+        const hMat = new THREE.MeshPhongMaterial({ color: '#EAF2FF', emissive: '#1B2735', shininess: 60 });
+        const hCoords = [
+          new THREE.Vector3(1.4, 1.4, 1.4),
+          new THREE.Vector3(-1.4, -1.4, 1.4),
+          new THREE.Vector3(-1.4, 1.4, -1.4),
+          new THREE.Vector3(1.4, -1.4, -1.4)
+        ];
+
+        hCoords.forEach((coord) => {
+          const hMesh = new THREE.Mesh(hGeom, hMat);
+          hMesh.position.copy(coord);
+          group.add(hMesh);
+          createCovalentBond(carbon.position, hMesh.position, group, '#3A3F47', '#EAF2FF');
+        });
+      } else if (formula === 'HCl') {
+        // Diatomic Dumbbell Hydrochloric Acid
+        const hGeom = new THREE.SphereGeometry(0.65, 20, 20);
+        const hMat = new THREE.MeshPhongMaterial({ color: '#EAF2FF', emissive: '#1A2130', shininess: 60 });
+        const hMesh = new THREE.Mesh(hGeom, hMat);
+        hMesh.position.set(-1.4, 0, 0);
+        group.add(hMesh);
+
+        const clGeom = new THREE.SphereGeometry(1.25, 28, 28);
+        const clMat = new THREE.MeshPhongMaterial({ color: '#00FFB3', emissive: '#004A30', shininess: 80 });
+        const clMesh = new THREE.Mesh(clGeom, clMat);
+        clMesh.position.set(1.4, 0, 0);
+        group.add(clMesh);
+
+        createCovalentBond(hMesh.position, clMesh.position, group, '#EAF2FF', '#00FFB3');
+      } else if (formula === 'Li₂O') {
+        // Antifluorite Lithium Oxide
+        const oGeom = new THREE.SphereGeometry(1.15, 28, 28);
+        const oMat = new THREE.MeshPhongMaterial({ color: '#FF1744', emissive: '#400000', shininess: 80 });
+        const oMesh = new THREE.Mesh(oGeom, oMat);
+        group.add(oMesh);
+
+        const liGeom = new THREE.SphereGeometry(0.7, 20, 20);
+        const liMat = new THREE.MeshPhongMaterial({ color: '#FFA726', emissive: '#3E2723', shininess: 70 });
+        const li1 = new THREE.Mesh(liGeom, liMat);
+        li1.position.set(-1.9, 0.4, 0.5);
+        group.add(li1);
+
+        const li2 = new THREE.Mesh(liGeom, liMat);
+        li2.position.set(1.9, -0.4, -0.5);
+        group.add(li2);
+
+        createLatticeLine(oMesh.position, li1.position, group, '#FF5722');
+        createLatticeLine(oMesh.position, li2.position, group, '#FF5722');
+      } else if (formula === 'UF₆') {
+        // Octahedral Uranium Hexafluoride
+        const uGeom = new THREE.SphereGeometry(1.4, 32, 32);
+        const uMat = new THREE.MeshPhongMaterial({ color: '#39FF14', emissive: '#0A3F00', shininess: 100 });
+        const uranium = new THREE.Mesh(uGeom, uMat);
+        group.add(uranium);
+
+        const fGeom = new THREE.SphereGeometry(0.65, 20, 20);
+        const fMat = new THREE.MeshPhongMaterial({ color: '#CCFF90', emissive: '#253D10', shininess: 60 });
+        const fCoords = [
+          new THREE.Vector3(2.3, 0, 0),
+          new THREE.Vector3(-2.3, 0, 0),
+          new THREE.Vector3(0, 2.3, 0),
+          new THREE.Vector3(0, -2.3, 0),
+          new THREE.Vector3(0, 0, 2.3),
+          new THREE.Vector3(0, 0, -2.3)
+        ];
+
+        fCoords.forEach((coord) => {
+          const fMesh = new THREE.Mesh(fGeom, fMat);
+          fMesh.position.copy(coord);
+          group.add(fMesh);
+          createCovalentBond(uranium.position, fMesh.position, group, '#39FF14', '#CCFF90');
+        });
+      } else {
+        // Smart Organic Dynamic Dumbbell / Triangle cluster Fallback
+        const reactantColorA = CATEGORY_COLORS[ELEMENTS_DATA.find(e => e.symbol === re?.reactants[0])?.category || 'text']?.hex || '#00FFB3';
+        const reactantColorB = CATEGORY_COLORS[ELEMENTS_DATA.find(e => e.symbol === re?.reactants[1])?.category || 'text']?.hex || '#FFA000';
+
+        const g1Geom = new THREE.SphereGeometry(1.15, 28, 28);
+        const g1Mat = new THREE.MeshPhongMaterial({ color: reactantColorA, emissive: new THREE.Color(reactantColorA).multiplyScalar(0.2), shininess: 80 });
+        const m1 = new THREE.Mesh(g1Geom, g1Mat);
+        m1.position.set(-1.3, 0, 0.2);
+        group.add(m1);
+
+        const g2Geom = new THREE.SphereGeometry(1.0, 28, 28);
+        const g2Mat = new THREE.MeshPhongMaterial({ color: reactantColorB, emissive: new THREE.Color(reactantColorB).multiplyScalar(0.2), shininess: 80 });
+        const m2 = new THREE.Mesh(g2Geom, g2Mat);
+        m2.position.set(1.3, 0, -0.2);
+        group.add(m2);
+
+        createCovalentBond(m1.position, m2.position, group, reactantColorA, reactantColorB);
       }
 
       // 3D Bond Energy Aura Indicator: Custom dual-shell volumetric energy core wrapping the molecule
@@ -1695,6 +1919,19 @@ export default function ThreeScene({
       }
     };
     window.addEventListener('reaction-stage', handleReactionStageEvent);
+
+    const handleShellProbeSelected = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail && typeof customEvent.detail.index === 'number') {
+        const index = customEvent.detail.index;
+        selectedShellIndex = index;
+        rebuildDensityCloud(selectedShellIndex, propsRef.current.selectedElement);
+      } else {
+        selectedShellIndex = null;
+        rebuildDensityCloud(selectedShellIndex, propsRef.current.selectedElement);
+      }
+    };
+    window.addEventListener('shell-probe-selected', handleShellProbeSelected);
 
     // Interactive Camera Parallax & Elastic buoyancy
     let currentParallaxX = 0;
@@ -2465,6 +2702,7 @@ export default function ThreeScene({
 
       // Hide/reveal filaments to save draw calls and line shaders CPU cost
       networkLines.visible = !isLow;
+      relationshipWebGroup.visible = !isLow;
 
       // Swap nucleon materials in the background nucleus to BasicMaterial
       nucleons.forEach((node, idx) => {
@@ -2579,10 +2817,10 @@ export default function ThreeScene({
         rotYTarget = elapsed * 0.05;
         rotXTarget = -0.15;
       } else if (currentProps.selectedElement) {
-        // Detailed Atom view focusing, camera offset to handle HUD neatness
-        cameraTargetX = 4.8; 
+        // Center-aligned Atom view for immersive, spatial holographic layout
+        cameraTargetX = 0.0; 
         cameraTargetY = -0.2;
-        cameraTargetZ = (16.5 + currentProps.selectedElement.shells.length * 1.5) * zoomScaleMultiplier;
+        cameraTargetZ = (16.0 + currentProps.selectedElement.shells.length * 1.35) * zoomScaleMultiplier;
         
         rotXTarget *= 0.95;
         rotYTarget *= 0.95;
@@ -2764,6 +3002,50 @@ export default function ThreeScene({
         const activeMultiplier = currentProps.appMode === 'bond_lab' ? 0.04 : 1.0;
         (networkLines.material as THREE.LineBasicMaterial).opacity = 
           (0.25 + Math.sin(elapsed * 2.5) * 0.1) * activeMultiplier;
+      }
+
+      // Update relationship web light filaments
+      if (relationshipFilaments.length > 0) {
+        relationshipFilaments.forEach(fil => {
+          const fromCard = elementCards[fil.fromIdx];
+          const toCard = elementCards[fil.toIdx];
+          if (fromCard && toCard) {
+            const p1 = fromCard.mesh.position;
+            const p2 = toCard.mesh.position;
+            
+            // Align cylinder midway between cards
+            fil.mesh.position.addVectors(p1, p2).multiplyScalar(0.5);
+            
+            // Orient the cylinder to point to p2
+            fil.mesh.lookAt(p2);
+            
+            // Scale geometry to stretch between the coordinates
+            const distance = p1.distanceTo(p2);
+            
+            const pulseSpeed = fil.flickerFrequency;
+            // Generate a rapid voltage-shimmer noise
+            const noise = (Math.sin(elapsed * pulseSpeed) + Math.cos(elapsed * pulseSpeed * 1.3)) * 0.15;
+            
+            // Also introduce a secondary kinetic heartbeat pulse
+            const heartbeat = Math.sin(elapsed * 1.5 + fil.fromIdx) * 0.08;
+            
+            // Opacity scales with electro difference + noise + heartbeat
+            const baseOpacity = 0.2 + (fil.deltaEN * 0.1);
+            const dynamicOpacity = Math.max(0.08, Math.min(0.85, baseOpacity + noise + heartbeat));
+            
+            fil.material.opacity = dynamicOpacity;
+            
+            // Filament thickness pulse (high deltaEN creates highly dynamic elastic lines)
+            const thicknessPulse = 1.0 + Math.sin(elapsed * pulseSpeed) * 0.15 * Math.min(1.0, fil.deltaEN);
+            const currentRadius = fil.baseRadius * thicknessPulse;
+            
+            fil.mesh.scale.set(currentRadius, currentRadius, distance);
+            
+            // Hide if the app mode is bond lab as container is active
+            const activeMultiplier = currentProps.appMode === 'bond_lab' ? 0.05 : 1.0;
+            fil.material.opacity *= activeMultiplier;
+          }
+        });
       }
 
       // Highlights path of the active hovered element
@@ -3381,6 +3663,17 @@ export default function ThreeScene({
       if (currentProps.selectedElement) {
         atomGroup.visible = true;
         
+        const selectedEl = currentProps.selectedElement;
+        const atmosphereType = selectedEl.visual?.atmosphereType || selectedEl.orbitiumPersonality?.visualConfig?.atmosphereType;
+        const category = selectedEl.category;
+        const isRadioactiveOrActinide = 
+          category === 'actinide' || 
+          atmosphereType === 'decay' || 
+          atmosphereType === 'actinide' || 
+          atmosphereType === 'radioactive' ||
+          selectedEl.visual?.energyBehavior === 'radioactive' ||
+          selectedEl.orbitiumPersonality?.visualConfig?.energyBehavior === 'radioactive';
+
         // Nucleus organic eccentric rotation
         nucleusGroup.rotation.y += 0.012 * simMultiplier;
         nucleusGroup.rotation.z += 0.007 * simMultiplier;
@@ -3410,6 +3703,11 @@ export default function ThreeScene({
           const e = el.eccentricity;
           const speedScalar = Math.pow(1.0 + e * Math.cos(el.angle), 2);
           el.angle += el.speed * simMultiplier * speedScalar;
+
+          // Erratic sudden angle jumps along orbits for radioactive elements
+          if (isRadioactiveOrActinide && Math.random() > 0.985) {
+            el.angle += (Math.random() - 0.5) * 1.8;
+          }
 
           // Quantum Jump State handling
           if (!el.isJumping) {
@@ -3467,8 +3765,17 @@ export default function ThreeScene({
             ? Math.sin(elapsed * 15.0 + el.angle * 2.0) * 0.18 * currentProps.reactiveIntensity
             : Math.sin(elapsed * 3.5 + el.angle) * 0.02;
 
-          const rx = rxBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
-          const ry = ryBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
+          let rx = rxBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
+          let ry = ryBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
+
+          // Erratic radial decay-ray vibrations
+          if (isRadioactiveOrActinide) {
+            const decayOsc = Math.sin(elapsed * 38.0 + el.angle * 4.0) * 0.35;
+            const hasErraticEruption = Math.random() > 0.95;
+            const eruptionAmt = hasErraticEruption ? (Math.random() - 0.5) * 1.6 : 0.0;
+            rx += decayOsc + eruptionAmt;
+            ry += decayOsc + eruptionAmt;
+          }
 
           const p = new THREE.Vector3(rx * Math.cos(el.angle), 0, ry * Math.sin(el.angle));
 
@@ -3490,6 +3797,15 @@ export default function ThreeScene({
             el.mesh.scale.setScalar(elBreathe * flickerFactor);
             // Flicker neon white when actively tunneling, otherwise quantum mint-green
             (el.mesh.material as THREE.MeshBasicMaterial).color.set(el.isTunneling ? '#FFFFFF' : '#00FFB3');
+          } else if (isRadioactiveOrActinide) {
+            // Erratic flashing scales and neon radioactive colors
+            const isFlashing = Math.random() > 0.93;
+            const elScale = isFlashing 
+              ? 2.2 + Math.random() * 1.4 
+              : 1.0 + Math.sin(elapsed * 24.0 + el.angle * 2.0) * 0.28;
+            el.mesh.scale.setScalar(elScale);
+            const decayColorHex = isFlashing ? '#FF3D00' : (category === 'actinide' ? '#39FF14' : '#FFD600');
+            (el.mesh.material as THREE.MeshBasicMaterial).color.set(decayColorHex);
           } else {
             el.mesh.scale.setScalar(1.0);
             (el.mesh.material as THREE.MeshBasicMaterial).color.copy(el.baseColor);
@@ -3522,6 +3838,11 @@ export default function ThreeScene({
           } else if (isSelectedShell) {
             trailMat.color.set(el.isTunneling ? '#FFFFFF' : '#00FFB3'); // highlighted trail matching the cyan-green resonance or white tunneling
             trailMat.opacity = el.isTunneling ? 1.0 : 0.95;
+          } else if (isRadioactiveOrActinide) {
+            const isFlicker = Math.random() > 0.88;
+            const decayTrailColor = isFlicker ? '#FF3D00' : (category === 'actinide' ? '#39FF14' : '#FFD600');
+            trailMat.color.set(decayTrailColor);
+            trailMat.opacity = isFlicker ? 0.95 : 0.35 + Math.sin(elapsed * 25.0) * 0.15;
           } else {
             trailMat.color.copy(el.baseColor);
             trailMat.opacity = 0.42;
@@ -3534,12 +3855,50 @@ export default function ThreeScene({
             const ringLine = child as THREE.Line;
             const rMat = ringLine.material as THREE.LineBasicMaterial;
             const ringIdx = ringLine.userData.shellIndex;
-            if (ringIdx === selectedShellIndex) {
-              rMat.color.set('#00FFB3');
-              rMat.opacity = 0.55 + Math.sin(elapsed * 8.0) * 0.3;
+            
+            if (isRadioactiveOrActinide) {
+              // ERRATIC JUMP && DECAY-RAY EFFECT ON ELECTRON SHELLS (ORBITS)
+              // 1. Decay-ray flash effect: intense rapid glow pulses with spike flashes
+              const isDecaySpike = Math.random() > 0.95;
+              const decayGlow = isDecaySpike 
+                ? 0.8 + Math.random() * 0.2 
+                : 0.15 + Math.sin(elapsed * 32.0 + ringIdx * 3.0) * 0.08;
+              rMat.opacity = decayGlow;
+              
+              // 2. Erratic jump/jitter on shell scale and rotation planes
+              const hasErraticJump = Math.random() > 0.96;
+              if (hasErraticJump) {
+                const erraticScale = 0.92 + Math.random() * 0.16;
+                ringLine.scale.set(erraticScale, erraticScale, erraticScale);
+                ringLine.rotation.y = (Math.random() - 0.5) * 0.16;
+                ringLine.rotation.x = (Math.random() - 0.5) * 0.16;
+              } else {
+                // Return smoothly to center scale & rotation
+                ringLine.scale.lerp(new THREE.Vector3(1, 1, 1), 0.15);
+                ringLine.rotation.x *= 0.85;
+                ringLine.rotation.y *= 0.85;
+              }
+              
+              // 3. Radioactive dynamic colors (flash neon warn colors)
+              if (isDecaySpike) {
+                rMat.color.set('#FFF176'); // Warn flash yellow/green
+              } else {
+                const decayTargetColor = new THREE.Color(category === 'actinide' ? '#39FF14' : '#FF8F00');
+                rMat.color.copy(ringLine.userData.defaultColor).lerp(decayTargetColor, 0.45 + Math.sin(elapsed * 5.0) * 0.15);
+              }
             } else {
-              rMat.color.copy(ringLine.userData.defaultColor);
-              rMat.opacity = 0.18;
+              // Standard behavior
+              // Reset scale and rotation in case it was radioactive before
+              ringLine.scale.set(1, 1, 1);
+              ringLine.rotation.set(0, 0, 0);
+
+              if (ringIdx === selectedShellIndex) {
+                rMat.color.set('#00FFB3');
+                rMat.opacity = 0.55 + Math.sin(elapsed * 8.0) * 0.3;
+              } else {
+                rMat.color.copy(ringLine.userData.defaultColor);
+                rMat.opacity = 0.18;
+              }
             }
           }
         });
@@ -3718,6 +4077,7 @@ export default function ThreeScene({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('reset-reactor', handleResetReactor);
       window.removeEventListener('reaction-stage', handleReactionStageEvent);
+      window.removeEventListener('shell-probe-selected', handleShellProbeSelected);
       window.removeEventListener('set-cosmic-zoom', handleSetCosmicZoom);
       window.removeEventListener('cosmic-pulse', handleCosmicPulse);
       window.removeEventListener('toggle-density-cloud', handleToggleDensityCloud);
@@ -3736,6 +4096,13 @@ export default function ThreeScene({
       networkMat.dispose();
       hoverNetworkLines.geometry.dispose();
       hoverNetworkMat.dispose();
+
+      // Clean up relationship filaments
+      unitFilamentGeom.dispose();
+      relationshipFilaments.forEach(fil => {
+        fil.mesh.geometry.dispose();
+        fil.material.dispose();
+      });
 
       // Dispose sectorsGroup structures
       sectorsGroup.children.forEach(secGroup => {

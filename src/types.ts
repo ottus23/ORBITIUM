@@ -182,4 +182,11 @@ export interface ReactionConfig {
   productFormula: string;
   description: string;
   visualType: 'covalent' | 'ionic' | 'explosion';
+  conditions?: string;          // e.g. "Ambient temperature with thermal trigger"
+  resultingMaterial?: string;   // e.g. "Prismatic high-purity glass sheets"
+  realWorldApplications?: string[]; // e.g. ["Solar panels", "Telescope lenses"]
+  whyItMatters?: string;        // e.g. "Life support, solvent catalysis"
+  structure?: string;           // e.g. "Bent molecular, highly polar"
+  properties?: string[];        // e.g. ["High heat capacity", "Cohesive matrix"]
+  uses?: string[];              // e.g. ["Thermoregulation", "Universal solvent"]
 }

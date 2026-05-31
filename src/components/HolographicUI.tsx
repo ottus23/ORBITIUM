@@ -56,6 +56,146 @@ interface HolographicUIProps {
   currentFps: number;
 }
 
+export function analyzeReaction(symA: string, symB: string): ReactionConfig {
+  // 1. Check if we have an exact match in REACTION_CONFIGS (or matching reverse reactant array)
+  const matched = REACTION_CONFIGS.find(re => 
+    (re.reactants[0] === symA && re.reactants[1] === symB) ||
+    (re.reactants[0] === symB && re.reactants[1] === symA)
+  );
+  if (matched) return matched;
+
+  // 2. Otherwise, construct a dynamic chemical reaction on the fly!
+  const elA = ELEMENTS_DATA.find(e => e.symbol === symA);
+  const elB = ELEMENTS_DATA.find(e => e.symbol === symB);
+
+  if (!elA || !elB) {
+    return {
+      reactants: [symA, symB],
+      productName: 'Unknown Compound Residue',
+      productFormula: `${symA}${symB}`,
+      description: 'The quantum engine was unable to map the exact valence fields for this pairing.',
+      visualType: 'covalent'
+    };
+  }
+
+  // Same elements
+  if (symA === symB) {
+    if (elA.category === 'noble-gas') {
+      return {
+        reactants: [symA, symB],
+        productName: `Monoatomic ${elA.name} Environment`,
+        productFormula: symA,
+        description: `Highly stable inert noble gas. Atoms do not coalesce under standard forces and glide past each other cleanly in a zero-affinity field.`,
+        visualType: 'covalent',
+        conditions: 'Ambient temperature, cryogenic isolation pressures',
+        resultingMaterial: `Pure gaseous and compressed liquid ${elA.name}`,
+        realWorldApplications: ['High-vacuum science isolators', 'Protective inert shields', 'Scentless heavy insulation atmospheres'],
+        whyItMatters: `${elA.name} is chemically complete. This inertness is a vital shield, ensuring that materials do not burn, decompose, or rust in key high-voltage or scientific vessels.`,
+        structure: 'Isolated monoatomic noble arrangement',
+        properties: ['Extremely low chemical affinity', 'Zero dipole interaction', 'High electrical ionization light discharge'],
+        uses: ['Cryogenics', 'Laser discharge tracking', 'Atmospheric isolation']
+      };
+    } else {
+      const isMetal = elA.category.includes('metal');
+      return {
+        reactants: [symA, symB],
+        productName: `Diatomic ${elA.name} Lattice`,
+        productFormula: `${symA}₂`,
+        description: `Homonuclear ${isMetal ? 'Metallic' : 'Covalent'} coordination: Two identical atoms of ${elA.name} share valence orbitals, forming a homogeneous structural elemental network.`,
+        visualType: isMetal ? 'ionic' : 'covalent',
+        conditions: 'Thermal spark, vacuum condensing, or galvanic sublimation',
+        resultingMaterial: `Homogeneous elemental crystals, filaments, or compressed diatomic vapor`,
+        realWorldApplications: [`Pure ${elA.name} metal plating`, 'Atmospheric breathers', 'Laser source components'],
+        whyItMatters: `Identical elements bonding with themselves represents the purest form of chemical substance, demonstrating the symmetry of quantum electron spins.`,
+        structure: 'Symmetrical linear coordination, zero dipolar distortion',
+        properties: ['Perfect bond charge balance', 'Zero electronegativity offset', 'Tightly packed atomic radius coordinates'],
+        uses: ['Structural chemistry study', 'Catalytic surfaces', 'Raw metallurgy feedstocks']
+      };
+    }
+  }
+
+  // Noble gas interaction (inert)
+  if (elA.category === 'noble-gas' || elB.category === 'noble-gas') {
+    const noble = elA.category === 'noble-gas' ? elA : elB;
+    const other = elA.category === 'noble-gas' ? elB : elA;
+    return {
+      reactants: [symA, symB],
+      productName: `${noble.name} - ${other.name} Non-Bonding Field`,
+      productFormula: `${symA}•${symB}`,
+      description: `Inert Barrier: The noble gas ${noble.name} possesses a complete outer octet of valence electrons (closed subshells), establishing an impenetrable barrier which refuses standard chemical electron transfer.`,
+      visualType: 'covalent',
+      conditions: 'No standard reaction conditions exist. Requires massive electrical potential.',
+      resultingMaterial: 'Inert gaseous mixture, completely separated physically',
+      realWorldApplications: ['Gaseous arc welding shielding', 'High-voltage insulation chambers', 'Preventing standard chemical fires'],
+      whyItMatters: `This absolute refusal to react protects highly energetic processes from cataclysmic burnouts. Without noble gas insulation, high frequency electronics would spark and dissolve instantly.`,
+      structure: 'Inter-penetrating atomic clouds without electron orbital hybridization',
+      properties: ['Zero bond energy association', 'Independent kinetic velocity matrices', 'High dielectric breakdown resistance'],
+      uses: ['Inert atmosphere control', 'Preservation of old artifacts', 'Cryogenic space cooling lines']
+    };
+  }
+
+  // Calculate electronegativity difference
+  const enA = elA.electronegativity || 1.0;
+  const enB = elB.electronegativity || 1.0;
+  const diff = Math.abs(enA - enB);
+
+  // Ionic bond (one metal, one highly electronegative non-metal)
+  if (diff >= 1.6) {
+    const metal = enA < enB ? elA : elB;
+    const nonmetal = enA < enB ? elB : elA;
+    const formula = `${metal.symbol}${nonmetal.symbol}`;
+    return {
+      reactants: [symA, symB],
+      productName: `${metal.name} ${nonmetal.name.replace(/ine$/, 'ide').replace(/gen$/, 'ide')} Compound`,
+      productFormula: formula,
+      description: `Electrostatic Ionic Lattice: ${metal.name} surrenders its weakly held valence electrons to the aggressive electronegative cloud of ${nonmetal.name}, generating a high-melting ionic salt.`,
+      visualType: 'ionic',
+      conditions: 'Direct contact with thermal triggering and moisture ionization',
+      resultingMaterial: 'Transparent, high-melting ionic crystalline solid blocks',
+      realWorldApplications: ['Solid-state electrolyte batteries', 'Mineral supplements and dietary nutrients', 'Industrial salt solvents'],
+      whyItMatters: `High electronegativity differences generate electrostatic potentials that form highly rigid ionic lattices. This dissociation is the engine of electrical chemistry, battery cells, and bio-electrics.`,
+      structure: 'Crystalline electrostatic lattice arrangement',
+      properties: ['High water solubility', 'High thermal melting boundary', 'Brittle glass-like mechanical cleavage'],
+      uses: ['Lattice chemistry teaching', 'Electrochemical cells', 'Industrial chemical fluxes']
+    };
+  }
+
+  // Metallic bond (both are metals)
+  if (elA.category.includes('metal') && elB.category.includes('metal')) {
+    return {
+      reactants: [symA, symB],
+      productName: `${elA.name}-${elB.name} Metallic Alloy`,
+      productFormula: `${symA}${symB}`,
+      description: `Electron-Sea Metallic Lattice: Valence electrons are delocalized into a shared quantum "sea", leaving positive atomic cores aligned inside a highly ductile, shiny metallic alloy matrix.`,
+      visualType: 'covalent',
+      conditions: 'Solid-state high-temperature sintering or vacuum liquid co-melting',
+      resultingMaterial: 'Malleable, highly conductive solid metallic composite phase',
+      realWorldApplications: ['Aviation skeletal frames', 'Heavy magnetic inductor cores', 'Solder materials for high precision electronics'],
+      whyItMatters: `Alloys create structural properties that neither element can achieve on its own, like high-temperature creep resistance or ultra-durable rust prevention.`,
+      structure: 'Close-packed metallic lattice sharing a delocalized Fermi sea of conduction energy',
+      properties: ['Exceptional thermal and electric conductance', 'High plastic ductility and malleability', 'High mechanical yield threshold'],
+      uses: ['Structural aviation engineering', 'Marine turbine blades', 'Electrical grid contacts']
+    };
+  }
+
+  // Covalent bond (non-metals, moderate to low electronegativity difference)
+  const formula = `${symA}${symB}`;
+  return {
+    reactants: [symA, symB],
+    productName: `${elA.name} ${elB.name.replace(/gen$/, 'ide').replace(/ine$/, 'ide')} Molecule`,
+    productFormula: formula,
+    description: `Covalent Orbital Sharing: Moderate electronegativity differences allow adjacent p-orbitals to hybridize, creating discrete polar molecules with directional covalent bonds.`,
+    visualType: 'covalent',
+    conditions: 'Catalyzed gaseous firing or elevated UV radiation trigger',
+    resultingMaterial: 'Volatile molecular fluid, high-clarity gas, or insulating organic crystal',
+    realWorldApplications: ['Microchip chemical vapor deposition (CVD)', 'Synthetic organic polymers and pharmaceuticals', 'Specialized refrigeration agents'],
+    whyItMatters: `Directional shared electron pairs allow complex chains and geometric rings to form, giving rise to all organic compounds and structural polymers that define modern medicine and chemistry.`,
+    structure: 'Discrete polar molecular structure with hybridized valence shells',
+    properties: ['Low boiling and freezing points', 'High inter-molecular dipole-dipole interactions', 'Electrical insulator behavior'],
+    uses: ['Specialty solvent synthesis', 'Organic chemical processing', 'Silicon oxidation barriers']
+  };
+}
+
 export default function HolographicUI({
   selectedElement,
   hoveredElement,
@@ -89,6 +229,11 @@ export default function HolographicUI({
   const [isPlayingTimeline, setIsPlayingTimeline] = useState(false);
   const [liveDistance, setLiveDistance] = useState<number | null>(null);
   const [isMoreActive, setIsMoreActive] = useState(false);
+  
+  // Custom states for the Dynamic Compound Discovery Sandbox
+  const [bondLabTab, setBondLabTab] = useState<'registry' | 'sandbox'>('registry');
+  const [sandboxA, setSandboxA] = useState<string>('H');
+  const [sandboxB, setSandboxB] = useState<string>('O');
 
   // Multi-Scale Exploration Scale state tracking
   const [scaleMode, setScaleMode] = useState<'cosmic' | 'periodic' | 'molecular' | 'atomic' | 'subatomic'>('periodic');
@@ -838,64 +983,203 @@ export default function HolographicUI({
             {/* 2. BOND REACTOR PANEL CONTROLS */}
             {appMode === 'bond_lab' && (
               <>
-                {/* Collapsible Panel 1: Chemistry Molecules Registry */}
-                <div className="border border-white/10 rounded-sm bg-white/[0.01] overflow-hidden">
-                  <button 
-                    onClick={() => setBondFormulaCollapsed(!bondFormulaCollapsed)}
-                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#FF9100] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
-                  >
-                    <span className="flex items-center gap-2 font-black">
-                      <Flame className="w-4.5 h-4.5 text-[#FF9100]" /> CANDIDATE MOLECULES
+                {/* Collapsible Panel 1: Chemistry Molecules Registry & Sandbox Mixing Chamber */}
+                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden">
+                  <div className="p-3 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-black text-[#FF9100] tracking-widest text-[#FF9100]">
+                      <Flame className="w-4.5 h-4.5 text-[#FF9100]" /> BOND CHAMBER LAB
                     </span>
-                    {bondFormulaCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#FF9100]" />}
-                  </button>
+                    <button 
+                      onClick={() => setBondFormulaCollapsed(!bondFormulaCollapsed)}
+                      className="text-white/50 hover:text-white cursor-pointer"
+                    >
+                      {bondFormulaCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4 text-[#FF9100]" />}
+                    </button>
+                  </div>
 
-                  <div className={`transition-all duration-300 overflow-hidden ${bondFormulaCollapsed ? 'max-h-0' : 'max-h-[500px] p-4'}`}>
-                    <p className="text-[10px] text-[#EAF2FF]/60 leading-relaxed font-light mb-3">
-                      Select a molecular formula from the synthesized registry below to construct the reactants in 3D, then drag them together to observe orbital bonding.
-                    </p>
-
-                    <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-                      {REACTION_CONFIGS.map((re, rIdx) => {
-                        const isSelected = activeReaction?.productFormula === re.productFormula;
-                        return (
-                          <button
-                            key={rIdx}
-                            onClick={() => handleReactionInit(re)}
-                            className={`p-2.5 rounded-sm flex flex-col justify-between items-start text-left gap-1 border transition-all cursor-pointer group ${
-                              isSelected 
-                                ? 'bg-[#FF9100]/10 border-[#FF9100] text-[#FF9100] shadow-[0_0_12px_rgba(255,145,0,0.15)]'
-                                : 'bg-white/5 border-white/10 text-[#EAF2FF]/70 hover:border-white/20'
-                            }`}
-                          >
-                            <div className="flex justify-between w-full items-center">
-                              <span className="text-[11px] font-extrabold tracking-wider group-hover:text-[#FF9100] transition-colors">{re.productFormula}</span>
-                              <span className={`text-[7px] font-mono px-1 py-0.5 rounded ${
-                                re.visualType === 'covalent' ? 'bg-blue-900/30 text-blue-400' :
-                                re.visualType === 'ionic' ? 'bg-green-900/30 text-green-400' :
-                                'bg-red-900/30 text-red-500 font-extrabold'
-                              }`}>{re.visualType.toUpperCase()}</span>
-                            </div>
-                            <div className="text-[9.5px] font-mono leading-tight">{re.productName}</div>
-                          </button>
-                        );
-                      })}
+                  <div className={`transition-all duration-300 overflow-hidden ${bondFormulaCollapsed ? 'max-h-0' : 'max-h-[1400px] p-4'}`}>
+                    
+                    {/* Tab Selection */}
+                    <div className="grid grid-cols-2 gap-2 mb-3.5 border-b border-white/5 pb-3">
+                      <button
+                        onClick={() => setBondLabTab('registry')}
+                        className={`py-1.5 px-2 bg-black/40 border text-[9.5px] font-mono tracking-wider font-extrabold transition-all cursor-pointer ${
+                          bondLabTab === 'registry' 
+                            ? 'border-[#FF9100] text-[#FF9100] shadow-[0_0_8px_rgba(255,145,0,0.15)] bg-[#FF9100]/5' 
+                            : 'border-white/5 text-[#EAF2FF]/55 hover:border-white/15'
+                        }`}
+                      >
+                        [ MOLECULAR CATALOG ]
+                      </button>
+                      <button
+                        onClick={() => setBondLabTab('sandbox')}
+                        className={`py-1.5 px-2 bg-black/40 border text-[9.5px] font-mono tracking-wider font-extrabold transition-all cursor-pointer ${
+                          bondLabTab === 'sandbox' 
+                            ? 'border-[#7C4DFF] text-[#7C4DFF] shadow-[0_0_8px_rgba(124,77,255,0.15)] bg-[#7C4DFF]/5' 
+                            : 'border-white/5 text-[#EAF2FF]/55 hover:border-white/15'
+                        }`}
+                      >
+                        [ PARTNER SANDBOX ]
+                      </button>
                     </div>
 
+                    {bondLabTab === 'registry' ? (
+                      <>
+                        <p className="text-[10px] text-[#EAF2FF]/60 leading-relaxed font-light mb-3 font-sans">
+                          Select a molecular formula from the synthesized registry below to construct the reactants in 3D, then drag them together to observe orbital bonding.
+                        </p>
+
+                        <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                          {REACTION_CONFIGS.map((re, rIdx) => {
+                            const isSelected = activeReaction?.productFormula === re.productFormula;
+                            return (
+                              <button
+                                key={rIdx}
+                                onClick={() => handleReactionInit(re)}
+                                className={`p-2.5 rounded-sm flex flex-col justify-between items-start text-left gap-1 border transition-all cursor-pointer group ${
+                                  isSelected 
+                                    ? 'bg-[#FF9100]/10 border-[#FF9100] text-[#FF9100] shadow-[0_0_12px_rgba(255,145,0,0.15)]'
+                                    : 'bg-white/5 border-white/10 text-[#EAF2FF]/70 hover:border-white/20'
+                                }`}
+                              >
+                                <div className="flex justify-between w-full items-center">
+                                  <span className="text-[11px] font-extrabold tracking-wider group-hover:text-[#FF9100] transition-colors">{re.productFormula}</span>
+                                  <span className={`text-[7px] font-mono px-1 py-0.5 rounded ${
+                                    re.visualType === 'covalent' ? 'bg-blue-900/30 text-blue-400' :
+                                    re.visualType === 'ionic' ? 'bg-green-900/30 text-green-400' :
+                                    'bg-red-900/30 text-red-500 font-extrabold'
+                                  }`}>{re.visualType.toUpperCase()}</span>
+                                </div>
+                                <div className="text-[9.5px] font-mono leading-tight">{re.productName}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      /* SANDBOX MIXING CHAMBER MODE */
+                      <div className="space-y-3 font-mono">
+                        <p className="text-[10px] text-[#EAF2FF]/60 leading-relaxed font-light mb-2 font-sans">
+                          Manually select any two elements from the periodic matrix below to compute their bonding affinity, orbital types, and real-world compound properties.
+                        </p>
+
+                        {/* Dropdown Selectors */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[6.5px] text-white/40 uppercase font-black">REACTANT ALPHA:</span>
+                            <select
+                              value={sandboxA}
+                              onChange={(e) => setSandboxA(e.target.value)}
+                              className="w-full bg-[#0A0D14] border border-white/10 p-2 text-[#00FFB3] font-bold text-[10.5px] rounded outline-none cursor-pointer hover:border-white/25 transition-colors"
+                            >
+                              {ELEMENTS_DATA.slice(0, 92).map(el => (
+                                <option key={el.symbol} value={el.symbol} className="bg-[#0A0D14] text-white font-mono">
+                                  {el.symbol} - {el.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[6.5px] text-white/40 uppercase font-black">REACTANT BETA:</span>
+                            <select
+                              value={sandboxB}
+                              onChange={(e) => setSandboxB(e.target.value)}
+                              className="w-full bg-[#0A0D14] border border-white/10 p-2 text-[#00E5FF] font-bold text-[10.5px] rounded outline-none cursor-pointer hover:border-white/25 transition-colors"
+                            >
+                              {ELEMENTS_DATA.slice(0, 92).map(el => (
+                                <option key={el.symbol} value={el.symbol} className="bg-[#0A0D14] text-white font-mono">
+                                  {el.symbol} - {el.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Interactive Prediction Board */}
+                        {(() => {
+                          const result = analyzeReaction(sandboxA, sandboxB);
+
+                          return (
+                            <div className="space-y-3.5 bg-black/40 border border-[#7C4DFF]/20 p-3 rounded-sm animate-fade-in text-[9.5px]">
+                              
+                              {/* Element-to-Material Tracing Conduit Flow */}
+                              <div className="flex items-center justify-between p-2 bg-white/[0.02] border border-white/5 rounded-sm">
+                                <div className="flex flex-col items-center flex-1">
+                                  <span className="text-[#00FFB3] font-extrabold text-[12px]">{sandboxA}</span>
+                                  <span className="text-white/30 text-[6.5px] tracking-wider mt-0.5">ELEMENT A</span>
+                                </div>
+                                <ArrowRight className="w-3.5 h-3.5 text-white/10" />
+                                <div className="flex flex-col items-center flex-1">
+                                  <span className="text-[#00E5FF] font-extrabold text-[12px]">{sandboxB}</span>
+                                  <span className="text-white/30 text-[6.5px] tracking-wider mt-0.5">ELEMENT B</span>
+                                </div>
+                                <ArrowRight className="w-3.5 h-3.5 text-[#7C4DFF]/50" />
+                                <div className="flex flex-col items-center flex-1.5">
+                                  <span className="text-[#FF9100] font-black text-[12px] truncate max-w-[80px]">{result.productFormula}</span>
+                                  <span className="text-white/30 text-[6.5px] tracking-wider mt-0.5">COMPOUND</span>
+                                </div>
+                              </div>
+
+                              {/* Prediction Status and Type */}
+                              <div className="space-y-1.5 leading-tight">
+                                <div className="flex justify-between items-center text-[8.5px]">
+                                  <span className="text-white/30 uppercase">BOND COEFFICIENT:</span>
+                                  <span className={`px-1.5 py-0.5 rounded font-black ${
+                                    result.visualType === 'ionic' ? 'bg-green-500/10 text-green-400' :
+                                    result.visualType === 'explosion' ? 'bg-red-500/10 text-red-400' :
+                                    'bg-[#00E5FF]/10 text-[#00E5FF]'
+                                  }`}>
+                                    {result.visualType.toUpperCase()} AFFINITY
+                                  </span>
+                                </div>
+                                <div className="text-[11.5px] font-black text-[#EAF2FF]/95 leading-normal">{result.productName}</div>
+                                <p className="text-[#EAF2FF]/60 text-[9px] font-sans font-light leading-relaxed mt-1">
+                                  {result.description}
+                                </p>
+                              </div>
+
+                              {/* Material Conversion Info */}
+                              {result.resultingMaterial && (
+                                <div className="border-t border-white/5 pt-2 flex flex-col gap-0.5">
+                                  <span className="text-[7.5px] text-white/30 uppercase font-black">RESULTING PHYSICAL MATERIAL:</span>
+                                  <span className="text-[#00FFB3] font-sans font-medium text-[9.5px] leading-snug">{result.resultingMaterial}</span>
+                                </div>
+                              )}
+
+                              {/* Synthesize Button */}
+                              <button
+                                onClick={() => {
+                                  handleReactionInit(result);
+                                  setIsMoreActive(false); // Focus on active scene
+                                }}
+                                className="w-full py-2 bg-[#7C4DFF]/15 border border-[#7C4DFF]/40 hover:border-[#00FFB3] text-[#EAF2FF]/90 hover:text-[#00FFB3] font-mono font-bold text-[9px] tracking-wider uppercase transition-all duration-200 cursor-pointer text-center rounded-sm"
+                              >
+                                ENGAGE REACTOR MATRIX
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Active Reaction Tracking */}
                     {activeReaction && (
-                      <div className="mt-3 p-3 bg-black/40 border border-[#FF9100]/20 rounded-sm flex flex-col gap-1.5 animate-fade-in font-mono text-[9px]">
-                        <div className="text-[8px] text-[#FF9100] uppercase tracking-wider font-extrabold">OBSERVATION FEED:</div>
-                        <div className="flex justify-between text-[#EAF2FF]/75">
-                          <span>REACTANT A:</span>
-                          <span className="font-bold text-[#00E5FF]">{activeReaction.reactants[0]}</span>
+                      <div className="mt-3.5 p-3 bg-black/40 border border-[#FF9100]/20 rounded-sm flex flex-col gap-1.5 animate-fade-in font-mono text-[9px]">
+                        <div className="text-[8px] text-[#FF9100] uppercase tracking-wider font-extrabold flex items-center justify-between">
+                          <span>3D REACTOR FEED:</span>
+                          <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-ping" />
                         </div>
                         <div className="flex justify-between text-[#EAF2FF]/75">
-                          <span>REACTANT B:</span>
-                          <span className="font-bold text-[#EAF2FF]">{activeReaction.reactants[1]}</span>
+                          <span>REACTANT ALPHA:</span>
+                          <span className="font-bold text-[#00FFB3]">{activeReaction.reactants[0]}</span>
                         </div>
-                        <div className="w-full h-[1px] bg-white/15 my-0.5" />
+                        <div className="flex justify-between text-[#EAF2FF]/75">
+                          <span>REACTANT BETA:</span>
+                          <span className="font-bold text-[#00E5FF]">{activeReaction.reactants[1]}</span>
+                        </div>
+                        <div className="w-full h-[1px] bg-white/10 my-0.5" />
                         <div className="flex justify-between text-[#EAF2FF]/95">
-                          <span>LINK TELEMETRY:</span>
+                          <span>TETHER LINK CLAMP:</span>
                           <span className={`font-black uppercase ${liveDistance && liveDistance < 2.5 ? 'text-red-500 animate-pulse' : 'text-[#00FFB3]'}`}>
                             {liveDistance ? `${liveDistance.toFixed(2)} Å` : 'AWAITING LOCK'}
                           </span>
@@ -913,90 +1197,105 @@ export default function HolographicUI({
                   </div>
                 </div>
 
-                {/* Collapsible Panel 2: Diagnostics Workstation */}
+                {/* Collapsible Panel 2: Diagnostics Workstation & Rich Compound Exploration */}
                 {activeReaction && (
                   <div className="border border-[#FF9100]/30 rounded-sm bg-white/[0.01] overflow-hidden">
                     <button 
                       onClick={() => setBondDiagnosticsCollapsed(!bondDiagnosticsCollapsed)}
                       className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00FFB3] tracking-widest bg-[#FF9100]/5 border-b border-[#FF9100]/25 cursor-pointer hover:bg-[#FF9100]/10 transition-colors"
                     >
-                      <span className="flex items-center gap-2 font-black">
-                        <Activity className="w-4 h-4 text-[#00FFB3]" /> BOND DIAGNOSTICS LABORATORY
+                      <span className="flex items-center gap-2 font-black font-mono">
+                        <Activity className="w-4 h-4 text-[#00FFB3]" /> REACTION DIAGNOSTICS DECK
                       </span>
                       {bondDiagnosticsCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00FFB3]" />}
                     </button>
 
-                    <div className={`transition-all duration-300 overflow-hidden ${bondDiagnosticsCollapsed ? 'max-h-0' : 'max-h-[900px] p-4 space-y-3.5 font-mono text-[10px]'}`}>
+                    <div className={`transition-all duration-300 overflow-hidden ${bondDiagnosticsCollapsed ? 'max-h-0' : 'max-h-[1600px] p-4 space-y-4 font-mono text-[10px]'}`}>
                       {/* Reaction Summary block */}
-                      <div className="flex flex-col gap-1 p-3 bg-white/5 rounded-sm border border-white/10">
-                        <div className="text-[8.5px] font-mono text-[#FF9100] tracking-wider uppercase font-black">FORMULA PATHWAY SELECTED:</div>
-                        <div className="text-[14px] font-extrabold text-[#EAF2FF] tracking-wider leading-none mt-1">{activeReaction.productName}</div>
-                        <div className="text-[10px] font-mono text-[#00E5FF] mt-1 font-bold">{activeReaction.productFormula}</div>
+                      <div className="flex justify-between items-center p-3 bg-white/5 rounded-sm border border-white/10">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="text-[7.5px] font-mono text-[#FF9100] tracking-wider uppercase font-black">COMPLETED COMPOUND:</div>
+                          <div className="text-[13px] font-extrabold text-[#EAF2FF] tracking-wide leading-none mt-1 font-sans">{activeReaction.productName}</div>
+                        </div>
+                        <div className="text-[15px] font-black font-mono text-[#00E5FF]">{activeReaction.productFormula}</div>
                       </div>
 
-                      {(() => {
-                        const tel = REACTION_TELEMETRY[activeReaction.productFormula] || {
-                          equation: `${activeReaction.reactants[0]} + ${activeReaction.reactants[1]} → ${activeReaction.productFormula}`,
-                          energyChange: 'ΔH < 0 (Unspecified heat release)',
-                          bondDetail: 'Orbital hybridization and valence sharing sequence.',
-                          orbitalType: 'Dynamic hybrid valence bonds',
-                          kinetics: 'Spontaneous chain alignment',
-                          thermalStatus: 'Energetically active fusion',
-                          hazards: 'None identified.'
-                        };
+                      {activeReaction.whyItMatters && (
+                        /* REAL-WORLD CONTEXT PRIMARY CALLOUT (WHY DOES THIS MATTER?) */
+                        <div className="p-3 bg-gradient-to-r from-[#FF9100]/20 via-[#FF9100]/5 to-transparent border-l-2 border-[#FF9100] rounded-r text-justify leading-relaxed">
+                          <span className="text-[7.5px] text-[#FF9100] block font-black uppercase font-mono tracking-widest mb-1">
+                            WHY DOES THIS MATTER?
+                          </span>
+                          <p className="text-[#EAF2FF]/95 text-[9.5px] font-sans font-light leading-relaxed italic">
+                            "{activeReaction.whyItMatters}"
+                          </p>
+                        </div>
+                      )}
 
-                        return (
-                          <div className="space-y-3.5">
-                            {/* Reaction Equations */}
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">EQUILIBRIUM EQUATION:</span>
-                              <span className="text-[#00FFB3] text-[11px] font-black bg-black/40 px-2.5 py-1.5 rounded-sm border border-[#00FFB3]/15 tracking-wide">
-                                {tel.equation}
-                              </span>
-                            </div>
+                      {/* Scientific & Industrial Specifications */}
+                      <div className="space-y-3 font-mono">
+                        {/* Reaction Conditions */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[8px] text-white/30 font-black uppercase">REACTION CONDITIONS:</span>
+                          <span className="text-[#00E5FF] text-[9.5px] leading-snug font-sans font-medium px-2.5 py-1.5 bg-black/40 rounded-sm border border-[#00E5FF]/15">
+                            {activeReaction.conditions || 'Standard temperature grid, high vacuum or thermal arc trigger.'}
+                          </span>
+                        </div>
 
-                            {/* Energy changes */}
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">ENERGY MODULATION (ENTHALPY):</span>
-                              <span className="text-red-400 font-extrabold px-2 py-1 bg-red-950/20 rounded-sm border border-red-500/10">
-                                {tel.energyChange}
-                              </span>
-                            </div>
+                        {/* Resulting crystallite structure */}
+                        {activeReaction.structure && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[8px] text-white/30 font-black uppercase">CRYSTAL BOUND STRUCT:</span>
+                            <span className="text-[#00FFB3] text-[9.5px] font-sans font-medium px-2.5 py-1.5 bg-black/40 rounded-sm border border-[#00FFB3]/15">
+                              {activeReaction.structure}
+                            </span>
+                          </div>
+                        )}
 
-                            {/* Bond Formation details */}
-                            <div className="flex flex-col gap-1 col-span-2">
-                              <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">BOND FORMATION MATRIX:</span>
-                              <p className="text-[#EAF2FF]/80 text-[10px] leading-relaxed font-light font-sans">
-                                {tel.bondDetail}
-                              </p>
-                            </div>
-
-                            {/* Orbital geometry */}
-                            <div className="grid grid-cols-2 gap-3 pb-1 border-b border-white/5">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-[7.5px] text-[#EAF2FF]/40 font-bold uppercase">VALENCE HYBRID:</span>
-                                <span className="text-[#00E5FF] font-semibold text-[9px]">{tel.orbitalType}</span>
-                              </div>
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-[7.5px] text-[#EAF2FF]/40 font-bold uppercase">REACTION VELOCITY:</span>
-                                <span className="text-[#EAF2FF]/80 text-[9px] font-medium font-sans truncate">{tel.kinetics}</span>
-                              </div>
-                            </div>
-
-                            {/* Thermal Status */}
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase">THERMAL DISCHARGE:</span>
-                              <span className="text-amber-400/90 font-medium">{tel.thermalStatus}</span>
-                            </div>
-
-                            {/* Hazards */}
-                            <div className="flex flex-col gap-1 pt-1">
-                              <span className="text-[8px] text-[#EAF2FF]/40 font-bold uppercase text-red-500/80">containment hazard:</span>
-                              <span className="text-[9px] text-[#EAF2FF]/70 bg-black/30 p-2 rounded border border-white/5 font-sans font-light leading-normal">{tel.hazards}</span>
+                        {/* Side-by-Side Properties and Key Uses */}
+                        <div className="grid grid-cols-2 gap-3.5">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[8px] text-white/30 font-black uppercase">PROPERTIES:</span>
+                            <div className="flex flex-col gap-1 font-sans text-[#EAF2FF]/75 text-[9px] font-light italic leading-snug">
+                              {(activeReaction.properties || ['Ionic cohesion', 'Stable molecular crystal']).slice(0, 3).map((p, idx) => (
+                                <div key={idx} className="flex gap-1.5 items-start">
+                                  <span className="text-[#FF9100]">•</span>
+                                  <span>{p}</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        );
-                      })()}
+
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[8px] text-white/30 font-black uppercase">PRACTICAL USES:</span>
+                            <div className="flex flex-col gap-1 font-sans text-[#EAF2FF]/75 text-[9px] font-light italic leading-snug">
+                              {(activeReaction.uses || ['Industrial application', 'Structural catalyst']).slice(0, 3).map((u, idx) => (
+                                <div key={idx} className="flex gap-1.5 items-start font-mono">
+                                  <span className="text-[#00FFB3]">•</span>
+                                  <span>{u}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Neon Capsule Pill Badges for Real World Applications */}
+                        {activeReaction.realWorldApplications && (
+                          <div className="flex flex-col gap-1.5 border-t border-white/5 pt-3">
+                            <span className="text-[8px] text-white/30 font-black uppercase">REAL-WORLD MATERIALS & SYSTEMS:</span>
+                            <div className="flex flex-wrap gap-1.5 mt-0.5 font-mono">
+                              {activeReaction.realWorldApplications.map((app, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className="px-2 py-0.5 font-sans font-bold text-[8.5px] bg-[#FF9100]/5 border border-[#FF9100]/25 rounded-full text-[#FF9100]"
+                                >
+                                  {app}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1635,140 +1934,327 @@ export default function HolographicUI({
           </div>
         )}
 
-        {/* RIGHT HUD: SELECTED ELEMENT DETAILS */}
+        {/* ELITE COCKPIT: SPATIAL HOLOGRAPHIC HUD PANELS (ELEMENT WORLD EXPERIENCE) */}
         {isObsEntered && selectedElement && (
-          <div ref={sidebarRef} id="element-detail-sidebar" className="w-full md:w-85 ml-auto cyber-panel p-4 sm:p-5 rounded-sm flex flex-col justify-between shadow-2xl relative select-none pointer-events-auto overflow-y-auto max-h-[85vh] md:max-h-[calc(100vh-130px)]">
-            {/* Custom cybernetic overlay grids for detailed visual */}
-            <div className="absolute top-0 right-0 p-1 flex gap-1 bg-[#070B14]/40 border-l border-b border-white/10 text-[8px] font-mono tracking-widest text-[#EAF2FF]/30 lowercase">
-              sys.view_node()
+          <div 
+            className="absolute inset-0 z-30 select-none pointer-events-none flex flex-col justify-between"
+            style={{
+              '--primary-color': getCatMeta(selectedElement.category || 'reactive-nonmetal').hex,
+              '--primary-color-alpha': `${getCatMeta(selectedElement.category || 'reactive-nonmetal').hex}38`
+            } as React.CSSProperties}
+          >
+            {/* PANEL 1: CELESTIAL IDENTITY & NARRATIVE OVERLAY (TOP CENTER) */}
+            <div className="absolute top-22 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center text-center animate-fade-in z-30 w-full max-w-lg px-4">
+              <div className="relative flex items-center justify-center">
+                {/* Visual neon drop glow under symbol */}
+                <div className="absolute -inset-6 rounded-full bg-radial from-[var(--primary-color)]/25 to-transparent blur-xl animate-pulse" />
+                
+                <span className="text-7xl font-black tracking-tight font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
+                  {selectedElement.symbol}
+                </span>
+                <span className="absolute -top-3 -right-6 text-[10px] font-mono font-black border border-white/10 bg-[#070B14]/85 px-1.5 py-0.5 rounded text-[var(--primary-color)]">
+                  #{selectedElement.number.toString().padStart(3, '0')}
+                </span>
+              </div>
+              
+              <h1 className="text-2.5xl font-black tracking-[0.25em] uppercase text-white mt-3 drop-shadow-md">
+                {selectedElement.name}
+              </h1>
+              
+              <div className="flex gap-2.5 items-center mt-1 text-[8.5px] font-mono text-[#EAF2FF]/50 uppercase tracking-widest bg-white/[0.02] border border-white/5 px-3 py-0.5 rounded-sm">
+                <span className="font-bold text-[var(--primary-color)]">{getCatMeta(selectedElement.category).label}</span>
+                <span>•</span>
+                <span>Period: {selectedElement.period}</span>
+                <span>•</span>
+                <span>Block: {selectedElement.coreIdentity?.block?.toUpperCase() || 'S'}</span>
+              </div>
+
+              {/* Immersive cinematic storytelling narrative */}
+              <p className="max-w-md text-[10.5px] text-[#EAF2FF]/80 italic leading-relaxed mt-4 px-4 font-sans font-light drop-shadow-lg text-center bg-[#070B14]/40 py-2 rounded border border-white/5 backdrop-blur-sm">
+                {selectedElement.symbol === 'H' ? (
+                  <span>"A primordial pioneer, forged in the explosive furnace of the Big Bang. Hydrogen is the fuel of stars, breathing light into the cosmos through thermonuclear fusion."</span>
+                ) : selectedElement.symbol === 'C' ? (
+                  <span>"The organic architect of existence. Carbon forms perfect covalent frameworks, weaving the strands of DNA, bionics, and chemical lifelines."</span>
+                ) : selectedElement.symbol === 'U' ? (
+                  <span>"The nuclear titan. Armed with an ultra-heavy unstable core, Uranium fuels geodynamic heating and powers modern industrial reactor cores."</span>
+                ) : selectedElement.symbol === 'He' ? (
+                  <span>"The silent celestial spark. Born in stellar fusion, Helium forms a perfect, non-reactive noble sphere, lifting the balloons of industry and deep-space cooling."</span>
+                ) : selectedElement.symbol === 'Ne' ? (
+                  <span>"The luminous beacon of stability. Neon burns with a vivid crimson-orange plasma discharge under excitation, inert and immortal in the noble void."</span>
+                ) : (
+                  <span>"{selectedElement.summary}"</span>
+                )}
+              </p>
             </div>
 
-            {/* Close button */}
-            <button
-              onClick={() => onSelectElement(null)}
-              className="absolute top-4 right-4 w-7 h-7 border border-white/10 hover:border-red-500 hover:text-red-500 rounded-full flex items-center justify-center text-[#EAF2FF]/60 cursor-pointer transition-colors active:scale-90"
-              title="Close Element Explorer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-
-            <div>
-              {/* Heading */}
-              <div className="flex items-baseline gap-2 mb-3 mt-1.5">
-                <span className="text-sm font-mono text-[#00E5FF]">{selectedElement.number.toString().padStart(3, '0')}</span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 bg-white/5 uppercase rounded tracking-wider text-white/70">{getCatMeta(selectedElement.category).label}</span>
-              </div>
-
-              {/* Big symbol details */}
-              <div className="flex items-center gap-3.5 mb-3.5">
-                <div className="relative w-14 h-14 rounded border flex items-center justify-center bg-[#070B14]" style={{ borderColor: getCatMeta(selectedElement.category).hex }}>
-                  <span className="text-xl font-black tracking-tighter" style={{ color: getCatMeta(selectedElement.category).hex }}>
-                    {selectedElement.symbol}
-                  </span>
-                  <div className="absolute bottom-0 right-1 text-[8px] font-mono text-[#EAF2FF]/30">{selectedElement.number}</div>
+            {/* PANEL 2: ATOMIC STRUCTURAL CELL (MIDDLE LEFT) */}
+            <div className="absolute top-28 left-4 md:left-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300">
+                <div className="text-[7.5px] font-mono tracking-widest text-[#00FFB3] uppercase font-bold flex items-center gap-1.5 mb-2.5">
+                  <Atom className="w-4 h-4 text-[#00FFB3] animate-spin" style={{ animationDuration: '6s' }} /> // ATOMIC CORE METRICS
                 </div>
-                <div>
-                  <h2 className="text-lg font-black tracking-widest text-[#EAF2FF] uppercase leading-tight">{selectedElement.name}</h2>
-                  <div className="text-[10px] font-mono text-[#EAF2FF]/40 mt-0.5">Weight: <span className="text-[#EAF2FF]/90 font-bold">{selectedElement.mass.toFixed(4)} u</span></div>
-                </div>
-              </div>
-
-              {/* Custom SCI-FI interactive 10-Layer depth header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3.5 select-none text-[9.5px]">
-                <div className="flex flex-col">
-                  <span className="text-[#00E5FF] font-black uppercase tracking-wider font-mono">MATTER EXPLORATION DEPTH</span>
-                  <span className="text-white/40 text-[8px] font-mono tracking-widest mt-0.5">LAUNCHED PORTAL [ 0{activeLayer} / 10 ]</span>
-                </div>
-                <div className="flex gap-1 font-bold">
-                  <button
-                    disabled={activeLayer === 1}
-                    onClick={() => setActiveLayer(prev => Math.max(1, prev - 1))}
-                    className="px-2 py-0.5 border border-white/10 hover:border-white/35 hover:bg-white/5 rounded-sm disabled:opacity-30 disabled:pointer-events-none cursor-pointer text-[9px] font-bold font-mono text-white/85 bg-[#050811]"
-                  >
-                    ◀
-                  </button>
-                  <button
-                    disabled={activeLayer === 10}
-                    onClick={() => setActiveLayer(prev => Math.min(10, prev + 1))}
-                    className="px-2 py-0.5 border border-white/10 hover:border-white/35 hover:bg-white/5 rounded-sm disabled:opacity-30 disabled:pointer-events-none cursor-pointer text-[9px] font-bold font-mono text-white/85 bg-[#050811]"
-                  >
-                    ▶
-                  </button>
-                </div>
-              </div>
-
-              {/* Split layout: Stepper on LEFT, Content on RIGHT */}
-              <div className="flex gap-3 min-h-[385px] pb-3 select-none">
                 
-                {/* Vertical Stepper Rail (LEFT) */}
-                <div className="w-8 shrink-0 flex flex-col items-center justify-between border-r border-white/5 pr-1.5 py-1 font-mono text-[9px] select-none">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                    const isActive = activeLayer === num;
-                    const dotColor = getCatMeta(selectedElement.category).hex;
+                <div className="grid grid-cols-3 gap-1 font-mono text-[9px] font-black text-center">
+                  <div className="p-1 px-0.5 bg-red-500/10 border border-red-500/15 rounded">
+                    <span className="block text-[6px] text-red-400 font-bold">PROTONS</span>
+                    <span className="text-[10px] text-red-200">{selectedElement.protons}</span>
+                  </div>
+                  <div className="p-1 px-0.5 bg-blue-500/10 border border-blue-500/15 rounded">
+                    <span className="block text-[6px] text-blue-400 font-bold">NEUTRONS</span>
+                    <span className="text-[10px] text-blue-200">{selectedElement.neutrons}</span>
+                  </div>
+                  <div className="p-1 px-0.5 bg-emerald-500/10 border border-emerald-500/15 rounded">
+                    <span className="block text-[6px] text-emerald-400 font-bold">ELECTRONS</span>
+                    <span className="text-[10px] text-emerald-200">{selectedElement.electrons}</span>
+                  </div>
+                </div>
+                
+                <div className="mt-2.5 text-[8.5px] font-mono text-white/50 border-t border-white/5 pt-2 flex justify-between">
+                  <span>OUTER VALENCE:</span>
+                  <span className="text-[#00FFB3] font-bold">{selectedElement.electronConfig}</span>
+                </div>
+              </div>
+
+              {/* Schrödinger Valence Orbitals Probe Array */}
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-2">
+                <span className="text-[7.5px] font-mono tracking-widest text-[#00E5FF] uppercase font-bold">
+                  🔮 SCHRÖDINGER ENERGY VALENCE
+                </span>
+                
+                <div className="flex gap-1 items-center font-mono font-bold">
+                  {selectedElement.shells.map((eCount: number, idx: number) => {
+                    const shellLabel = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'][idx] || `S${idx + 1}`;
+                    const isHighlighted = activeShellInfo !== null && activeShellInfo.shellIndex === idx;
                     return (
                       <button
-                        key={num}
-                        onClick={() => setActiveLayer(num)}
-                        className="group relative w-full flex flex-col items-center outline-none py-1 transition-all duration-200 cursor-pointer font-bold"
+                        key={idx}
+                        onClick={() => {
+                          const shellInfoObj = {
+                            shellIndex: idx,
+                            shellName: shellLabel,
+                            electrons: eCount,
+                            radius: (idx + 1) * 2.8
+                          };
+                          setActiveShellInfo(shellInfoObj);
+                          window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: idx } }));
+                        }}
+                        className={`flex-1 p-1 rounded border text-center transition-all duration-300 cursor-pointer ${
+                          isHighlighted
+                            ? 'bg-[#00FFB3]/15 border-[#00FFB3] shadow-[0_0_8px_rgba(0,255,179,0.2)] scale-105'
+                            : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10'
+                        }`}
                       >
-                        {/* Hidden knowledge bubble */}
-                        <span className="absolute left-[-115px] bg-black/95 border border-white/10 text-[7px] text-white/90 px-1.5 py-0.5 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 font-bold z-50 whitespace-nowrap tracking-wider uppercase">
-                          {['CORE IDENTITY', 'ATOMIC STRUCTURE', 'PHYSICAL PROP.', 'CHEMICAL BEHAVIOR', 'TECH AND USES', 'COSMIC ORIGIN', 'BIOLOGICAL ROLE', 'HISTORIC IMPACT', 'REACTION NETWORK', 'ORBITIUM FREQ.'][num - 1]}
-                        </span>
-
-                        <span 
-                          className={`text-[8px] font-black transition-all duration-300 text-center ${
-                            isActive 
-                              ? 'scale-115 font-black text-white' 
-                              : 'text-white/20 group-hover:text-white/65'
-                          }`}
-                          style={isActive ? { color: dotColor, textShadow: `0 0 10px ${dotColor}` } : {}}
-                        >
-                          {num.toString().padStart(2, '0')}
-                        </span>
-                        
-                        <div 
-                          className={`w-1 h-1 rounded-full mt-0.5 transition-all duration-300 ${
-                            isActive 
-                              ? 'w-1.5 h-1.5 ring-1 ring-offset-1 ring-offset-black' 
-                              : 'bg-white/10 group-hover:bg-white/35'
-                          }`}
-                          style={isActive ? { backgroundColor: dotColor, borderColor: dotColor } : {}}
-                        />
+                        <div className="text-[6px] text-white/35">N{idx+1}</div>
+                        <div className="text-[9px] font-black text-[#00FFB3]">{eCount}ᴇ</div>
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Dynamic Content Pane (RIGHT) */}
-                <div className="flex-1 overflow-y-auto max-h-[52vh] pr-0.5 scrollbar-none flex flex-col justify-between">
+                {activeShellInfo ? (
+                  <div className="p-2.5 bg-[#00FFB3]/5 border border-[#00FFB3]/20 rounded-sm font-mono text-[8.5px] flex flex-col gap-1 animate-fade-in text-[#EAF2FF]/85">
+                    <div className="flex justify-between items-center text-[#00FFB3] border-b border-white/5 pb-1 font-bold">
+                      <span className="text-[7.5px] uppercase">PROBE STATUS: {activeShellInfo.shellName} shell active</span>
+                      <span className="text-[9px] font-black text-white">{activeShellInfo.electrons} Electrons</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 mt-0.5 text-[#EAF2FF]/70 font-light">
+                      <div>Orbitals: <strong className="text-white font-semibold">{['1s', '2s, 2p', '3s, 3p, 3d', '4s, 4p, 4d, 4f', '5s, 5p, 5d, 5f'][activeShellInfo.shellIndex] || 'Complex Hybrid'}</strong></div>
+                      <div>Radius: <strong className="text-[#00E5FF] font-semibold">{(activeShellInfo.radius * 0.53).toFixed(2)} Å</strong></div>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-[8px] text-white/30 text-center font-mono py-1">Select shell node above to excite electronic waves</span>
+                )}
+              </div>
 
-                  <ElementExplorationDepth
-                    selectedElement={selectedElement}
-                    activeLayer={activeLayer}
-                    setActiveLayer={setActiveLayer}
-                    onSelectElement={onSelectElement}
-                    activeShellInfo={activeShellInfo}
-                    setActiveShellInfo={setActiveShellInfo}
-                    getCatMeta={getCatMeta}
-                    ELEMENTS_DATA={ELEMENTS_DATA}
-                  />
+              {/* STP Lattice Matrix */}
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300">
+                <span className="text-[7.5px] font-mono tracking-widest text-amber-400 uppercase font-bold block mb-1.5">
+                  💠 STRUCTURAL STP STATE
+                </span>
+                <div className="text-[9px] text-[#EAF2FF]/85 leading-relaxed font-sans font-light">
+                  {selectedElement.physicalProperties?.crystalStructure || 'Stable STP physical structure.'}
+                </div>
+                <div className="mt-2 flex justify-between font-mono text-[8px] text-white/40 border-t border-white/5 pt-2">
+                  <span>STP state: <strong className="text-white capitalize font-bold">{selectedElement.state}</strong></span>
+                  <span>Density: <strong className="text-[#00E5FF] font-bold">{selectedElement.density || 'N/A'}</strong></span>
                 </div>
               </div>
             </div>
 
-              
+            {/* PANEL 3: THERMAL & REACTIVE FIELDS (MIDDLE RIGHT) */}
+            <div className="absolute top-28 right-4 md:right-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300">
+                <div className="text-[7.5px] font-mono tracking-widest text-[#00E5FF] uppercase font-bold mb-2.5">
+                  📊 THERMODYNAMIC METADATA
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 font-mono text-[8PX] font-extrabold max-w-full">
+                  <div className="p-1.5 bg-white/5 rounded border border-white/5">
+                    <span className="text-[6.5px] text-white/40 block">MELTING PT</span>
+                    <span className="text-white truncate block">{selectedElement.meltingPoint}</span>
+                  </div>
+                  <div className="p-1.5 bg-white/5 rounded border border-white/5">
+                    <span className="text-[6.5px] text-white/40 block">BOILING PT</span>
+                    <span className="text-[#00E5FF] truncate block">{selectedElement.boilingPoint}</span>
+                  </div>
+                  <div className="p-1.5 bg-white/5 rounded border border-white/5 col-span-2 flex justify-between items-center px-2">
+                    <span className="text-[6.5px] text-white/40 block">IONIZATION</span>
+                    <span className="text-[#00FFB3] font-bold">{selectedElement.ionizationEnergy}</span>
+                  </div>
+                </div>
+              </div>
 
-            {/* Historic Discoveries Info */}
-            <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[9.5px] font-mono text-[#EAF2FF]/50 mt-1">
-              <div>
-                <span className="block text-[7.5px] uppercase text-[#EAF2FF]/30">DISCOVERED BY:</span>
-                <span className="text-[#EAF2FF]/95 font-medium">{selectedElement.discoveredBy}</span>
+              {/* Pauling Electronegativity slider */}
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-1.5">
+                <span className="text-[7.5px] font-mono tracking-widest text-[#FF80AB] uppercase font-bold">
+                  🔗 PAULINGS ELECTRONEGATIVITY GAUGE
+                </span>
+                <div className="flex items-center gap-2 font-mono">
+                  <div className="flex-1 h-1.5 bg-white/5 rounded overflow-hidden relative">
+                    <div
+                      className="h-full bg-gradient-to-r from-green-400 via-amber-400 to-red-500 rounded"
+                      style={{ width: `${Math.min(100, ((selectedElement.electronegativity || 0) / 4) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-black text-white">
+                    {selectedElement.electronegativity !== null ? selectedElement.electronegativity.toFixed(2) : '0.00'}
+                  </span>
+                </div>
+                <div className="text-[8px] text-white/40 border-t border-white/5 pt-1.5 flex justify-between font-mono">
+                  <span>VALID OXIDATION STATES:</span>
+                  <span className="text-white font-bold">{(selectedElement.oxidationStates || []).join(', ')}</span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="block text-[7.5px] uppercase text-[#EAF2FF]/30">YEAR ISSUED:</span>
-                <span className="text-[#EAF2FF]/95 font-bold">{selectedElement.year > 0 ? selectedElement.year : 'ANCIENT'}</span>
+
+              {/* Chemical Reactivity brief */}
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-1">
+                <span className="text-[7.5px] font-mono tracking-widest text-emerald-400 uppercase font-bold mb-0.5">
+                  🪐 CORE CHEMICAL REACTIVITY
+                </span>
+                <p className="text-[9px] text-[#EAF2FF]/85 leading-relaxed font-sans font-light">
+                  {selectedElement.chemicalProperties?.reactivityProfile || selectedElement.reactivity || 'Stable and inactive atmospheric noble gas element.'}
+                </p>
               </div>
+            </div>
+
+            {/* PANEL 4: COSMIC EVOLUTION FLUX (BOTTOM LEFT) */}
+            <div className="absolute bottom-16 left-4 md:left-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-1.5">
+                <span className="text-[7.5px] font-mono tracking-widest text-[#00E5FF] uppercase font-bold flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5 text-[#00E5FF]" /> 🌌 COSMIC EVOLUTION & ABUNDANCE
+                </span>
+                <p className="text-[9px] text-[#EAF2FF]/80 leading-relaxed font-sans font-light border-b border-white/5 pb-1.5">
+                  {selectedElement.cosmicProperties?.stellarOrigin || selectedElement.cosmicRelevance || 'Material synthesized in cyclotronic high-energy labs.'}
+                </p>
+                <div className="grid grid-cols-2 gap-y-1 gap-x-2 font-mono text-[8px] text-[#EAF2FF]/60 font-bold">
+                  <div>Universe: <span className="text-white">{selectedElement.cosmicProperties?.cosmicAbundance || 'Trace'}</span></div>
+                  <div>Earth Crust: <span className="text-white">{selectedElement.cosmicProperties?.earthAbundance || 'Trace'}</span></div>
+                  <div className="col-span-2">Genesis: <span className="text-[#00FFB3]">{selectedElement.cosmicProperties?.nucleosynthesisProcess || 'Lab particles bombardment'}</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* PANEL 5: INDUSTRIAL IMPACT & BIORISK MONITOR (BOTTOM RIGHT) */}
+            <div className="absolute bottom-16 right-4 md:right-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
+              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-2">
+                <span className="text-[7.5px] font-mono tracking-widest text-[#FF9100] uppercase font-bold">
+                  🏭 CIVILLIAN & TECHNOLOGICAL IMPACT
+                </span>
+                
+                <div className="space-y-1.5">
+                  {[
+                    { title: '💻 Semiconductors', desc: selectedElement.industrialApplications?.semiconductors || 'Quantum computational core design.' },
+                    { title: '🩺 Medicine/Sciences', desc: selectedElement.industrialApplications?.medicine || 'Used in radio-isotope tracing.' },
+                    { title: '⚡ Industrial Energy', desc: selectedElement.industrialApplications?.nuclearEnergy || selectedElement.industrialApplications?.batteries || 'Superconductor lattice frameworks.' }
+                  ].map((item, idx) => (
+                    <div key={idx} className="text-[8.5px] font-sans font-light leading-normal border-l border-white/10 pl-1.5 py-0.5">
+                      <span className="font-mono text-[7px] font-bold uppercase text-[#00E5FF] block leading-none mb-0.5">{item.title}</span>
+                      <span className="text-white/80">{item.desc}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Toxicity warnings */}
+                <div className="mt-1 p-1 py-1 px-2.5 bg-red-950/20 border border-red-500/20 text-[8.2px] text-red-300 rounded flex gap-2 items-center font-mono">
+                  <span className="text-[6px] bg-red-500/25 px-1 py-0.5 rounded font-black uppercase tracking-widest">HAZARD</span>
+                  <span className="truncate font-sans font-light text-red-100">{selectedElement.biologicalProperties?.toxicity || 'Non-toxic, safe ecological constituent.'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* PANEL 6: CHEMICAL FUSION PORTAL (BOTTOM CENTER) */}
+            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-85 pointer-events-auto flex flex-col gap-2 items-center text-center animate-fade-in z-30">
+              <div className="w-full relative p-3 bg-[#070C1B]/85 backdrop-blur-sm border border-white/5 rounded-sm shadow-xl text-left hover:border-[var(--primary-color)]/20 transition-colors">
+                <span className="text-[7px] font-mono tracking-widest text-[#00FFB3] uppercase font-bold block mb-1">
+                  🔗 MATTER SYNTHESIS & REACTION AFFINITIES
+                </span>
+                
+                <div className="flex flex-wrap gap-1 justify-center mt-1.5">
+                  {/* Pull common reaction partners */}
+                  {(selectedElement.relationshipNetwork?.commonReactionPartners || 
+                    selectedElement.reactionIntelligence?.compatibleElements || 
+                    ['O', 'H']).slice(0, 4).map((partner: string, idx: number) => {
+                      const cleanSymbol = partner.replace(/[0-9]/g, '').trim();
+                      const linkedEl = ELEMENTS_DATA.find(e => e.symbol === cleanSymbol);
+                      
+                      // Check what compound can be formed
+                      const possibleReaction = REACTION_CONFIGS.find(cfg => 
+                        cfg.reactants.includes(selectedElement.symbol) && cfg.reactants.includes(cleanSymbol)
+                      );
+
+                      return (
+                        <div key={idx} className="relative group">
+                          <button
+                            onClick={() => {
+                              if (possibleReaction) {
+                                // Direct launch into bond lab preloaded
+                                handleReactionInit(possibleReaction);
+                              } else if (linkedEl) {
+                                onSelectElement(linkedEl);
+                              }
+                            }}
+                            className={`px-2 py-0.8 text-[8.5px] bg-[#070B14] border border-white/10 rounded-sm font-mono font-bold text-white transition-all duration-150 cursor-pointer ${
+                              possibleReaction 
+                                ? 'hover:border-[#FF9100] text-[#FF9100]/90 hover:bg-[#FF9100]/10 hover:shadow-[0_0_8px_rgba(255,145,0,0.15)]' 
+                                : 'hover:border-[#00FFB3] hover:bg-white/5'
+                            }`}
+                          >
+                            + {partner} {possibleReaction && '⚛'}
+                          </button>
+                          
+                          {/* Rich feedback tooltip detailing compounding */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 bg-[#090E1F] border border-white/15 p-2 rounded shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 text-[8px] font-mono z-50 text-left scale-95 origin-bottom group-hover:scale-100 ease-out">
+                            {possibleReaction ? (
+                              <>
+                                <div className="text-[#FF9100] font-black uppercase mb-0.5">SYNTHESIS AVAILABLE:</div>
+                                <div className="text-white font-black">{possibleReaction.productFormula}</div>
+                                <div className="text-white/70 leading-tight mt-0.5">{possibleReaction.productName}</div>
+                                <div className="text-[7.5px] text-[#00FFB3] mt-1 font-bold">CLICK SYSTEM TO PRELOAD SYNTHESIS PORTAL</div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-[#00FFB3] font-black uppercase mb-0.5">COMPATIBLE PARTNER:</div>
+                                <div className="text-white font-black">{partner}</div>
+                                <div className="text-white/60 leading-tight mt-0.5">Transits matrix to {partner}'s subatomic field.</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Dismiss element explorer */}
+              <button
+                onClick={() => {
+                  onSelectElement(null);
+                  window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
+                }}
+                className="px-5 py-2.5 bg-red-950/45 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-[0.16em] text-red-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-red-500/15 cursor-pointer max-w-[170px]"
+              >
+                DISCONNECT METADATA ✖
+              </button>
             </div>
           </div>
         )}
@@ -1900,7 +2386,7 @@ export default function HolographicUI({
                     <div 
                       className="relative z-10 w-full h-full border bg-[#070B14]/90 flex items-center justify-center text-md font-black italic element-symbol-pulse transition-all duration-300"
                       style={{ 
-                        '--pulse-color': getCatMeta(hoveredElement.category).hex, 
+                        '--pulse-color': getElectronegativityColor(hoveredElement.electronegativity), 
                         color: getCatMeta(hoveredElement.category).hex 
                       } as React.CSSProperties}
                     >
