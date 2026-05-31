@@ -1838,89 +1838,179 @@ export default function HolographicUI({
         {isObsEntered && activeReaction && (
           <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-4 md:px-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:left-12 lg:left-16 md:translate-x-0 md:top-1/2 md:-translate-y-1/2">
             {reactionStage === 'idle' ? (
-              <div className="w-full max-w-sm sm:max-w-md mx-auto p-6 sm:p-7 bg-[#070C1B]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_35px_rgba(255,145,0,0.2)] backdrop-blur-2xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_45px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
+              <div className="w-full max-w-sm sm:max-w-md mx-auto p-6 sm:p-7 bg-[#040814]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_50px_rgba(255,145,0,0.2)] backdrop-blur-3xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_65px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
                 
                 {/* Corner Frame accents */}
-                <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
 
-                <div className="w-12 h-12 border border-dashed border-[#FF9100]/50 rounded-full flex items-center justify-center animate-spin mb-4" style={{ animationDuration: '7s' }}>
-                  <Flame className="w-5 h-5 text-[#FF9100]" />
+                <div className="w-14 h-14 border border-[#FF9100]/30 rounded-full flex items-center justify-center relative mb-5">
+                  <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#FF9100]/60 animate-spin" style={{ animationDuration: '4s' }} />
+                  <Flame className="w-6 h-6 text-[#FF9100] animate-pulse" />
                 </div>
                 
                 {/* Header text */}
-                <h3 className="text-[10px] sm:text-[11px] font-mono font-black tracking-[0.25em] text-[#FF9100]/90 uppercase">
-                  REACTOR TETHER ACTIVE
+                <h3 className="text-[10px] sm:text-[11px] font-mono font-black tracking-[0.3em] text-[#FF9100] uppercase mb-1">
+                  REACTION CHAMBER ARMED
                 </h3>
 
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-widest mt-3.5 mb-1">
+                <h1 className="text-3xl sm:text-4xl font-black text-white tracking-widest mt-2 mb-2">
                   {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
                 </h1>
 
-                <div className="text-[8.5px] sm:text-[9.5px] font-mono text-[#00E5FF]/80 tracking-widest">
-                  TARGET SYNTHESIS: <span className="font-extrabold text-[#00FFB3]">{activeReaction.productFormula}</span>
+                <div className="text-[9px] sm:text-[10px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-3 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase mt-2 shadow-[0_0_10px_rgba(0,229,255,0.1)]">
+                  TARGET SYNTHESIS: <span className="font-extrabold text-[#00FFF0] ml-2">{activeReaction.productFormula}</span>
                 </div>
 
-                <p className="text-[10.5px] sm:text-[11px] text-[#EAF2FF]/75 leading-relaxed font-light mt-4.5 mb-6 border-t border-white/5 pt-4 max-w-xs sm:max-w-sm">
-                  Atomic cores spawned in 3D electromagnetic grid. <span className="text-[#00FFB3] font-bold">Drag either reactant</span> across space into proximity to synthesize <span className="text-[#00E5FF] font-bold">{activeReaction.productFormula}</span>.
+                <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#FF9100]/30 to-transparent my-5" />
+
+                <h3 className="text-[10px] font-mono text-[#00FFF0] tracking-widest uppercase mb-2">AWAITING CATALYST</h3>
+                <p className="text-[11px] sm:text-xs text-[#EAF2FF]/85 leading-relaxed font-light mb-6 px-2">
+                  Atomic cores have been suspended in the electromagnetic grid. <span className="text-[#FF9100] font-bold">Drag and drop</span> the reactants into each other to initiate quantum bonding and observe structural transformation.
                 </p>
 
                 <button
                   onClick={handleCancelReaction}
-                  className="w-full sm:w-auto px-6 py-2 bg-[#0C1123] border border-red-500/45 hover:border-red-500 text-[9px] font-mono tracking-widest text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/10"
+                  className="w-full sm:w-auto px-8 py-2.5 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[10px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
                 >
-                  DISMANTLE BEAMS
+                  ABORT SEQUENCE
                 </button>
               </div>
             ) : reactionStage === 'stable' ? (
-              <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto p-6 sm:p-8 bg-[#070C1B]/95 border border-[#00FFB3]/40 rounded-sm shadow-[0_0_40px_rgba(0,255,179,0.25)] backdrop-blur-2xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_50px_rgba(0,255,179,0.35)] transition-all duration-500 ease-out select-none relative group">
+              <div className="w-full max-w-4xl max-h-[85vh] overflow-y-auto custom-scrollbar mx-auto p-8 sm:p-10 bg-[#040814]/95 border border-[#00FFF0]/30 rounded-sm shadow-[0_0_80px_rgba(0,255,240,0.15)] backdrop-blur-3xl flex flex-col pointer-events-auto animate-fade-in relative group transition-all duration-700 select-none">
                 
                 {/* Advanced Scientific UI subtle frames/accents */}
-                <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
-                <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
-                <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
-                <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-[#00FFB3]/40 group-hover:border-[#00FFB3] transition-colors" />
-
-                {/* Pulsing Science Core Emitter at top */}
-                <div className="w-12 h-12 border border-[#00FFB3]/35 rounded-full flex items-center justify-center bg-[#00FFB3]/5 mb-5 relative group-hover:scale-105 transition-transform duration-500">
-                  <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFB3]/50 animate-spin" style={{ animationDuration: '8s' }} />
-                  <CheckCircle2 className="w-6 h-6 text-[#00FFB3] animate-pulse" />
-                </div>
-
-                {/* LINE 1: PRIMARY REACTION FORMULA */}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-widest text-[#00FFB3] drop-shadow-[0_0_15px_rgba(0,255,179,0.4)] transition-all duration-300 px-2 line-clamp-2 leading-none">
-                  {activeReaction.productFormula}
-                </h1>
-
-                {/* Separator Line */}
-                <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#00FFB3]/55 to-transparent my-4 sm:my-5" />
-
-                {/* LINE 2: REACTION NAME */}
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-[#EAF2FF] uppercase tracking-wide leading-snug px-3 max-w-sm sm:max-w-md">
-                  {activeReaction.productName}
-                </h2>
-
-                {/* LINE 3: REACTION STATUS OR METADATA */}
-                <div className="mt-3.5 mb-5 select-none">
-                  <span className="inline-block text-[9px] sm:text-[10px] uppercase font-mono font-black tracking-[0.25em] text-[#00E5FF]/80 bg-[#00E5FF]/10 border border-[#00E5FF]/25 px-3 py-1 rounded-sm shadow-[inset_0_0_8px_rgba(0,229,255,0.05)]">
-                    SYNTHESIZED MATRIX // QUANTUM LOCK
-                  </span>
-                </div>
-
-                {/* DESCRIPTION / SCIENTIFIC LOGS BRIEF */}
-                <p className="text-[10px] sm:text-[11px] md:text-xs text-[#EAF2FF]/70 leading-relaxed font-light font-sans max-w-xs sm:max-w-sm border-t border-white/5 pt-4.5 mb-6">
-                  {activeReaction.description}
-                </p>
+                <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-[#00FFF0]/40" />
+                <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-[#00FFF0]/40" />
+                <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-[#00FFF0]/40" />
+                <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-[#00FFF0]/40" />
                 
-                {/* INTERACTIVE CONTROLS */}
-                <button
-                  onClick={handleCancelReaction}
-                  className="w-full sm:w-auto px-8 py-2.5 bg-[#070B14] border border-[#00FFB3]/60 hover:bg-[#00FFB3]/15 text-[10px] uppercase font-mono font-black tracking-widest text-[#00FFB3] transition-all cursor-pointer rounded-sm shadow-[0_0_12px_rgba(0,255,179,0.1)] hover:shadow-[0_0_20px_rgba(0,255,179,0.3)] hover:border-[#00FFB3]"
-                >
-                  EJECT & REBOOT COILS
-                </button>
+                <div className="flex flex-col md:flex-row gap-8 items-start">
+                  {/* LEFT COLUMN: IDENTITY & WHAT HAPPENED */}
+                  <div className="flex-1 flex flex-col items-start w-full">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 border border-[#00FFF0]/40 rounded-full flex items-center justify-center bg-[#00FFF0]/10 relative">
+                        <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFF0]/60 animate-spin" style={{ animationDuration: '6s' }} />
+                        <CheckCircle2 className="w-6 h-6 text-[#00FFF0]" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-mono font-black tracking-[0.3em] text-[#00FFF0] uppercase">SYNTHESIS COMPLETE</div>
+                        <div className="text-[#EAF2FF]/50 text-[9px] font-mono tracking-widest uppercase mt-0.5">Quantum Lock Established</div>
+                      </div>
+                    </div>
+                    
+                    <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] mb-2 mt-4 leading-none">
+                      {activeReaction.productFormula}
+                    </h1>
+                    <h2 className="text-xl sm:text-2xl font-bold text-[#00FFF0] uppercase tracking-wide mb-6">
+                      {activeReaction.productName}
+                    </h2>
+
+                    <div className="w-full h-[1px] bg-gradient-to-r from-[#00FFF0]/50 to-transparent mb-6" />
+                    
+                    <div className="mb-6 w-full">
+                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-3 py-1 mb-3 uppercase">1. WHAT HAPPENED?</h3>
+                      <p className="text-sm text-[#EAF2FF]/85 leading-relaxed font-light pl-1 border-l-2 border-[#00FFF0]/30 ml-2 py-1">
+                        {activeReaction.description}
+                      </p>
+                    </div>
+                    
+                    <div className="mb-6 w-full">
+                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-3 py-1 mb-3 uppercase">2. WHY DID IT HAPPEN?</h3>
+                      <p className="text-xs text-[#EAF2FF]/70 leading-relaxed font-light pl-1 border-l-2 border-[#FF9100]/30 ml-2 py-1">
+                        {activeReaction.conditions || "Thermodynamic favorability naturally pulls these elements together into a lower energy state, releasing binding energy into the surrounding environment."}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 w-full mb-6">
+                      <div className="bg-black/30 border border-[#00FFF0]/20 p-4 rounded-sm">
+                        <div className="text-[9px] font-mono text-[#00FFF0] tracking-widest mb-2 uppercase">REACTION TYPE</div>
+                        <div className="text-sm font-bold text-white uppercase">{activeReaction.reactionType || activeReaction.visualType}</div>
+                      </div>
+                      <div className="bg-black/30 border border-[#00FFF0]/20 p-4 rounded-sm">
+                        <div className="text-[9px] font-mono text-[#00FFF0] tracking-widest mb-2 uppercase">BOND ENERGY</div>
+                        <div className="text-sm font-bold text-white">{activeReaction.bondEnergy ? `${activeReaction.bondEnergy} kJ/mol` : 'VARIABLE'}</div>
+                      </div>
+                      <div className="bg-black/30 border border-[#00FFF0]/20 p-4 rounded-sm col-span-2">
+                        <div className="text-[9px] font-mono text-[#00FFF0] tracking-widest mb-2 uppercase">STABILITY METRIC</div>
+                        <div className="text-sm font-bold text-white uppercase">{activeReaction.stabilityMetric || 'UNKNOWN STABILITY'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RIGHT COLUMN: DEPTH, STRUCTURE, PATHWAYS */}
+                  <div className="flex-1 flex flex-col w-full md:border-l md:border-white/10 md:pl-8">
+                    <div className="mb-6">
+                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-3 py-1 mb-3 uppercase">3. WHAT WAS CREATED?</h3>
+                      <div className="bg-[#00FFF0]/5 border border-[#00FFF0]/10 p-4 rounded-sm ml-2">
+                        <div className="text-sm text-white font-medium mb-3">{activeReaction.resultingMaterial || 'Novel Compound'}</div>
+                        {activeReaction.structure && (
+                          <div className="text-[11px] text-[#EAF2FF]/70 font-mono mt-2 flex gap-2 border-b border-white/5 pb-3">
+                            <span className="text-[#00FFF0] shrink-0">◇ STRUCTURE:</span> {activeReaction.structure}
+                          </div>
+                        )}
+                        {activeReaction.properties && activeReaction.properties.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-[9px] font-mono text-[#00FFF0]/70 mb-2 tracking-widest uppercase">CORE PROPERTIES</div>
+                            <ul className="text-xs text-[#EAF2FF]/80 space-y-1.5 ml-1">
+                              {activeReaction.properties.map((prop, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-[#00FFF0] mt-0.5 max-w-[8px]">-</span>
+                                  <span>{prop}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-3 py-1 mb-3 uppercase">4. WHERE IS IT USED?</h3>
+                      <div className="text-xs text-[#EAF2FF]/80 leading-relaxed font-light mb-3 ml-2 pl-1 border-l-2 border-[#00FFF0]/30">
+                        {activeReaction.whyItMatters || 'Crucial for future development.'}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3 ml-2">
+                        {activeReaction.realWorldApplications?.map((app, i) => (
+                          <span key={i} className="bg-white/5 border border-white/10 px-2 py-1.5 text-[9px] font-mono text-[#EAF2FF] uppercase tracking-wide">
+                            {app}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-3 py-1 mb-3 uppercase">5. WHAT DOES IT LEAD TO?</h3>
+                      <div className="flex flex-col gap-2 ml-2">
+                        {activeReaction.discoveryPathways?.map((pathway, i) => (
+                          <div key={i} className="flex items-center gap-3 bg-[#FF9100]/5 border border-[#FF9100]/20 p-3 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
+                            <ArrowRight className="w-4 h-4 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
+                            <span className="text-xs font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">{pathway}</span>
+                          </div>
+                        ))}
+                        {(!activeReaction.discoveryPathways || activeReaction.discoveryPathways.length === 0) && (
+                          <div className="flex items-center gap-3 bg-[#FF9100]/5 border border-[#FF9100]/20 p-3 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
+                            <ArrowRight className="w-4 h-4 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
+                            <span className="text-xs font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">CONTINUE TO ADVANCED SYNTHESIS</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* BOTTOM ACTIONS */}
+                <div className="w-full flex justify-center mt-6 pt-6 border-t border-white/10">
+                  <button
+                    onClick={handleCancelReaction}
+                    className="px-10 py-4 bg-[#070B14] border border-[#00FFF0]/60 hover:bg-[#00FFF0]/15 text-xs uppercase font-mono font-black tracking-[0.2em] text-[#00FFF0] transition-all cursor-pointer rounded-sm shadow-[0_0_15px_rgba(0,255,240,0.15)] hover:shadow-[0_0_30px_rgba(0,255,240,0.4)] hover:border-[#00FFF0] hover:scale-105"
+                  >
+                    RETURN TO CHAMBER
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
@@ -2058,7 +2148,7 @@ export default function HolographicUI({
         )}
 
         {/* ELITE COCKPIT: SPATIAL HOLOGRAPHIC HUD PANELS (ELEMENT WORLD EXPERIENCE) */}
-        {isObsEntered && selectedElement && (
+        {isObsEntered && selectedElement && !compareElement && (
           <div 
             className="absolute inset-0 z-30 select-none pointer-events-none flex flex-col justify-between"
             style={{
@@ -2408,15 +2498,182 @@ export default function HolographicUI({
               </div>
 
               {/* Dismiss element explorer */}
-              <button
-                onClick={() => {
-                  onSelectElement(null);
-                  window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
-                }}
-                className="px-5 py-2.5 bg-red-950/45 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-[0.16em] text-red-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-red-500/15 cursor-pointer max-w-[170px]"
-              >
-                DISCONNECT METADATA ✖
-              </button>
+              <div className="flex gap-2 max-w-sm">
+                <button
+                  onClick={() => {
+                    onSelectElement(null);
+                    if (onSelectCompareElement) onSelectCompareElement(null);
+                    window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
+                  }}
+                  className="flex-1 px-5 py-2.5 bg-red-950/45 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-[0.16em] text-red-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-red-500/15 cursor-pointer max-w-[170px]"
+                >
+                  DISCONNECT ✖
+                </button>
+                <button
+                  onClick={() => setCompareSelectorOpen(true)}
+                  className="flex-1 px-5 py-2.5 bg-blue-950/45 border border-blue-500/30 hover:border-blue-500 text-[9px] font-mono tracking-[0.16em] text-blue-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-blue-500/15 cursor-pointer max-w-[170px]"
+                >
+                  COMPARE ⚄
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMPARE SELECTOR MODAL */}
+        {compareSelectorOpen && (
+          <div className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 pointer-events-auto shadow-2xl">
+            <div className="w-full max-w-lg bg-[#070C1B] border border-[#00E5FF]/40 rounded-sm p-6 shadow-[0_0_50px_rgba(0,229,255,0.15)] flex flex-col gap-4">
+              <div className="flex justify-between items-center border-b border-white/10 pb-3 mb-2">
+                <h3 className="text-xl font-bold font-mono tracking-widest text-[#00E5FF]">SELECT ELEMENT TO COMPARE</h3>
+                <button 
+                  onClick={() => setCompareSelectorOpen(false)}
+                  className="text-white/50 hover:text-white"
+                >
+                  ✖
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by name or symbol..."
+                value={compareSearchQuery}
+                onChange={(e) => setCompareSearchQuery(e.target.value)}
+                className="w-full bg-[#030610] text-[#00E5FF] px-4 py-3 rounded-sm border border-white/10 font-mono text-sm focus:outline-none focus:border-[#00E5FF]/50 uppercase"
+              />
+              <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-1 mt-2 border border-white/5 p-2 bg-black/30">
+                {ELEMENTS_DATA.map((el: ChemicalElement) => {
+                  if (el.symbol === selectedElement?.symbol) return null;
+                  if (compareSearchQuery && !el.name.toLowerCase().includes(compareSearchQuery.toLowerCase()) && !el.symbol.toLowerCase().includes(compareSearchQuery.toLowerCase())) return null;
+                  return (
+                    <button
+                      key={el.number}
+                      onClick={() => {
+                        if (onSelectCompareElement) onSelectCompareElement(el);
+                        setCompareSelectorOpen(false);
+                      }}
+                      className="text-left w-full px-3 py-2 border border-white/5 bg-white/5 hover:bg-[#00E5FF]/20 hover:border-[#00E5FF]/50 rounded-sm flex justify-between items-center transition-all cursor-pointer group"
+                    >
+                      <span className="text-[13px] font-black text-white group-hover:text-[#00E5FF]">{el.symbol} - {el.name}</span>
+                      <span className="text-[9px] text-[#00E5FF] tracking-widest uppercase font-mono bg-[#00E5FF]/10 px-2 py-0.5 rounded-sm">COMPARE</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SPLIT SCREEN COCKPIT FOR COMPARISON */}
+        {isObsEntered && selectedElement && compareElement && (
+          <div className="absolute inset-0 z-30 select-none pointer-events-none flex w-full">
+            
+            {/* LEFT ELEMENT (Primary) */}
+            <div 
+              className="w-1/2 h-full relative"
+              style={{
+                '--primary-color': getCatMeta(selectedElement.category || 'reactive-nonmetal').hex,
+                '--primary-color-alpha': `${getCatMeta(selectedElement.category || 'reactive-nonmetal').hex}38`
+              } as React.CSSProperties}
+            >
+              <div className="absolute top-22 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center text-center animate-fade-in z-30 w-full max-w-sm px-4">
+                <div className="text-7xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
+                  {selectedElement.symbol}
+                </div>
+                <h1 className="text-xl font-black tracking-[0.25em] uppercase text-white mt-1">
+                  {selectedElement.name}
+                </h1>
+                
+                <div className="mt-8 p-4 bg-[#070C1B]/55 backdrop-blur-md border border-[var(--primary-color)]/30 rounded-sm shadow-xl w-full text-left">
+                  <div className="text-[9px] font-mono tracking-widest text-[var(--primary-color)] mb-2">ATOMIC ARCHITECTURE</div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white mb-4">
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">MASS:</span> {selectedElement.mass.toFixed(3)}</div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">ELECTRONS:</span> {selectedElement.electrons}</div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">PROTONS:</span> {selectedElement.protons}</div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">NEUTRONS:</span> {selectedElement.neutrons}</div>
+                  </div>
+                  <div className="text-[9px] font-mono tracking-widest text-[#FF9100] mb-2 mt-4">PHYSICAL PROPERTIES</div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white">
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">MELT:</span> {selectedElement.meltingPoint || 'N/A'} K</div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">BOIL:</span> {selectedElement.boilingPoint || 'N/A'} K</div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">DENSITY:</span> {selectedElement.density || 'N/A'}</div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">STATE:</span> {selectedElement.state}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* VERTICAL DIVIDER */}
+            <div className="w-[1px] h-full bg-gradient-to-b from-transparent via-white/20 to-transparent relative">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0B1020] border border-white/20 text-[10px] font-mono font-bold text-white px-3 py-1 rounded-sm shadow-xl">
+                VS
+              </div>
+            </div>
+
+            {/* RIGHT ELEMENT (Compare) */}
+            <div 
+              className="w-1/2 h-full relative"
+              style={{
+                '--primary-color': getCatMeta(compareElement.category || 'reactive-nonmetal').hex,
+                '--primary-color-alpha': `${getCatMeta(compareElement.category || 'reactive-nonmetal').hex}38`
+              } as React.CSSProperties}
+            >
+              <div className="absolute top-22 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center text-center animate-fade-in z-30 w-full max-w-sm px-4">
+                <div className="text-7xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
+                  {compareElement.symbol}
+                </div>
+                <h1 className="text-xl font-black tracking-[0.25em] uppercase text-white mt-1">
+                  {compareElement.name}
+                </h1>
+                
+                <div className="mt-8 p-4 bg-[#070C1B]/55 backdrop-blur-md border border-[var(--primary-color)]/30 rounded-sm shadow-xl w-full text-left">
+                  <div className="text-[9px] font-mono tracking-widest text-[var(--primary-color)] mb-2">ATOMIC ARCHITECTURE</div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white mb-4">
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">MASS:</span> {compareElement.mass.toFixed(3)}
+                      {compareElement.mass > selectedElement.mass && <span className="ml-2 text-emerald-400">▲</span>}
+                      {compareElement.mass < selectedElement.mass && <span className="ml-2 text-red-400">▼</span>}
+                    </div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">ELECTRONS:</span> {compareElement.electrons}
+                    </div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">PROTONS:</span> {compareElement.protons}
+                    </div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">NEUTRONS:</span> {compareElement.neutrons}
+                    </div>
+                  </div>
+                  <div className="text-[9px] font-mono tracking-widest text-[#FF9100] mb-2 mt-4">PHYSICAL PROPERTIES</div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white">
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">MELT:</span> {compareElement.meltingPoint || 'N/A'} K
+                      {compareElement.meltingPoint && selectedElement.meltingPoint && parseFloat(compareElement.meltingPoint) > parseFloat(selectedElement.meltingPoint) && <span className="ml-2 text-emerald-400">▲</span>}
+                    </div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">BOIL:</span> {compareElement.boilingPoint || 'N/A'} K
+                      {compareElement.boilingPoint && selectedElement.boilingPoint && parseFloat(compareElement.boilingPoint) > parseFloat(selectedElement.boilingPoint) && <span className="ml-2 text-emerald-400">▲</span>}
+                    </div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">DENSITY:</span> {compareElement.density || 'N/A'}
+                      {compareElement.density && selectedElement.density && parseFloat(compareElement.density) > parseFloat(selectedElement.density) && <span className="ml-2 text-emerald-400">▲</span>}
+                    </div>
+                    <div className="bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[#EAF2FF]/50">STATE:</span> {compareElement.state}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex gap-2 w-full max-w-xs mx-auto">
+                    <button
+                      onClick={() => {
+                        if (onSelectCompareElement) onSelectCompareElement(null);
+                      }}
+                      className="flex-1 px-5 py-2.5 bg-red-950/45 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-[0.16em] text-red-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-red-500/15 cursor-pointer"
+                    >
+                      EXIT COMPARISON ✖
+                    </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

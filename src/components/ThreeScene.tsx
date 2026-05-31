@@ -4134,12 +4134,14 @@ export default function ThreeScene({
             }
           }
 
-          // Quantum Tunneling (Flickers or transition instantly between shells when highlighted)
+          // Quantum Tunneling (Flickers or transition instantly between shells when highlighted or high intensity)
           const isSelectedShell = el.shellIndex === selectedShellIndex;
-          if (isSelectedShell) {
+          const isHighIntensity = currentProps.reactiveIntensity >= 1.5;
+          const jumpProbability = isSelectedShell ? 0.008 : (isHighIntensity ? 0.015 * (currentProps.reactiveIntensity - 1.0) : 0);
+
+          if (isSelectedShell || isHighIntensity) {
             if (!el.isTunneling) {
-              // 0.8% probability per frame to quantum tunnel briefly
-              if (Math.random() < 0.008) {
+              if (Math.random() < jumpProbability) {
                 el.isTunneling = true;
                 el.tunnelDuration = 0.15 + Math.random() * 0.25; // 150-400ms duration
                 el.tunnelTimer = 0.0;
@@ -4177,6 +4179,14 @@ export default function ThreeScene({
           let rx = rxBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
           let ry = ryBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
 
+          // Temporary trajectory trail distortion when jumping between shells
+          if (el.isTunneling && isHighIntensity) {
+            const pulseDistort = Math.sin(elapsed * 60.0 + el.angle * 4.0) * currentProps.reactiveIntensity * 0.8;
+            const erraticDistort = (Math.random() - 0.5) * currentProps.reactiveIntensity * 0.5;
+            rx += pulseDistort + erraticDistort;
+            ry += pulseDistort + erraticDistort;
+          }
+
           // Erratic radial decay-ray vibrations
           if (isRadioactiveOrActinide) {
             const decayOsc = Math.sin(elapsed * 38.0 + el.angle * 4.0) * 0.35;
@@ -4199,13 +4209,17 @@ export default function ThreeScene({
           if (el.isJumping) {
             el.mesh.scale.setScalar(1.0 + Math.sin(el.jumpRatio * Math.PI) * 1.5);
             (el.mesh.material as THREE.MeshBasicMaterial).color.set('#FFF176'); // glowing bright gold-yellow
+          } else if (el.isTunneling) {
+            const flickerFactor = Math.sin(elapsed * 120.0) > 0.0 ? 3.0 : 0.2;
+            const highIntensityGlow = isHighIntensity ? currentProps.reactiveIntensity * 1.8 : 1.0;
+            el.mesh.scale.setScalar(2.5 * flickerFactor * highIntensityGlow);
+            (el.mesh.material as THREE.MeshBasicMaterial).color.set(isHighIntensity ? '#00FFFF' : '#FFFFFF'); // Intense cyan pulse during jumps
           } else if (isSelectedShell) {
             // Highlights all electrons belonging to the clicked shell with breathing size & bright quantum color
             const elBreathe = 2.2 + Math.sin(elapsed * 10.0) * 0.4;
-            const flickerFactor = el.isTunneling ? (Math.sin(elapsed * 90.0) > 0.0 ? 1.5 : 0.1) : 1.0;
-            el.mesh.scale.setScalar(elBreathe * flickerFactor);
-            // Flicker neon white when actively tunneling, otherwise quantum mint-green
-            (el.mesh.material as THREE.MeshBasicMaterial).color.set(el.isTunneling ? '#FFFFFF' : '#00FFB3');
+            el.mesh.scale.setScalar(elBreathe);
+            // Quantum mint-green
+            (el.mesh.material as THREE.MeshBasicMaterial).color.set('#00FFB3');
           } else if (isRadioactiveOrActinide) {
             // Erratic flashing scales and neon radioactive colors
             const isFlashing = Math.random() > 0.93;
@@ -4233,9 +4247,20 @@ export default function ThreeScene({
           }
 
           // Append new coordinate at the tail end
-          array[(maxTrailPoints - 1) * 3] = p.x;
-          array[(maxTrailPoints - 1) * 3 + 1] = p.y;
-          array[(maxTrailPoints - 1) * 3 + 2] = p.z;
+          let tx = p.x;
+          let ty = p.y;
+          let tz = p.z;
+
+          if (el.isTunneling && isHighIntensity) {
+            const jitterAmt = currentProps.reactiveIntensity * 0.4;
+            tx += (Math.random() - 0.5) * jitterAmt;
+            ty += (Math.random() - 0.5) * jitterAmt;
+            tz += (Math.random() - 0.5) * jitterAmt;
+          }
+
+          array[(maxTrailPoints - 1) * 3] = tx;
+          array[(maxTrailPoints - 1) * 3 + 1] = ty;
+          array[(maxTrailPoints - 1) * 3 + 2] = tz;
 
           posAttr.needsUpdate = true;
           
@@ -4244,17 +4269,31 @@ export default function ThreeScene({
           if (el.isJumping) {
             trailMat.color.set('#FFD54F');
             trailMat.opacity = 0.85;
+            trailMat.linewidth = 2;
+          } else if (el.isTunneling) {
+            if (isHighIntensity) {
+              trailMat.color.set((Math.random() > 0.5) ? '#00FFFF' : '#FFFFFF');
+              trailMat.opacity = 0.8 + Math.random() * 0.2; // Erratic highly visible trail
+              trailMat.linewidth = 3;
+            } else {
+              trailMat.color.set('#FFFFFF');
+              trailMat.opacity = 1.0;
+              trailMat.linewidth = 1;
+            }
           } else if (isSelectedShell) {
-            trailMat.color.set(el.isTunneling ? '#FFFFFF' : '#00FFB3'); // highlighted trail matching the cyan-green resonance or white tunneling
-            trailMat.opacity = el.isTunneling ? 1.0 : 0.95;
+            trailMat.color.set('#00FFB3'); // highlighted trail matching the cyan-green resonance
+            trailMat.opacity = 0.95;
+            trailMat.linewidth = 2;
           } else if (isRadioactiveOrActinide) {
             const isFlicker = Math.random() > 0.88;
             const decayTrailColor = isFlicker ? '#FF3D00' : (category === 'actinide' ? '#39FF14' : '#FFD600');
             trailMat.color.set(decayTrailColor);
             trailMat.opacity = isFlicker ? 0.95 : 0.35 + Math.sin(elapsed * 25.0) * 0.15;
+            trailMat.linewidth = isFlicker ? 2 : 1;
           } else {
             trailMat.color.copy(el.baseColor);
             trailMat.opacity = 0.42;
+            trailMat.linewidth = 1;
           }
         });
 

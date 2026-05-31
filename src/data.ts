@@ -75,7 +75,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Sodium Chloride maintains cellular osmotic tension, making nerve conduction, fluid retention, cardiac pacing, and muscular action potentials possible across all complex species.',
     structure: 'Face-centered cubic (FCC) ionic lattice, where each ion is coordinate-bonded by six opposing ions',
     properties: ['Strong ionic electrostatic bonds', 'Water-soluble lattice dissociation', 'High melting point (801 °C)'],
-    uses: ['Culinary preservative & seasoning', 'Safety road de-icing agent', 'Saline drip IV fluids']
+    uses: ['Culinary preservative & seasoning', 'Safety road de-icing agent', 'Saline drip IV fluids'],
+    bondEnergy: 787,
+    stabilityMetric: 'Ultra-Stable Crystal Lattice',
+    reactionType: 'IONIC SYNTHESIS',
+    discoveryPathways: ['Electrolysis yields pure Chlorine gas', 'Forms essential electrolyte solutions in biology', 'Basis for Chlor-alkali industrial processes']
   },
   {
     reactants: ['H', 'O'],
@@ -89,7 +93,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Water is the absolute cradle of planetary life. Its high polarity creates hydrogen bonds that regulate Earth\'s climate, dissolve nutrients, and power metabolic cellular operations.',
     structure: 'Polar bent-geometry molecule (104.5° angle), holding infinite hydrogen-bonding networks',
     properties: ['Universal solvent capability', 'High specific heat capacity', 'Anomalous density expansion when frozen'],
-    uses: ['Agricultural hydration and irrigation', 'Nuclear & industrial thermal heat absorption', 'Universal biological solvent']
+    uses: ['Agricultural hydration and irrigation', 'Nuclear & industrial thermal heat absorption', 'Universal biological solvent'],
+    bondEnergy: 927,
+    stabilityMetric: 'Stable Polar Covalent',
+    reactionType: 'SYNTHESIS (COMBUSTION)',
+    discoveryPathways: ['Can be electrolyzed back into pure fuel', 'Acts as a universal solvent for complex biology', 'Precursor to acidic and basic solutions']
   },
   {
     reactants: ['Cs', 'H'],
@@ -103,7 +111,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'This represents the absolute limit of chemical base alkalinity and electron release. It showcases the extreme volatility of highly shielded alkali metals.',
     structure: 'Monoclinic ionic Caesium Hydroxide matrix coupled with free diatomic nonpolar Hydrogen gas',
     properties: ['Extreme proton-stripping alkalinity', 'Exothermic blast release', 'Highly hygroscopic lattice structure'],
-    uses: ['Low-temperature battery systems', 'Precision silicon microfabrication', 'Synthetic polymer catalysts']
+    uses: ['Low-temperature battery systems', 'Precision silicon microfabrication', 'Synthetic polymer catalysts'],
+    bondEnergy: 342,
+    stabilityMetric: 'Highly Unstable/Explosive',
+    reactionType: 'SINGLE REPLACEMENT (EXOTHERMIC ALKALINE)',
+    discoveryPathways: ['Forms extremophile environments', 'Creates highly conductive plasmas', 'Catalyzes rapid polymer bonds']
   },
   {
     reactants: ['C', 'O'],
@@ -117,7 +129,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Carbon Dioxide is the primary structural building brick of biosphere flora. It drives the photosynthetic carbon cycle and forms the crucial thermal greenhouse blanket of Earth.',
     structure: 'Linear covalent compound with double bonds, zero net dipole moment',
     properties: ['Chemically stable linear shape', 'Water-soluble forming carbonic acid', 'Direct solid-gas sublimation'],
-    uses: ['Refrigeration dry ice preservation', 'Active fire suppression grids', 'Greenhouse botanical acceleration']
+    uses: ['Refrigeration dry ice preservation', 'Active fire suppression grids', 'Greenhouse botanical acceleration'],
+    bondEnergy: 799,
+    stabilityMetric: 'Stable Linear Covalent',
+    reactionType: 'COMBUSTION (OXIDATION)',
+    discoveryPathways: ['Forms Carbonic Acid in water', 'Crucial reactant for plant photosynthesis', 'Can be reduced back to Carbon Monoxide']
   },
   {
     reactants: ['Fe', 'O'],
@@ -131,7 +147,9 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Iron Oxide records geological history across planet crusts, colors the Martian regolith blood-red, and represents the structural decay that engineers must constantly fight.',
     structure: 'Hexagonal close-packed ionic crystal structure with iron ions filling octahedral holes',
     properties: ['Paramagnetic oxidation coat', 'Highly porous and mechanically weak', 'Water insoluble compound'],
-    uses: ['Ceramic & clay masonry pigments', 'Steel smelting blast furnace feedstock', 'Historical magnetic stripes']
+    uses: ['Ceramic & clay masonry pigments', 'Steel smelting blast furnace feedstock', 'Historical magnetic stripes'],
+    reactionType: 'OXIDATION (SLOW COMBUSTION)',
+    discoveryPathways: ['Forms the red deserts of Mars', 'Foundational to the smelting of Steel', 'Destroys unchecked modern infrastructure']
   },
   {
     reactants: ['H', 'H'],
@@ -145,7 +163,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Stellar Hydrogen fusion is the ultimate powerhouse of our universe. Every photon of daylight warming Earth was seeded by this nuclear reaction, fusing matter and creating elements.',
     structure: 'Primal atomic Helium nuclei (alpha-particles) in an electron-degenerate high-energy plasma soup',
     properties: ['Direct mass-energy conversion (E=mc²)', 'Overcomes extreme Coulomb barriers', 'High thermal emission output'],
-    uses: ['Generating daylight & planetary heat', 'Hydrogen energy fusion research', 'Astrophysical stellar models']
+    uses: ['Generating daylight & planetary heat', 'Hydrogen energy fusion research', 'Astrophysical stellar models'],
+    bondEnergy: 99999,
+    stabilityMetric: 'Stellar Fusion Bound',
+    reactionType: 'NUCLEAR FUSION',
+    discoveryPathways: ['Synthesizes every heavy element in the universe', 'Provides the core energy for biological life', 'The ultimate goal of clean power generation']
   },
   {
     reactants: ['Ar', 'F'],
@@ -159,7 +181,9 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'By producing highly coherent 193 nm ultraviolet laser light, ArF* allows optical machines to etch transistor patterns onto microchips, enabling modern computer memory.',
     structure: 'Excited temporary dimer (Excimer) stabilized by electrostatic force, collapsing in nanoseconds',
     properties: ['Coherent deep 193 nm UV output', 'Extremely brief excited-state lifetime', 'High energy chemical discharge'],
-    uses: ['Ultrafine microcircuit lithography', 'Corneal surgery ablation', 'Nanoscale laser analysis']
+    uses: ['Ultrafine microcircuit lithography', 'Corneal surgery ablation', 'Nanoscale laser analysis'],
+    bondEnergy: 154,
+    stabilityMetric: 'Nanosecond Excitonic State'
   },
   {
     reactants: ['Y', 'Cu'],
@@ -173,7 +197,9 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'YBCO was the first discovered material to superconduct above liquid nitrogen boiling point (77 K), opening affordable pathways to quantum magnetic transport and lossless power grids.',
     structure: 'Orthorhombic perovskite oxygen-deficient copper-oxide planar sheet layers',
     properties: ['Perfect diamagnetism (Meissner effect)', 'Zero electrical resistivity', 'Critical temperature boundary at 93 K'],
-    uses: ['Magnetic suspension levitators', 'Ultra-high field science magnets', 'Lossless grid cable prototypes']
+    uses: ['Magnetic suspension levitators', 'Ultra-high field science magnets', 'Lossless grid cable prototypes'],
+    bondEnergy: 624,
+    stabilityMetric: 'Quantum Perovskite Matrix'
   },
   {
     reactants: ['Si', 'O'],
@@ -187,7 +213,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Silicon Dioxide forms the physical hardware of our global digital connection. As glass windows, telescope lenses, and fiber optics, it transmits light, databases, and structural strength across humanity.',
     structure: 'Infinite covalent tetrahedral network lattice with SiO₄ structural blocks',
     properties: ['High glass-transition thermal threshold', 'Excellent deep light transmission', 'Highly resistant to chemical acid attack'],
-    uses: ['Optical lenses & macro fiber lines', 'High strength concrete & building materials', 'Precision chemical vessel containers']
+    uses: ['Optical lenses & macro fiber lines', 'High strength concrete & building materials', 'Precision chemical vessel containers'],
+    bondEnergy: 798,
+    stabilityMetric: 'Ultra-Stable Network Covalent',
+    reactionType: 'SYNTHESIS (HIGH TEMP OXIDATION)',
+    discoveryPathways: ['Transformed into semiconducting Silicon wafers', 'Provides the core structure of microchips', 'Forms the geological crust of terrestrial planets']
   },
   {
     reactants: ['N', 'H'],
@@ -201,7 +231,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Synthesizing Ammonia represents the ultimate bridge between atmosphere and biosphere, extracting inert nitrogen from the air to fertilizer soils, feeding over half of human civilization.',
     structure: 'Trigonal pyramidal geometry with nitrogen sitting at the apex, presenting a highly polar dipole moment',
     properties: ['Exceptional water solubility', 'Extreme hydrogen-bonding capacity', 'Strong alkali conjugate proton affinity'],
-    uses: ['Soil nitrogen crop enrichment', 'Industrial large-scale refrigeration coolant', 'Nitric acid chemical syntheses']
+    uses: ['Soil nitrogen crop enrichment', 'Industrial large-scale refrigeration coolant', 'Nitric acid chemical syntheses'],
+    bondEnergy: 391,
+    stabilityMetric: 'Stable Trigonal Pyramidal',
+    reactionType: 'SYNTHESIS (CATALYTIC FIXATION)',
+    discoveryPathways: ['Feeds agricultural crops artificially', 'Combines into complex nitrogen explosives', 'Crucial baseline for amino acid development']
   },
   {
     reactants: ['C', 'H'],
@@ -215,7 +249,11 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Methane represents a massive energy source that burns cleaner than organic coal, serving as the core molecule of carbonochemistry and space fuel models.',
     structure: 'Highly symmetrical, nonpolar tetrahedral configuration (109.5° bonding angle)',
     properties: ['High heat density release', 'Extremely low boiling temperature (-161.5 °C)', 'Clean flame forming only CO₂ and water'],
-    uses: ['Electrical turbine grid generators', 'Domestic natural heating grid supplies', 'Feedstock for hydrogen steam-methane reformers']
+    uses: ['Electrical turbine grid generators', 'Domestic natural heating grid supplies', 'Feedstock for hydrogen steam-methane reformers'],
+    bondEnergy: 413,
+    stabilityMetric: 'Highly Stable Aliphatic',
+    reactionType: 'SYNTHESIS (ORGANIC DECAY)',
+    discoveryPathways: ['Forms complex hydrocarbon polymer chains', 'Cracks into Hydrogen Gas and solid Carbon', 'Basis for complex extraterrestrial lakes (Titan)']
   },
   {
     reactants: ['H', 'Cl'],
@@ -229,7 +267,9 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Without Hydrochloric Acid, mammalian stomach digestion would fail, as it activates key enzymes that dismantle proteins. In heavy industries, it works to pickle metals.',
     structure: 'Linear polar diatomic molecular structure with robust dipol momentum',
     properties: ['Infinite solubility in water', 'Complete ionic dissociation (Strong Mineral Acid)', 'Reactivates and dissolves metal oxides'],
-    uses: ['Metal surface Rust removal and scale pickling', 'Aqueous chemical pH balance control', 'Food production starch hydrolyzation']
+    uses: ['Metal surface Rust removal and scale pickling', 'Aqueous chemical pH balance control', 'Food production starch hydrolyzation'],
+    bondEnergy: 431,
+    stabilityMetric: 'Stable Polar Diatomic'
   },
   {
     reactants: ['Li', 'O'],
@@ -243,7 +283,9 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'Lithium Oxide forms a highly protective chemical transition layer in modern rechargeable batteries, maximizing energy density while preventing internal short circuits and thermal runaway.',
     structure: 'Antifluorite crystal lattice configuration with lithium ions filling tetrahedral gaps',
     properties: ['Thermally stable up to 1438 °C', 'Extremely high ionic lithium mobility', 'Reacts with water to form lithium hydroxide'],
-    uses: ['Advanced solid-state battery structures', 'Vitreous glass and ceramic thermal glazes', 'Nuclear tritium breeder blankets']
+    uses: ['Advanced solid-state battery structures', 'Vitreous glass and ceramic thermal glazes', 'Nuclear tritium breeder blankets'],
+    bondEnergy: 341,
+    stabilityMetric: 'Stable Anti-Fluorite Lattice'
   },
   {
     reactants: ['U', 'F'],
@@ -257,6 +299,8 @@ export const REACTION_CONFIGS: ReactionConfig[] = [
     whyItMatters: 'UF₆ is the absolute key of atomic energy. By turning uranium into a gas, centrifuges can separate fissionable Uranium-235 from heavy Uranium-238, supplying fuel for nuclear power hubs.',
     structure: 'Sub-monoclinic dense octahedral molecular geometry with weak intermolecular Van der Waals forces',
     properties: ['Vaporizes cleanly at 56.5 °C', 'Corrosive and radioactive', 'Reacts violently with moist air to release hydrofluoric acid gas'],
-    uses: ['Gaseous centrifugation nuclear breeding', 'Nuclear reactor core fuel pellets']
+    uses: ['Gaseous centrifugation nuclear breeding', 'Nuclear reactor core fuel pellets'],
+    bondEnergy: 512,
+    stabilityMetric: 'Volatile Octahedral'
   }
 ];

@@ -189,4 +189,8 @@ export interface ReactionConfig {
   structure?: string;           // e.g. "Bent molecular, highly polar"
   properties?: string[];        // e.g. ["High heat capacity", "Cohesive matrix"]
   uses?: string[];              // e.g. ["Thermoregulation", "Universal solvent"]
+  bondEnergy?: number;          // kJ/mol
+  stabilityMetric?: string;
+  reactionType?: string;        // e.g. "SYNTHESIS", "REDOX", "COMBUSTION"
+  discoveryPathways?: string[]; // e.g. ["Can be polymerized into Plastics", "Precursor to life"]
 }
