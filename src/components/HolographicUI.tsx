@@ -34,6 +34,8 @@ import ObservatoryHub from './ObservatoryHub';
 
 interface HolographicUIProps {
   selectedElement: ChemicalElement | null;
+  compareElement: ChemicalElement | null;
+  onSelectCompareElement: (element: ChemicalElement | null) => void;
   hoveredElement: ChemicalElement | null;
   onSelectElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
@@ -196,8 +198,76 @@ export function analyzeReaction(symA: string, symB: string): ReactionConfig {
   };
 }
 
+export function getNucleosynthesisTimeline(el: ChemicalElement) {
+  const number = el.number;
+  const sys = el.symbol;
+  const name = el.name;
+  const origin = el.cosmicProperties?.stellarOrigin || el.cosmicRelevance || 'Unknown stellar field';
+  const process = el.cosmicProperties?.nucleosynthesisProcess || 'High-energy collision';
+
+  // Step 1: Initial Stellar Origin State
+  let step1Title = "Primordial Stellar Origin";
+  let step1Desc = origin;
+  const step1Accent = "#00E5FF"; // cyan
+
+  // Step 2: Transition / Intermediate Fusion Reaction Mode
+  let step2Title = "Stellar Core Ignition";
+  let step2Desc = process;
+  const step2Accent = "#FF9100"; // orange
+  
+  // Step 3: Final manifest stabilized element
+  const step3Title = `${name} Materialization`;
+  const step3Desc = `Stabilized atomic core of ${sys} with ${el.protons} protons and ${el.neutrons} neutrons.`;
+  const step3Accent = "#00FFB3"; // green
+
+  if (number <= 4) {
+    // Light cosmic elements
+    step1Title = "Big Bang Fireball";
+    step1Desc = "First seconds of the universe; ultra-dense hot baryonic quark-gluon plasma cooling.";
+    step2Title = "Cosmic Nucleosynthesis";
+    step2Desc = "Protons and neutrons fuse into Helium & Trace Lithium under high thermal expansion.";
+  } else if (number <= 26) {
+    // Carbon up to Iron (stellar hydrostatic burning)
+    step1Title = "Fusion Star Core";
+    step1Desc = origin.replace(/\.$/, "") + " in hydrostatic stellar core equilibrium.";
+    step2Title = "Thermonuclear Shell Fusion";
+    step2Desc = process.replace(/\.$/, "") + " creating concentric carbon-to-iron layers.";
+  } else if (el.category.includes('synthetic') || number > 94 || ['Tc', 'Pm', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr'].includes(sys)) {
+    // Synthetic elements
+    step1Title = "Advanced High-Energy Lab";
+    step1Desc = "Controlled laboratory targets inside cyclotron or nuclear power core.";
+    step2Title = "Artificial Nucleus Fusion";
+    step2Desc = process;
+    return [
+      { title: step1Title, desc: step1Desc, accent: step1Accent },
+      { title: step2Title, desc: step2Desc, accent: step2Accent },
+      { title: `Synthetic Isotopic Matrix`, desc: `Highly transient and unstable ${sys} radioactive core captures.`, accent: step3Accent }
+    ];
+  } else if (process.toLowerCase().includes('rapid') || process.includes('r-process') || ['Au', 'Pt', 'U', 'Th', 'Pb', 'Hg'].includes(sys)) {
+    // r-process extreme heavy elements
+    step1Title = "Neutron Star Collision Core";
+    step1Desc = "Two ultra-dense degenerate stellar cores colliding in a cataclysmic Kilonova explosion.";
+    step2Title = "Rapid Neutron Capture (r-process)";
+    step2Desc = "Extreme high-flux neutron capture flooding seed nuclei, followed by rapid beta-decay.";
+  } else {
+    // s-process or normal cosmic dust accretion
+    step1Title = "Stellar Wind / AGB Giant";
+    step1Desc = origin.replace(/\.$/, "") + " convective stellar envelopes.";
+    step2Title = "Slow Neutron Capture (s-process)";
+    step2Desc = "Iron seed nuclei slowly capturing neutrons inside helium shells over centuries.";
+  }
+
+  return [
+    { title: step1Title, desc: step1Desc, accent: step1Accent },
+    { title: step2Title, desc: step2Desc, accent: step2Accent },
+    { title: step3Title, desc: step3Desc, accent: step3Accent }
+  ];
+}
+
 export default function HolographicUI({
   selectedElement,
+  compareElement,
+  onSelectCompareElement,
   hoveredElement,
   onSelectElement,
   layoutMode,
@@ -237,6 +307,11 @@ export default function HolographicUI({
 
   // Multi-Scale Exploration Scale state tracking
   const [scaleMode, setScaleMode] = useState<'cosmic' | 'periodic' | 'molecular' | 'atomic' | 'subatomic'>('periodic');
+
+  // Compare & Pathway States
+  const [compareSelectorOpen, setCompareSelectorOpen] = useState(false);
+  const [compareSearchQuery, setCompareSearchQuery] = useState('');
+  const [pathwayOpen, setPathwayOpen] = useState(false);
 
   useEffect(() => {
     if (selectedElement) {
@@ -818,6 +893,33 @@ export default function HolographicUI({
             </button>
           )}
 
+          <div className="flex px-3 py-1.5 bg-[#0B1020]/90 backdrop-blur-md border border-[#EAF2FF]/15 rounded-sm items-center gap-2.5 shadow-lg select-none pointer-events-auto" title="System render rate and performance telemetry">
+            <Activity className={`w-3.5 h-3.5 ${isLowPerfMode ? 'text-[#FF9100] animate-pulse' : 'text-[#00E5FF]'}`} />
+            <span className={`font-mono font-black tracking-widest ${
+              currentFps >= 50 ? 'text-[#00FFB3]' : 
+              currentFps >= 30 ? 'text-[#FF9100]' : 
+              'text-[#FF1744] font-extrabold animate-pulse'
+            }`}>
+              {currentFps} FPS
+            </span>
+            <span className="w-[1px] h-3 bg-white/15" />
+            {isLowPerfMode ? (
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9100] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#FF9100]"></span>
+                </span>
+                <span className="text-[8.5px] font-mono tracking-wider font-extrabold text-[#FF9100] uppercase animate-pulse">
+                  Adaptive Quality Engaged
+                </span>
+              </div>
+            ) : (
+              <span className="text-[8.5px] font-mono tracking-wider font-extrabold text-[#00E5FF]/80 uppercase">
+                QUALITY: MAX
+              </span>
+            )}
+          </div>
+
           <div className="hidden lg:flex px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
             <span className="text-[#00FFB3] uppercase">● OBS:</span> STABLE
           </div>
@@ -826,6 +928,27 @@ export default function HolographicUI({
           </div>
         </div>
       </header>
+
+      {/* DYNAMIC PERFORMANCE QUALITY ACTION BANNER */}
+      {isObsEntered && isLowPerfMode && (
+        <div className="absolute top-22 md:top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-40 animate-fade-in flex flex-col items-center select-none">
+          <div className="px-4.5 py-2.5 bg-[#070C1B]/95 backdrop-blur-xl border border-[#FF9100]/40 rounded-sm shadow-[0_0_25px_rgba(255,145,0,0.22)] flex items-center gap-3 text-[9px] font-mono select-none">
+            <div className="relative flex h-2.5 w-2.5 flex-none mb-auto mt-0.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9100]/60 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF9100]"></span>
+            </div>
+            <div className="flex flex-col">
+              <div className="font-extrabold tracking-widest text-[#FF9100] uppercase flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-[#FF9100] animate-spin" style={{ animationDuration: '4s' }} />
+                PERFORMANCE STABILIZER TRIGGERED
+              </div>
+              <div className="text-[#EAF2FF]/60 text-[8px] mt-0.5 tracking-wider uppercase font-semibold">
+                Scene complexity and post-effects dynamically scaled down to stabilize frame rates.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =======================================================
           MAIN INTERACTION HUD OVERLAYS (Left / Right / Middle)
@@ -2146,10 +2269,49 @@ export default function HolographicUI({
                 <p className="text-[9px] text-[#EAF2FF]/80 leading-relaxed font-sans font-light border-b border-white/5 pb-1.5">
                   {selectedElement.cosmicProperties?.stellarOrigin || selectedElement.cosmicRelevance || 'Material synthesized in cyclotronic high-energy labs.'}
                 </p>
-                <div className="grid grid-cols-2 gap-y-1 gap-x-2 font-mono text-[8px] text-[#EAF2FF]/60 font-bold">
+                <div className="grid grid-cols-2 gap-y-1 gap-x-2 font-mono text-[8px] text-[#EAF2FF]/60 font-bold border-b border-white/5 pb-2">
                   <div>Universe: <span className="text-white">{selectedElement.cosmicProperties?.cosmicAbundance || 'Trace'}</span></div>
                   <div>Earth Crust: <span className="text-white">{selectedElement.cosmicProperties?.earthAbundance || 'Trace'}</span></div>
-                  <div className="col-span-2">Genesis: <span className="text-[#00FFB3]">{selectedElement.cosmicProperties?.nucleosynthesisProcess || 'Lab particles bombardment'}</span></div>
+                </div>
+
+                {/* Nucleosynthesis Step-by-Step Dashed Timeline */}
+                <div className="mt-1.5 flex flex-col gap-2">
+                  <span className="text-[6.8px] font-mono tracking-widest text-[#00FFB3]/90 uppercase font-black block">
+                    NUCLEOSYNTHESIS TIMELINE PATHWAY
+                  </span>
+                  
+                  <div className="relative pl-3.5 flex flex-col gap-3 mt-1">
+                    {/* Vertical Dashed Line */}
+                    <div className="absolute left-[4px] top-1.5 bottom-1.5 w-[1px] border-l border-dashed border-white/20" />
+                    
+                    {getNucleosynthesisTimeline(selectedElement).map((step, idx) => (
+                      <div key={idx} className="relative group/step flex gap-1.5 items-start">
+                        {/* Timeline Node Bullet with interactive glow hover and rings */}
+                        <div className="absolute -left-[14.5px] top-1 flex items-center justify-center">
+                          <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full opacity-35" style={{ backgroundColor: step.accent }} />
+                          <span 
+                            className="relative inline-flex rounded-full h-2 w-2 border border-[#070C1B] shadow-[0_0_8px_var(--node-color)] transition-transform duration-300 group-hover/step:scale-125"
+                            style={{ 
+                              backgroundColor: step.accent,
+                              '--node-color': step.accent 
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                        
+                        <div className="flex flex-col text-[8.5px] leading-tight">
+                          <span 
+                            className="font-mono font-black uppercase tracking-wider transition-colors duration-200 group-hover/step:text-white"
+                            style={{ color: step.accent }}
+                          >
+                            {step.title}
+                          </span>
+                          <span className="text-[8.2px] text-[#EAF2FF]/70 font-light font-sans mt-0.5 max-w-[240px]">
+                            {step.desc}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

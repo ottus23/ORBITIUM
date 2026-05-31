@@ -12,8 +12,10 @@ import { OrbitiumKnowledgeEngine } from '../utils/KnowledgeEngine';
 
 interface ThreeSceneProps {
   selectedElement: ChemicalElement | null;
+  compareElement?: ChemicalElement | null;
   hoveredElement: ChemicalElement | null;
   onSelectElement: (element: ChemicalElement | null) => void;
+  onSelectCompareElement?: (element: ChemicalElement | null) => void;
   onHoverElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
   appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline';
@@ -43,8 +45,10 @@ const BOND_ENERGIES: Record<string, { value: number; unit: string; color: string
 
 export default function ThreeScene({
   selectedElement,
+  compareElement,
   hoveredElement,
   onSelectElement,
+  onSelectCompareElement,
   onHoverElement,
   layoutMode,
   appMode,
@@ -62,6 +66,7 @@ export default function ThreeScene({
   // Keep values in ref to avoid re-triggering useEffect and tearing down the scene
   const propsRef = useRef({
     selectedElement,
+    compareElement,
     hoveredElement,
     layoutMode,
     appMode,
@@ -78,6 +83,7 @@ export default function ThreeScene({
   useEffect(() => {
     propsRef.current = {
       selectedElement,
+      compareElement,
       hoveredElement,
       layoutMode,
       appMode,
@@ -92,6 +98,7 @@ export default function ThreeScene({
     };
   }, [
     selectedElement,
+    compareElement,
     hoveredElement,
     layoutMode,
     appMode,
@@ -1079,6 +1086,33 @@ export default function ThreeScene({
     let sparkSpeeds: Float32Array | null = null;
     let sparkDirections: Float32Array | null = null;
 
+    // Dynamic bonding pre-collision particles
+    let bondingParticles: THREE.Points | null = null;
+    const bondingParticleCount = 180;
+    let bondingParticleData: Array<{
+      progress: number;
+      speed: number;
+      offset: THREE.Vector3;
+      angleOffset: number;
+      phase: number;
+      currPos: THREE.Vector3;
+      currVel: THREE.Vector3;
+    }> = [];
+
+    // Reactant velocities for beautiful spring physics
+    const velReactantA = new THREE.Vector3();
+    const velReactantB = new THREE.Vector3();
+
+    // Dynamic customized fusion mesh list
+    let dynamicFusionProps: Array<{
+      mesh: THREE.Mesh;
+      scaleSpeed: number;
+      rotSpeed: THREE.Vector3;
+      maxScale: number;
+      curOpacity: number;
+      fadeSpeed: number;
+    }> = [];
+
     const createReactantAtom = (symbol: string, colorHex: string) => {
       const group = new THREE.Group();
       
@@ -1758,9 +1792,25 @@ export default function ThreeScene({
       if (reactantB) scene.remove(reactantB);
       if (fusionShockwave) scene.remove(fusionShockwave);
       if (sparkPoints) scene.remove(sparkPoints);
+      if (bondingParticles) {
+        scene.remove(bondingParticles);
+        bondingParticles = null;
+      }
       if (productMoleculeGroup) {
         scene.remove(productMoleculeGroup);
         productMoleculeGroup = null;
+      }
+
+      // Clean up dynamic fusion actor meshes
+      if (dynamicFusionProps) {
+        dynamicFusionProps.forEach(item => {
+          scene.remove(item.mesh);
+          item.mesh.geometry.dispose();
+          if (item.mesh.material instanceof THREE.Material) {
+            item.mesh.material.dispose();
+          }
+        });
+        dynamicFusionProps = [];
       }
 
       isReactionStable = false;
@@ -1790,6 +1840,59 @@ export default function ThreeScene({
       });
       fusionShockwave = new THREE.Mesh(shockwaveGeom, shockwaveMat);
       scene.add(fusionShockwave);
+
+      // Reset velocities when spawning reactants
+      velReactantA.set(0, 0, 0);
+      velReactantB.set(0, 0, 0);
+
+      // Create pre-fusion bonding particle systems to represent ion flow/sharing cloud fields
+      const bGeom = new THREE.BufferGeometry();
+      const bPosArray = new Float32Array(bondingParticleCount * 3);
+      bondingParticleData = [];
+
+      for (let p = 0; p < bondingParticleCount; p++) {
+        bPosArray[p * 3] = 0;
+        bPosArray[p * 3 + 1] = 0;
+        bPosArray[p * 3 + 2] = 0;
+
+        bondingParticleData.push({
+          progress: Math.random(),
+          speed: 0.15 + Math.random() * 0.45,
+          offset: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.8,
+            (Math.random() - 0.5) * 0.8,
+            (Math.random() - 0.5) * 0.8
+          ),
+          angleOffset: Math.random() * Math.PI * 2,
+          phase: Math.random() * Math.PI,
+          currPos: new THREE.Vector3(0, 0, 0),
+          currVel: new THREE.Vector3(0, 0, 0)
+        });
+      }
+
+      bGeom.setAttribute('position', new THREE.BufferAttribute(bPosArray, 3));
+
+      let bColor = new THREE.Color('#FFFFFF');
+      if (re.visualType === 'ionic') {
+        bColor.set('#FFD700'); // Highly ionic golden glow particles
+      } else if (re.visualType === 'covalent') {
+        bColor.set('#00E5FF'); // Shared cyan covalent orbital particles
+      } else {
+        bColor.set('#FF5100'); // High energetic red/orange sparks
+      }
+
+      const bMat = new THREE.PointsMaterial({
+        size: re.visualType === 'ionic' ? 0.28 : re.visualType === 'covalent' ? 0.32 : 0.25,
+        color: bColor,
+        map: createCircularParticleTexture(),
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      bondingParticles = new THREE.Points(bGeom, bMat);
+      scene.add(bondingParticles);
 
       // Create explosive reaction sparks/particles
       const sparkCount = re.visualType === 'explosion' ? 240 : 120;
@@ -1844,6 +1947,8 @@ export default function ThreeScene({
     };
 
     const handleResetReactor = () => {
+      velReactantA.set(0, 0, 0);
+      velReactantB.set(0, 0, 0);
       if (reactantA) reactantA.position.set(-8.5, 0, 0);
       if (reactantB) reactantB.position.set(8.5, 0, 0);
       if (reactantA) reactantA.visible = true;
@@ -1855,6 +1960,30 @@ export default function ThreeScene({
       }
       if (sparkPoints) {
         sparkPoints.visible = false;
+      }
+      if (bondingParticles) {
+        bondingParticles.visible = true;
+        const posAttr = bondingParticles.geometry.getAttribute('position') as THREE.BufferAttribute;
+        if (posAttr) {
+          for (let p = 0; p < bondingParticleCount; p++) {
+            posAttr.setXYZ(p, 0, 0, 0);
+            if (bondingParticleData[p]) {
+              bondingParticleData[p].currPos.set(0, 0, 0);
+              bondingParticleData[p].currVel.set(0, 0, 0);
+            }
+          }
+          posAttr.needsUpdate = true;
+        }
+      }
+      if (dynamicFusionProps) {
+        dynamicFusionProps.forEach(item => {
+          scene.remove(item.mesh);
+          item.mesh.geometry.dispose();
+          if (item.mesh.material instanceof THREE.Material) {
+            item.mesh.material.dispose();
+          }
+        });
+        dynamicFusionProps = [];
       }
       if (productMoleculeGroup) {
         scene.remove(productMoleculeGroup);
@@ -3392,13 +3521,173 @@ export default function ThreeScene({
           if (!isReactionStable) {
             const dist = reactantA.position.distanceTo(reactantB.position);
             
-            // MAGNETIC DRIFT ATTRACTION FIELD MECHANICS
+            // MAGNETIC SPRING ATTRACTION PHYSICS WITH REALISTIC FORCE & MOTION (Hooke's Law)
             if (!draggedReactant) {
-              const forceStrength = Math.max(0.005, (12.0 - dist) * 0.035); // pull gets exponentially higher inside field
+              const restLength = 1.0; 
+              const displacement = dist - restLength;
+              
+              // Dynamic k (spring stiffness stiffness constant) that increases as distance gets smaller (tactile magnetic snaps)
+              const stiffness = 8.5 + (12.0 - Math.min(12.0, dist)) * 25.0; 
+              const damping = 3.8;
+              
               const pullDirection = new THREE.Vector3().subVectors(reactantB.position, reactantA.position).normalize();
-              const driftStep = pullDirection.multiplyScalar(forceStrength * delta * 50.0 * simMultiplier);
-              reactantA.position.add(driftStep);
-              reactantB.position.sub(driftStep);
+              
+              // Spring Force: F = stiffness * displacement
+              const forceMagnitude = stiffness * displacement;
+              const springForceA = pullDirection.clone().multiplyScalar(forceMagnitude);
+              
+              // Apply force to reactant A with damping
+              velReactantA.addScaledVector(springForceA, delta * simMultiplier);
+              velReactantA.addScaledVector(velReactantA, -damping * delta * simMultiplier);
+              
+              // Apply equal & opposite force to reactant B with damping
+              const springForceB = pullDirection.clone().multiplyScalar(-forceMagnitude);
+              velReactantB.addScaledVector(springForceB, delta * simMultiplier);
+              velReactantB.addScaledVector(velReactantB, -damping * delta * simMultiplier);
+              
+              reactantA.position.addScaledVector(velReactantA, delta * simMultiplier);
+              reactantB.position.addScaledVector(velReactantB, delta * simMultiplier);
+              
+              // Maintain 2D-plane alignment and constraints
+              reactantA.position.z = 0;
+              reactantB.position.z = 0;
+              reactantA.position.x = Math.max(-20, Math.min(20, reactantA.position.x));
+              reactantA.position.y = Math.max(-12, Math.min(12, reactantA.position.y));
+              reactantB.position.x = Math.max(-20, Math.min(20, reactantB.position.x));
+              reactantB.position.y = Math.max(-12, Math.min(12, reactantB.position.y));
+            } else {
+              // Lock velocity when dragged to make releasing snappy and immediate
+              velReactantA.set(0, 0, 0);
+              velReactantB.set(0, 0, 0);
+            }
+
+            // Animate pre-fusion bonding particles relative to distance representing ionic flow vs covalent cloud
+            if (bondingParticles && bondingParticles.visible) {
+              const posAttr = bondingParticles.geometry.getAttribute('position') as THREE.BufferAttribute;
+              const posA = reactantA.position;
+              const posB = reactantB.position;
+              const visualType = activeBondModeReaction ? activeBondModeReaction.visualType : 'explosion';
+
+              if (posAttr) {
+                if (visualType === 'ionic') {
+                  // Direct electron flow from electropositive (A) to electronegative (B) indicating electron transfer
+                  for (let p = 0; p < bondingParticleCount; p++) {
+                    const data = bondingParticleData[p];
+                    if (!data) continue;
+                    data.progress += data.speed * delta * 1.5 * simMultiplier;
+                    if (data.progress > 1.0) {
+                      data.progress = 0.0;
+                    }
+
+                    const targetPos = new THREE.Vector3().lerpVectors(posA, posB, data.progress);
+                    const angle = data.angleOffset + data.progress * Math.PI * 4.0;
+                    const radius = (1.0 - data.progress) * data.progress * 2.5 + 0.15;
+
+                    const axis = new THREE.Vector3().subVectors(posB, posA).normalize();
+                    let up = new THREE.Vector3(0, 1, 0);
+                    if (Math.abs(axis.dot(up)) > 0.9) up.set(1, 0, 0);
+                    const right = new THREE.Vector3().crossVectors(axis, up).normalize();
+                    const normalUp = new THREE.Vector3().crossVectors(right, axis).normalize();
+
+                    targetPos.addScaledVector(right, Math.cos(angle) * radius);
+                    targetPos.addScaledVector(normalUp, Math.sin(angle) * radius);
+                    targetPos.addScaledVector(data.offset, 0.4);
+
+                    // Spring physics tracking (adds lagging inertia to the particle cloud)
+                    if (data.currPos.lengthSq() < 0.001) {
+                      data.currPos.copy(targetPos);
+                    }
+                    const force = new THREE.Vector3().subVectors(targetPos, data.currPos).multiplyScalar(150.0);
+                    data.currVel.addScaledVector(force, delta * simMultiplier);
+                    data.currVel.addScaledVector(data.currVel, -12.0 * delta * simMultiplier);
+                    data.currPos.addScaledVector(data.currVel, delta * simMultiplier);
+
+                    posAttr.setXYZ(p, data.currPos.x, data.currPos.y, data.currPos.z);
+                  }
+                } else if (visualType === 'covalent') {
+                  // Shared electron loop describing Lemniscate of Bernoulli (figure-eight infinity loop)
+                  const midPoint = new THREE.Vector3().addVectors(posA, posB).multiplyScalar(0.5);
+                  const distVec = new THREE.Vector3().subVectors(posB, posA);
+                  const halfDist = distVec.length() * 0.52;
+
+                  const axis = distVec.clone().normalize();
+                  let up = new THREE.Vector3(0, 1, 0);
+                  if (Math.abs(axis.dot(up)) > 0.9) up.set(1, 0, 0);
+                  const right = new THREE.Vector3().crossVectors(axis, up).normalize();
+                  const normalUp = new THREE.Vector3().crossVectors(right, axis).normalize();
+
+                  for (let p = 0; p < bondingParticleCount; p++) {
+                    const data = bondingParticleData[p];
+                    if (!data) continue;
+                    data.progress += data.speed * delta * 0.8 * simMultiplier;
+                    const t = data.progress * Math.PI * 2 + data.angleOffset;
+
+                    const denom = 1.0 + Math.sin(t) * Math.sin(t);
+                    const localX = halfDist * Math.cos(t) / denom;
+                    const localY = halfDist * Math.sin(t) * Math.cos(t) / denom;
+                    const localZ = Math.sin(t * 3.0 + data.phase) * 0.9 * (1.0 - Math.min(1.0, Math.abs(localX) / halfDist));
+
+                    const targetPos = midPoint.clone()
+                      .addScaledVector(axis, localX)
+                      .addScaledVector(right, localY)
+                      .addScaledVector(normalUp, localZ);
+
+                    targetPos.addScaledVector(data.offset, 0.3);
+
+                    // Spring physics tracking (adds lagging inertia to the shared covalent field)
+                    if (data.currPos.lengthSq() < 0.001) {
+                      data.currPos.copy(targetPos);
+                    }
+                    const force = new THREE.Vector3().subVectors(targetPos, data.currPos).multiplyScalar(140.0);
+                    data.currVel.addScaledVector(force, delta * simMultiplier);
+                    data.currVel.addScaledVector(data.currVel, -11.5 * delta * simMultiplier);
+                    data.currPos.addScaledVector(data.currVel, delta * simMultiplier);
+
+                    posAttr.setXYZ(p, data.currPos.x, data.currPos.y, data.currPos.z);
+                  }
+                } else {
+                  // High tension spiral plasma filaments meeting in the middle from A & B
+                  const midPoint = new THREE.Vector3().addVectors(posA, posB).multiplyScalar(0.5);
+                  for (let p = 0; p < bondingParticleCount; p++) {
+                    const data = bondingParticleData[p];
+                    if (!data) continue;
+                    data.progress += data.speed * delta * 2.2 * simMultiplier;
+                    if (data.progress > 1.0) {
+                      data.progress = 0.0;
+                    }
+
+                    const startAtom = p % 2 === 0 ? posA : posB;
+                    const targetPos = new THREE.Vector3().lerpVectors(startAtom, midPoint, data.progress);
+
+                    const helixAngle = data.angleOffset + data.progress * Math.PI * 8.0 + (p % 2 === 0 ? 0 : Math.PI);
+                    const helixRadius = (1.0 - data.progress) * 2.0;
+
+                    const axis = new THREE.Vector3().subVectors(midPoint, startAtom).normalize();
+                    let up = new THREE.Vector3(0, 1, 0);
+                    if (Math.abs(axis.dot(up)) > 0.9) up.set(1, 0, 0);
+                    const right = new THREE.Vector3().crossVectors(axis, up).normalize();
+                    const normalUp = new THREE.Vector3().crossVectors(right, axis).normalize();
+
+                    targetPos.addScaledVector(right, Math.cos(helixAngle) * helixRadius);
+                    targetPos.addScaledVector(normalUp, Math.sin(helixAngle) * helixRadius);
+
+                    const dischargeWave = Math.sin(elapsed * 25.0 + p) * 0.18;
+                    targetPos.addScaledVector(right, dischargeWave);
+
+                    // Spring physics tracking (adds lagging inertia to the high tension filament)
+                    if (data.currPos.lengthSq() < 0.001) {
+                      data.currPos.copy(targetPos);
+                    }
+                    const force = new THREE.Vector3().subVectors(targetPos, data.currPos).multiplyScalar(180.0);
+                    data.currVel.addScaledVector(force, delta * simMultiplier);
+                    data.currVel.addScaledVector(data.currVel, -13.0 * delta * simMultiplier);
+                    data.currPos.addScaledVector(data.currVel, delta * simMultiplier);
+
+                    posAttr.setXYZ(p, data.currPos.x, data.currPos.y, data.currPos.z);
+                  }
+                }
+                posAttr.needsUpdate = true;
+              }
             }
 
             if (frameCount % 3 === 0) {
@@ -3410,11 +3699,14 @@ export default function ThreeScene({
               OrbitiumAudio.updateTetherProximity(dist);
             });
 
-            // GATED COLLISION METRIC
+            // GATED COLLISION METRIC - Triggering highly stylized specific chemical fusion structures
             if (dist < 2.3) {
               isReactionStable = true;
               reactantA.visible = false;
               reactantB.visible = false;
+              if (bondingParticles) {
+                bondingParticles.visible = false;
+              }
 
               cameraTargetX = 0;
               cameraTargetY = 0;
@@ -3427,6 +3719,97 @@ export default function ThreeScene({
               productMoleculeGroup = createProductMolecule(activeBondModeReaction, midPoint);
               scene.add(productMoleculeGroup);
 
+              // CULMINATING FUSION EVENTS BASED ON ACTIVE BOND TYPE
+              const vType = activeBondModeReaction?.visualType || 'explosion';
+
+              if (vType === 'covalent') {
+                // Two interlocking shared covalent orbital halo rings spinning orthogonally
+                const ringGeom1 = new THREE.TorusGeometry(2.0, 0.07, 8, 32);
+                const ringMat1 = new THREE.MeshBasicMaterial({
+                  color: '#00E5FF',
+                  transparent: true,
+                  opacity: 1.0,
+                  blending: THREE.AdditiveBlending,
+                  side: THREE.DoubleSide
+                });
+                const ringMesh1 = new THREE.Mesh(ringGeom1, ringMat1);
+                ringMesh1.position.copy(midPoint);
+                ringMesh1.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                scene.add(ringMesh1);
+
+                const ringGeom2 = new THREE.TorusGeometry(2.0, 0.07, 8, 32);
+                const ringMat2 = new THREE.MeshBasicMaterial({
+                  color: '#00E5FF',
+                  transparent: true,
+                  opacity: 1.0,
+                  blending: THREE.AdditiveBlending,
+                  side: THREE.DoubleSide
+                });
+                const ringMesh2 = new THREE.Mesh(ringGeom2, ringMat2);
+                ringMesh2.position.copy(midPoint);
+                ringMesh2.rotation.copy(ringMesh1.rotation);
+                ringMesh2.rotation.x += Math.PI / 2.0;
+                scene.add(ringMesh2);
+
+                dynamicFusionProps.push({
+                  mesh: ringMesh1,
+                  scaleSpeed: 5.5,
+                  rotSpeed: new THREE.Vector3(1.5, 3.2, 0.5),
+                  maxScale: 25.0,
+                  curOpacity: 1.0,
+                  fadeSpeed: 1.35
+                });
+                dynamicFusionProps.push({
+                  mesh: ringMesh2,
+                  scaleSpeed: 5.5,
+                  rotSpeed: new THREE.Vector3(-3.2, 1.5, -0.5),
+                  maxScale: 25.0,
+                  curOpacity: 1.0,
+                  fadeSpeed: 1.35
+                });
+              } else if (vType === 'ionic') {
+                // Electrostatic outer wireframe sphere cage expansion + imploding inner energy core
+                const outerGeom = new THREE.SphereGeometry(2.6, 12, 12);
+                const outerMat = new THREE.MeshBasicMaterial({
+                  color: '#FFD700',
+                  wireframe: true,
+                  transparent: true,
+                  opacity: 1.0,
+                  blending: THREE.AdditiveBlending
+                });
+                const outerMesh = new THREE.Mesh(outerGeom, outerMat);
+                outerMesh.position.copy(midPoint);
+                scene.add(outerMesh);
+
+                const innerGeom = new THREE.SphereGeometry(1.2, 16, 16);
+                const innerMat = new THREE.MeshBasicMaterial({
+                  color: '#FF9100',
+                  transparent: true,
+                  opacity: 1.0,
+                  blending: THREE.AdditiveBlending
+                });
+                const innerMesh = new THREE.Mesh(innerGeom, innerMat);
+                innerMesh.position.copy(midPoint);
+                scene.add(innerMesh);
+
+                dynamicFusionProps.push({
+                  mesh: outerMesh,
+                  scaleSpeed: 6.8,
+                  rotSpeed: new THREE.Vector3(2.5, 4.0, 1.0),
+                  maxScale: 30.0,
+                  curOpacity: 1.0,
+                  fadeSpeed: 1.45
+                });
+                dynamicFusionProps.push({
+                  mesh: innerMesh,
+                  scaleSpeed: -1.4, // collapse inward
+                  rotSpeed: new THREE.Vector3(0, 0, 0),
+                  maxScale: 0.01,
+                  curOpacity: 1.0,
+                  fadeSpeed: 1.75
+                });
+              }
+
               if (fusionShockwave) {
                 fusionShockwave.position.copy(midPoint);
                 fusionShockwave.visible = true;
@@ -3434,7 +3817,6 @@ export default function ThreeScene({
                 fusionShockwave.scale.set(0.1, 0.1, 0.1);
                 
                 // Customize color based on visual type
-                const vType = activeBondModeReaction?.visualType;
                 if (vType === 'explosion') {
                   (fusionShockwave.material as THREE.MeshBasicMaterial).color.set('#FF3D00');
                 } else if (vType === 'covalent') {
@@ -3468,6 +3850,33 @@ export default function ThreeScene({
       }
 
       // 3C. Sparks & shockwaves particle animation logic
+      if (dynamicFusionProps) {
+        for (let i = dynamicFusionProps.length - 1; i >= 0; i--) {
+          const item = dynamicFusionProps[i];
+          if (item) {
+            item.mesh.scale.addScalar(item.scaleSpeed * delta * simMultiplier);
+            item.mesh.rotation.x += item.rotSpeed.x * delta * simMultiplier;
+            item.mesh.rotation.y += item.rotSpeed.y * delta * simMultiplier;
+            item.mesh.rotation.z += item.rotSpeed.z * delta * simMultiplier;
+            
+            item.curOpacity -= item.fadeSpeed * delta * simMultiplier;
+            if (item.mesh.material instanceof THREE.Material) {
+              item.mesh.material.opacity = Math.max(0, item.curOpacity);
+              item.mesh.material.needsUpdate = true;
+            }
+            
+            if (item.curOpacity <= 0) {
+              scene.remove(item.mesh);
+              item.mesh.geometry.dispose();
+              if (item.mesh.material instanceof THREE.Material) {
+                item.mesh.material.dispose();
+              }
+              dynamicFusionProps.splice(i, 1);
+            }
+          }
+        }
+      }
+
       if (fusionShockwave && fusionShockwave.visible) {
         fusionShockwave.scale.addScalar(15.0 * delta * simMultiplier);
         (fusionShockwave.material as THREE.MeshBasicMaterial).opacity -= 1.8 * delta * simMultiplier;
@@ -4096,6 +4505,22 @@ export default function ThreeScene({
       networkMat.dispose();
       hoverNetworkLines.geometry.dispose();
       hoverNetworkMat.dispose();
+
+      if (bondingParticles) {
+        bondingParticles.geometry.dispose();
+        if (bondingParticles.material instanceof THREE.Material) bondingParticles.material.dispose();
+      }
+
+      if (dynamicFusionProps) {
+        dynamicFusionProps.forEach(item => {
+          scene.remove(item.mesh);
+          item.mesh.geometry.dispose();
+          if (item.mesh.material instanceof THREE.Material) {
+            item.mesh.material.dispose();
+          }
+        });
+        dynamicFusionProps = [];
+      }
 
       // Clean up relationship filaments
       unitFilamentGeom.dispose();

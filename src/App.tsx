@@ -10,6 +10,7 @@ import { ChemicalElement, TableLayoutMode, ReactionConfig } from './types';
 
 export default function App() {
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(null);
+  const [compareElement, setCompareElement] = useState<ChemicalElement | null>(null);
   const [hoveredElement, setHoveredElement] = useState<ChemicalElement | null>(null);
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('grid');
   
@@ -44,8 +45,10 @@ export default function App() {
       {/* 3D WebGL Canvas Layer */}
       <ThreeScene
         selectedElement={selectedElement}
+        compareElement={compareElement}
         hoveredElement={hoveredElement}
         onSelectElement={setSelectedElement}
+        onSelectCompareElement={setCompareElement}
         onHoverElement={setHoveredElement}
         layoutMode={layoutMode}
         appMode={appMode}
@@ -62,6 +65,8 @@ export default function App() {
       {/* Holographic HUD UI Overlays */}
       <HolographicUI
         selectedElement={selectedElement}
+        compareElement={compareElement}
+        onSelectCompareElement={setCompareElement}
         hoveredElement={hoveredElement}
         onSelectElement={setSelectedElement}
         layoutMode={layoutMode}
@@ -72,6 +77,7 @@ export default function App() {
           // If switching model, perform cleanups
           if (mode !== 'explorer') {
             setSelectedElement(null);
+            setCompareElement(null);
           }
           if (mode !== 'bond_lab') {
             setActiveReaction(null);
