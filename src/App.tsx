@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ThreeScene from './components/ThreeScene';
 import HolographicUI from './components/HolographicUI';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from './types';
@@ -32,6 +32,24 @@ export default function App() {
   const [adaptiveQuality, setAdaptiveQuality] = useState<boolean>(true);
   const [isLowPerfMode, setIsLowPerfMode] = useState<boolean>(false);
   const [currentFps, setCurrentFps] = useState<number>(60);
+
+  useEffect(() => {
+    const handleScaleCommand = (e: Event) => {
+      const cx = e as CustomEvent;
+      if (cx.detail && cx.detail.mode) {
+        setAppMode(cx.detail.mode);
+        if (cx.detail.mode !== 'explorer') {
+           setSelectedElement(null);
+           setCompareElement(null);
+        }
+        if (cx.detail.mode !== 'bond_lab') {
+           setActiveReaction(null);
+        }
+      }
+    };
+    window.addEventListener('request-change-app-mode', handleScaleCommand);
+    return () => window.removeEventListener('request-change-app-mode', handleScaleCommand);
+  }, []);
 
   const handleEnterObs = () => {
     setIsObsEntered(true);

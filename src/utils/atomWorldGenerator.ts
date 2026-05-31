@@ -25,7 +25,306 @@ export function buildProceduralAtomWorld(
   const atmosphere = el.visual?.atmosphereType || 'metal';
   let activeWorldAnimate: (time: number, dt: number, sm: number) => void = () => {};
 
-  if (atmosphere === 'gas' || el.symbol === 'H') {
+  // FLAGSHIP ELEMENT OVERRIDES
+  if (el.symbol === 'H') {
+    // HYDROGEN: Primordial Stellar Nebula, Fusion Streams, Birthplace of Stars
+    visualPrimary.set('#FF2A6D');
+    visualSecondary.set('#05D9E8');
+    targetFogColor.set('#010A15');
+    targetAmbientColor.set('#1A0B2E');
+
+    const nebulaGeom = new THREE.SphereGeometry(18, 32, 32);
+    const nebulaMat = new THREE.MeshBasicMaterial({
+      color: visualPrimary,
+      transparent: true,
+      opacity: 0.08,
+      wireframe: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide
+    });
+    const nebula = new THREE.Mesh(nebulaGeom, nebulaMat);
+    elementWorldGroup.add(nebula);
+
+    const streamCount = 15;
+    const streams: THREE.Mesh[] = [];
+    for (let i = 0; i < streamCount; i++) {
+      const g = new THREE.TorusGeometry(3.5 + Math.random() * 4, 0.015 + Math.random() * 0.02, 3, 40);
+      const m = new THREE.MeshBasicMaterial({
+        color: Math.random() > 0.5 ? visualPrimary : visualSecondary,
+        transparent: true,
+        opacity: 0.35 + Math.random() * 0.4,
+        blending: THREE.AdditiveBlending
+      });
+      const stream = new THREE.Mesh(g, m);
+      stream.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      elementWorldGroup.add(stream);
+      streams.push(stream);
+    }
+
+    activeWorldAnimate = (time, dt, sm) => {
+      nebula.rotation.y += 0.04 * dt * sm;
+      nebula.rotation.z += 0.02 * dt * sm;
+      const pulse = 1.0 + Math.sin(time * 0.5) * 0.08;
+      nebula.scale.setScalar(pulse);
+
+      streams.forEach((s, i) => {
+        s.rotation.x += 0.25 * dt * sm * (i % 2 === 0 ? 1 : -1);
+        s.rotation.y += 0.15 * dt * sm;
+        const sPulse = 1.0 + Math.sin(time * 2.0 + i) * 0.1;
+        s.scale.setScalar(sPulse);
+      });
+    };
+
+  } else if (el.symbol === 'He') {
+    // HELIUM: Pure Absolute Zero Fluid, Superfluidity Rings, Bose-Einstein Condensate
+    visualPrimary.set('#E0FFFF');
+    visualSecondary.set('#87CEFA');
+    targetFogColor.set('#000510');
+    targetAmbientColor.set('#001530');
+
+    const rings: THREE.Mesh[] = [];
+    for (let i = 0; i < 8; i++) {
+      const g = new THREE.TorusGeometry(2 + i * 0.6, 0.05, 16, 64);
+      const m = new THREE.MeshPhongMaterial({
+        color: visualPrimary,
+        emissive: visualSecondary.clone().multiplyScalar(0.5),
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+        shininess: 100
+      });
+      const ring = new THREE.Mesh(g, m);
+      ring.rotation.x = Math.PI / 2;
+      elementWorldGroup.add(ring);
+      rings.push(ring);
+    }
+
+    activeWorldAnimate = (time, dt, sm) => {
+      rings.forEach((ring, i) => {
+        // Smooth, frictionless wave motion
+        ring.position.y = Math.sin(time * 2.0 + i * 0.8) * 0.4;
+        ring.rotation.x = Math.PI / 2 + Math.sin(time * 1.5 + i * 0.5) * 0.15;
+      });
+    };
+
+  } else if (el.symbol === 'C') {
+    // CARBON: Diamond Lattice Matrix, Organic Hexagonal Web
+    visualPrimary.set('#FFFFFF');
+    visualSecondary.set('#00FFB3');
+    targetFogColor.set('#020202');
+    targetAmbientColor.set('#101010');
+
+    const latticeGeom = new THREE.IcosahedronGeometry(7, 2);
+    const wireMat = new THREE.LineBasicMaterial({
+      color: visualSecondary,
+      transparent: true,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending
+    });
+    const edges = new THREE.EdgesGeometry(latticeGeom);
+    const lattice = new THREE.LineSegments(edges, wireMat);
+    elementWorldGroup.add(lattice);
+
+    const diamondGeom = new THREE.OctahedronGeometry(2, 0);
+    const diamondMat = new THREE.MeshPhongMaterial({
+      color: visualPrimary,
+      transparent: true,
+      opacity: 0.15,
+      wireframe: true,
+    });
+    const diamond = new THREE.Mesh(diamondGeom, diamondMat);
+    elementWorldGroup.add(diamond);
+
+    activeWorldAnimate = (time, dt, sm) => {
+      lattice.rotation.y += 0.05 * dt * sm;
+      lattice.rotation.x += 0.02 * dt * sm;
+      diamond.rotation.y -= 0.15 * dt * sm;
+      lattice.scale.setScalar(1.0 + Math.sin(time) * 0.05);
+    };
+
+  } else if (el.symbol === 'N') {
+    // NITROGEN: Cryogenic Atmospheric Storm
+    visualPrimary.set('#4B00D1');
+    visualSecondary.set('#00D0FF');
+    targetFogColor.set('#050515');
+    targetAmbientColor.set('#100A3A');
+
+    const stormCount = 800;
+    const geom = new THREE.BufferGeometry();
+    const pos = new Float32Array(stormCount * 3);
+    for(let i=0; i<stormCount; i++) {
+       pos[i*3] = (Math.random()-0.5)*15;
+       pos[i*3+1] = (Math.random()-0.5)*15;
+       pos[i*3+2] = (Math.random()-0.5)*15;
+    }
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({
+       size: 0.12,
+       color: visualSecondary,
+       map: particleTexture,
+       transparent: true,
+       opacity: 0.8,
+       blending: THREE.AdditiveBlending
+    });
+    const storm = new THREE.Points(geom, mat);
+    elementWorldGroup.add(storm);
+
+    activeWorldAnimate = (time, dt, sm) => {
+      storm.rotation.y -= 0.8 * dt * sm;
+      storm.rotation.x += 0.2 * dt * sm;
+      const pulse = 1.0 + Math.sin(time * 3.0) * 0.05;
+      storm.scale.set(pulse, pulse, pulse);
+    };
+
+  } else if (el.symbol === 'O') {
+    // OXYGEN: Combustive Plasma Reactivity / Blue Glow
+    visualPrimary.set('#0066FF');
+    visualSecondary.set('#00E5FF');
+    targetFogColor.set('#001133');
+    targetAmbientColor.set('#002266');
+
+    const core = new THREE.Mesh(
+       new THREE.SphereGeometry(3, 32, 32),
+       new THREE.MeshBasicMaterial({ color: visualPrimary, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending })
+    );
+    elementWorldGroup.add(core);
+
+    const reactCount = 4;
+    const reactors: THREE.Mesh[] = [];
+    for(let i=0; i<reactCount; i++) {
+      const r = new THREE.Mesh(
+        new THREE.RingGeometry(3.5 + i*0.8, 3.6 + i*0.8, 32),
+        new THREE.MeshBasicMaterial({ color: visualSecondary, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+      );
+      r.rotation.x = Math.random() * Math.PI;
+      r.rotation.y = Math.random() * Math.PI;
+      elementWorldGroup.add(r);
+      reactors.push(r);
+    }
+
+    activeWorldAnimate = (time, dt, sm) => {
+       core.scale.setScalar(1.0 + Math.sin(time*5.0) * 0.15); // aggressive pulse
+       reactors.forEach((r, idx) => {
+          r.rotation.x += 1.2 * dt * sm * (idx%2===0?1:-1);
+          r.rotation.y += 0.8 * dt * sm;
+       });
+    };
+
+  } else if (el.symbol === 'Ne') {
+    // NEON: Intense Crimson-Orange Laser Plasma
+    visualPrimary.set('#FF0033');
+    visualSecondary.set('#FF5500');
+    targetFogColor.set('#220000');
+    targetAmbientColor.set('#440000');
+
+    // Electric lattice
+    const cage = new THREE.Mesh(
+       new THREE.OctahedronGeometry(5, 2),
+       new THREE.MeshBasicMaterial({ color: visualPrimary, wireframe: true, transparent: true, opacity: 0.4 })
+    );
+    elementWorldGroup.add(cage);
+
+    const coreMesh = new THREE.Mesh(
+       new THREE.SphereGeometry(1.5, 16, 16),
+       new THREE.MeshBasicMaterial({ color: visualSecondary, wireframe: true })
+    );
+    elementWorldGroup.add(coreMesh);
+
+    activeWorldAnimate = (time, dt, sm) => {
+       cage.rotation.y += 0.4 * dt * sm;
+       coreMesh.rotation.x -= 0.8 * dt * sm;
+       const flicker = Math.random() > 0.8 ? 0.4 : 1.0;
+       (cage.material as THREE.MeshBasicMaterial).opacity = 0.2 * flicker;
+    };
+
+  } else if (el.symbol === 'Na') {
+    // SODIUM: High-Volatile Electron Sea / Yellow Sparks
+    visualPrimary.set('#FFD700');
+    visualSecondary.set('#FFA500');
+    targetFogColor.set('#1A1300');
+    targetAmbientColor.set('#332600');
+
+    const sparkGeom = new THREE.BufferGeometry();
+    const sparkCount = 300;
+    const pos = new Float32Array(sparkCount * 3);
+    for(let i=0; i<sparkCount; i++) {
+       pos[i*3] = (Math.random()-0.5)*10;
+       pos[i*3+1] = (Math.random()-0.5)*10;
+       pos[i*3+2] = (Math.random()-0.5)*10;
+    }
+    sparkGeom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const sparkPoints = new THREE.Points(sparkGeom, new THREE.PointsMaterial({
+      size: 0.2, color: visualPrimary, map: particleTexture, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending
+    }));
+    elementWorldGroup.add(sparkPoints);
+
+    activeWorldAnimate = (time, dt, sm) => {
+       sparkPoints.rotation.y += 1.5 * dt * sm;
+       sparkPoints.scale.setScalar(1.0 + Math.sin(time*10.0)*0.1);
+    };
+
+  } else if (el.symbol === 'Si') {
+    // SILICON: Precision Geometric Crystal Cyber-Grid
+    visualPrimary.set('#00FFCC');
+    visualSecondary.set('#0066FF');
+    targetFogColor.set('#001111');
+    targetAmbientColor.set('#002222');
+
+    const gridGeom = new THREE.BoxGeometry(8, 8, 8, 4, 4, 4);
+    const gridEdges = new THREE.EdgesGeometry(gridGeom);
+    const cyberGrid = new THREE.LineSegments(gridEdges, new THREE.LineBasicMaterial({
+      color: visualPrimary, transparent: true, opacity: 0.4
+    }));
+    elementWorldGroup.add(cyberGrid);
+
+    activeWorldAnimate = (time, dt, sm) => {
+       cyberGrid.rotation.y += 0.1 * dt * sm;
+       cyberGrid.rotation.x += 0.1 * dt * sm;
+    };
+
+  } else if (el.symbol === 'Fe') {
+    // IRON: Molten Core Magnetic Fields
+    visualPrimary.set('#FF4500');
+    visualSecondary.set('#8B0000');
+    targetFogColor.set('#1A0500');
+    targetAmbientColor.set('#330A00');
+
+    const magFields: THREE.Mesh[] = [];
+    for(let i=0; i<12; i++) {
+      const g = new THREE.TorusGeometry(4.5, 0.02, 3, 40);
+      const m = new THREE.MeshBasicMaterial({ color: visualPrimary, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
+      const t = new THREE.Mesh(g, m);
+      t.rotation.x = (i / 12) * Math.PI;
+      elementWorldGroup.add(t);
+      magFields.push(t);
+    }
+
+    activeWorldAnimate = (time, dt, sm) => {
+       magFields.forEach((t) => {
+          t.rotation.y += 1.5 * dt * sm;
+       });
+    };
+
+  } else if (el.symbol === 'U') {
+    // URANIUM: Radioactive Cherenkov Deep Green Core / Fission Decay Particles
+    visualPrimary.set('#39FF14');
+    visualSecondary.set('#00FF00');
+    targetFogColor.set('#051A05');
+    targetAmbientColor.set('#0A330A');
+
+    const cherenkov = new THREE.Mesh(
+       new THREE.SphereGeometry(3.5, 32, 32),
+       new THREE.MeshBasicMaterial({ color: visualPrimary, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending })
+    );
+    elementWorldGroup.add(cherenkov);
+
+    activeWorldAnimate = (time, dt, sm) => {
+       const flicker = Math.random() > 0.8 ? 0.3 : 0.15;
+       (cherenkov.material as THREE.MeshBasicMaterial).opacity = flicker;
+       cherenkov.scale.setScalar(1.0 + Math.sin(time*20.0)*0.02);
+    };
+
+  } else if (atmosphere === 'gas') {
     // GAS/NEBULA ATMOSPHERE: Swirling gas rings, orbital core winds, and gas clouds
     const torusGeom1 = new THREE.TorusGeometry(3.2, 0.04, 4, 28);
     const torusMat1 = new THREE.MeshBasicMaterial({

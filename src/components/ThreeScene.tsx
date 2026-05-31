@@ -2078,20 +2078,21 @@ export default function ThreeScene({
       elementCards.forEach((ci, index) => {
         // Render and update positions
         if (selectedEl) {
-          // If another element is selected, fade out and fly in other elements
-          const dist = ci.element.number === selectedEl.number ? 0 : 1;
-          if (dist > 0) {
-            ci.targetPosition.set(
-              (ci.element.group - 9.5) * 5.5,
-              (4 - ci.element.period) * 5.5,
-              -80 // Push far into background
-            );
-            ci.targetRotation.set(0, 0, 0);
-          } else {
-            // Selected element moves beautifully off to the left side or is invisible
-            ci.targetPosition.set(-14, 0, 10);
-            ci.targetRotation.set(0, 0.45, 0);
-          }
+          // If an element is selected, make the periodic grid fly past the camera (positive Z)
+          // and fade out. The selected element's card also flies past so the user arrives at the bare atom.
+          const randomOffsetX = (Math.random() - 0.5) * 20;
+          const randomOffsetY = (Math.random() - 0.5) * 20;
+          
+          ci.targetPosition.set(
+            (ci.element.group - 9.5) * 5.5 + randomOffsetX,
+            (4 - ci.element.period) * 5.5 + randomOffsetY,
+            70 // Fly aggressively past the camera
+          );
+          ci.targetRotation.set(
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+          );
           return;
         }
 
@@ -2781,12 +2782,71 @@ export default function ThreeScene({
       }
     };
 
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent browser scroll
+      e.preventDefault();
+
+      const zoomDelta = e.deltaY * 0.005; // Adjust sensitivity
+      const prevZoom = zoomScaleMultiplier;
+      let newZoom = zoomScaleMultiplier + zoomDelta;
+
+      // Limit absolute zoom boundaries
+      newZoom = Math.max(0.1, Math.min(newZoom, 3.5));
+
+      // Thresholds:
+      // Cosmic out > 2.2
+      // Periodic approx 1.0
+      // Atomic in < 0.4
+      
+      const pProps = propsRef.current;
+
+      if (pProps.selectedElement) {
+        // We are currently in Atomic (Element World) or lower
+        if (newZoom >= 1.5 && prevZoom < 1.5) {
+          // Exiting Atom -> back to periodic
+          onSelectElement(null);
+          newZoom = 1.0;
+        }
+      } else if (pProps.appMode === 'bond_lab') {
+        // We are in the Molecular Reaction Lab
+        if (newZoom >= 1.7 && prevZoom < 1.7) {
+          window.dispatchEvent(new CustomEvent('request-change-app-mode', { detail: { mode: 'explorer' } }));
+          newZoom = 1.0;
+        }
+      } else {
+        // We are NOT in an atom and NOT in bond lab. We are in periodic or cosmic.
+        if (newZoom <= 0.4 && prevZoom > 0.4) {
+           // Dive into an atom if hovering
+           if (pProps.hoveredElement) {
+             onSelectElement(pProps.hoveredElement);
+             newZoom = 1.0; // Reset local zoom inside atom
+           } else {
+             // Bounce back if no element is focused
+             newZoom = 0.45;
+           }
+        } else if (newZoom >= 2.0 && prevZoom < 2.0) {
+           // Zooming out to Cosmic
+           if (pProps.appMode !== 'observatory') {
+             window.dispatchEvent(new CustomEvent('request-change-app-mode', { detail: { mode: 'observatory' } }));
+           }
+        } else if (newZoom <= 1.2 && prevZoom > 1.2) {
+           // Zooming in from Cosmic to Periodic
+           if (pProps.appMode === 'observatory') {
+             window.dispatchEvent(new CustomEvent('request-change-app-mode', { detail: { mode: 'explorer' } }));
+           }
+        }
+      }
+
+      zoomScaleMultiplier = newZoom;
+    };
+
     const attachEvents = () => {
       const dom = renderer.domElement;
       dom.addEventListener('mousedown', handleMouseDown);
       dom.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       dom.addEventListener('click', handleMouseClick);
+      dom.addEventListener('wheel', handleWheel, { passive: false });
 
       // Mobile touch support
       dom.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -2800,6 +2860,7 @@ export default function ThreeScene({
         dom.removeEventListener('mousedown', handleMouseDown);
         dom.removeEventListener('mousemove', handleMouseMove);
         dom.removeEventListener('click', handleMouseClick);
+        dom.removeEventListener('wheel', handleWheel);
         dom.removeEventListener('touchstart', handleTouchStart);
         dom.removeEventListener('touchmove', handleTouchMove);
         dom.removeEventListener('touchend', handleTouchEnd);
@@ -3127,10 +3188,12 @@ export default function ThreeScene({
         });
         netPosAttr.needsUpdate = true;
         
-        // Synaptic grid energy pulsing flow
-        const activeMultiplier = currentProps.appMode === 'bond_lab' ? 0.04 : 1.0;
-        (networkLines.material as THREE.LineBasicMaterial).opacity = 
-          (0.25 + Math.sin(elapsed * 2.5) * 0.1) * activeMultiplier;
+        // Synaptic grid energy pulsing flow with scale engine fade integration
+        const activeMultiplierTarget = currentProps.selectedElement || currentProps.appMode === 'bond_lab' ? 0.0 : 1.0;
+        const mat = networkLines.material as THREE.LineBasicMaterial;
+        const targetOpac = (0.25 + Math.sin(elapsed * 2.5) * 0.1) * activeMultiplierTarget;
+        mat.opacity += (targetOpac - mat.opacity) * 0.08;
+        networkLines.visible = mat.opacity > 0.01;
       }
 
       // Update relationship web light filaments
@@ -3170,9 +3233,18 @@ export default function ThreeScene({
             
             fil.mesh.scale.set(currentRadius, currentRadius, distance);
             
-            // Hide if the app mode is bond lab as container is active
-            const activeMultiplier = currentProps.appMode === 'bond_lab' ? 0.05 : 1.0;
-            fil.material.opacity *= activeMultiplier;
+            // Hide if the app mode is bond lab or atomic view is active
+            const activeMultiplierTarget = currentProps.selectedElement || currentProps.appMode === 'bond_lab' ? 0.0 : 1.0;
+            
+            // Smooth target blending
+            if (fil.material.userData.currentOpac === undefined) {
+              fil.material.userData.currentOpac = dynamicOpacity;
+            }
+            const frameTargetOpacity = dynamicOpacity * activeMultiplierTarget;
+            fil.material.userData.currentOpac += (frameTargetOpacity - fil.material.userData.currentOpac) * 0.08;
+            
+            fil.material.opacity = fil.material.userData.currentOpac;
+            fil.mesh.visible = fil.material.opacity > 0.01;
           }
         });
       }
@@ -3389,9 +3461,9 @@ export default function ThreeScene({
           ci.glowOutline.visible = false;
           ci.mesh.visible = ci.material.opacity > 0.01;
         } else if (currentProps.selectedElement) {
-          const isSelected = ci.element.number === currentProps.selectedElement.number;
-          ci.material.opacity += ((isSelected ? 1.0 : 0.0) - ci.material.opacity) * 0.15;
-          ci.glowOutline.visible = isSelected;
+          // Fade out ALL cards to reveal the immersive element world (bare atom)
+          ci.material.opacity += (0.0 - ci.material.opacity) * 0.15;
+          ci.glowOutline.visible = false;
           ci.mesh.visible = ci.material.opacity > 0.02;
         } else {
           if (!isDiscovered) {

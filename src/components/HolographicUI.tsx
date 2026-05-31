@@ -31,6 +31,7 @@ import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
 import { ElementExplorationDepth } from './ElementExplorationDepth';
 import ObservatoryHub from './ObservatoryHub';
+import { ElementWorldUI } from './ElementWorldUI';
 
 interface HolographicUIProps {
   selectedElement: ChemicalElement | null;
@@ -313,16 +314,6 @@ export default function HolographicUI({
   const [compareSearchQuery, setCompareSearchQuery] = useState('');
   const [pathwayOpen, setPathwayOpen] = useState(false);
 
-  useEffect(() => {
-    if (selectedElement) {
-      setScaleMode('atomic');
-    } else if (appMode === 'bond_lab') {
-      setScaleMode('molecular');
-    } else {
-      setScaleMode('periodic');
-    }
-  }, [selectedElement, appMode]);
-
   // Selected electron shell info state
   const [activeShellInfo, setActiveShellInfo] = useState<{
     shellIndex: number;
@@ -330,6 +321,22 @@ export default function HolographicUI({
     electrons: number;
     radius: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (selectedElement) {
+      if (activeShellInfo) {
+        setScaleMode('subatomic');
+      } else {
+        setScaleMode('atomic');
+      }
+    } else if (appMode === 'bond_lab') {
+      setScaleMode('molecular');
+    } else if (appMode === 'observatory') {
+      setScaleMode('cosmic');
+    } else {
+      setScaleMode('periodic');
+    }
+  }, [selectedElement, appMode, activeShellInfo]);
 
   const [isDensityCloudActive, setIsDensityCloudActive] = useState(true);
 
@@ -2156,367 +2163,14 @@ export default function HolographicUI({
               '--primary-color-alpha': `${getCatMeta(selectedElement.category || 'reactive-nonmetal').hex}38`
             } as React.CSSProperties}
           >
-            {/* PANEL 1: CELESTIAL IDENTITY & NARRATIVE OVERLAY (TOP CENTER) */}
-            <div className="absolute top-22 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center text-center animate-fade-in z-30 w-full max-w-lg px-4">
-              <div className="relative flex items-center justify-center">
-                {/* Visual neon drop glow under symbol */}
-                <div className="absolute -inset-6 rounded-full bg-radial from-[var(--primary-color)]/25 to-transparent blur-xl animate-pulse" />
-                
-                <span className="text-7xl font-black tracking-tight font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
-                  {selectedElement.symbol}
-                </span>
-                <span className="absolute -top-3 -right-6 text-[10px] font-mono font-black border border-white/10 bg-[#070B14]/85 px-1.5 py-0.5 rounded text-[var(--primary-color)]">
-                  #{selectedElement.number.toString().padStart(3, '0')}
-                </span>
-              </div>
-              
-              <h1 className="text-2.5xl font-black tracking-[0.25em] uppercase text-white mt-3 drop-shadow-md">
-                {selectedElement.name}
-              </h1>
-              
-              <div className="flex gap-2.5 items-center mt-1 text-[8.5px] font-mono text-[#EAF2FF]/50 uppercase tracking-widest bg-white/[0.02] border border-white/5 px-3 py-0.5 rounded-sm">
-                <span className="font-bold text-[var(--primary-color)]">{getCatMeta(selectedElement.category).label}</span>
-                <span>•</span>
-                <span>Period: {selectedElement.period}</span>
-                <span>•</span>
-                <span>Block: {selectedElement.coreIdentity?.block?.toUpperCase() || 'S'}</span>
-              </div>
-
-              {/* Immersive cinematic storytelling narrative */}
-              <p className="max-w-md text-[10.5px] text-[#EAF2FF]/80 italic leading-relaxed mt-4 px-4 font-sans font-light drop-shadow-lg text-center bg-[#070B14]/40 py-2 rounded border border-white/5 backdrop-blur-sm">
-                {selectedElement.symbol === 'H' ? (
-                  <span>"A primordial pioneer, forged in the explosive furnace of the Big Bang. Hydrogen is the fuel of stars, breathing light into the cosmos through thermonuclear fusion."</span>
-                ) : selectedElement.symbol === 'C' ? (
-                  <span>"The organic architect of existence. Carbon forms perfect covalent frameworks, weaving the strands of DNA, bionics, and chemical lifelines."</span>
-                ) : selectedElement.symbol === 'U' ? (
-                  <span>"The nuclear titan. Armed with an ultra-heavy unstable core, Uranium fuels geodynamic heating and powers modern industrial reactor cores."</span>
-                ) : selectedElement.symbol === 'He' ? (
-                  <span>"The silent celestial spark. Born in stellar fusion, Helium forms a perfect, non-reactive noble sphere, lifting the balloons of industry and deep-space cooling."</span>
-                ) : selectedElement.symbol === 'Ne' ? (
-                  <span>"The luminous beacon of stability. Neon burns with a vivid crimson-orange plasma discharge under excitation, inert and immortal in the noble void."</span>
-                ) : (
-                  <span>"{selectedElement.summary}"</span>
-                )}
-              </p>
-            </div>
-
-            {/* PANEL 2: ATOMIC STRUCTURAL CELL (MIDDLE LEFT) */}
-            <div className="absolute top-28 left-4 md:left-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300">
-                <div className="text-[7.5px] font-mono tracking-widest text-[#00FFB3] uppercase font-bold flex items-center gap-1.5 mb-2.5">
-                  <Atom className="w-4 h-4 text-[#00FFB3] animate-spin" style={{ animationDuration: '6s' }} /> // ATOMIC CORE METRICS
-                </div>
-                
-                <div className="grid grid-cols-3 gap-1 font-mono text-[9px] font-black text-center">
-                  <div className="p-1 px-0.5 bg-red-500/10 border border-red-500/15 rounded">
-                    <span className="block text-[6px] text-red-400 font-bold">PROTONS</span>
-                    <span className="text-[10px] text-red-200">{selectedElement.protons}</span>
-                  </div>
-                  <div className="p-1 px-0.5 bg-blue-500/10 border border-blue-500/15 rounded">
-                    <span className="block text-[6px] text-blue-400 font-bold">NEUTRONS</span>
-                    <span className="text-[10px] text-blue-200">{selectedElement.neutrons}</span>
-                  </div>
-                  <div className="p-1 px-0.5 bg-emerald-500/10 border border-emerald-500/15 rounded">
-                    <span className="block text-[6px] text-emerald-400 font-bold">ELECTRONS</span>
-                    <span className="text-[10px] text-emerald-200">{selectedElement.electrons}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-2.5 text-[8.5px] font-mono text-white/50 border-t border-white/5 pt-2 flex justify-between">
-                  <span>OUTER VALENCE:</span>
-                  <span className="text-[#00FFB3] font-bold">{selectedElement.electronConfig}</span>
-                </div>
-              </div>
-
-              {/* Schrödinger Valence Orbitals Probe Array */}
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-2">
-                <span className="text-[7.5px] font-mono tracking-widest text-[#00E5FF] uppercase font-bold">
-                  🔮 SCHRÖDINGER ENERGY VALENCE
-                </span>
-                
-                <div className="flex gap-1 items-center font-mono font-bold">
-                  {selectedElement.shells.map((eCount: number, idx: number) => {
-                    const shellLabel = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'][idx] || `S${idx + 1}`;
-                    const isHighlighted = activeShellInfo !== null && activeShellInfo.shellIndex === idx;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          const shellInfoObj = {
-                            shellIndex: idx,
-                            shellName: shellLabel,
-                            electrons: eCount,
-                            radius: (idx + 1) * 2.8
-                          };
-                          setActiveShellInfo(shellInfoObj);
-                          window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: idx } }));
-                        }}
-                        className={`flex-1 p-1 rounded border text-center transition-all duration-300 cursor-pointer ${
-                          isHighlighted
-                            ? 'bg-[#00FFB3]/15 border-[#00FFB3] shadow-[0_0_8px_rgba(0,255,179,0.2)] scale-105'
-                            : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10'
-                        }`}
-                      >
-                        <div className="text-[6px] text-white/35">N{idx+1}</div>
-                        <div className="text-[9px] font-black text-[#00FFB3]">{eCount}ᴇ</div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {activeShellInfo ? (
-                  <div className="p-2.5 bg-[#00FFB3]/5 border border-[#00FFB3]/20 rounded-sm font-mono text-[8.5px] flex flex-col gap-1 animate-fade-in text-[#EAF2FF]/85">
-                    <div className="flex justify-between items-center text-[#00FFB3] border-b border-white/5 pb-1 font-bold">
-                      <span className="text-[7.5px] uppercase">PROBE STATUS: {activeShellInfo.shellName} shell active</span>
-                      <span className="text-[9px] font-black text-white">{activeShellInfo.electrons} Electrons</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 mt-0.5 text-[#EAF2FF]/70 font-light">
-                      <div>Orbitals: <strong className="text-white font-semibold">{['1s', '2s, 2p', '3s, 3p, 3d', '4s, 4p, 4d, 4f', '5s, 5p, 5d, 5f'][activeShellInfo.shellIndex] || 'Complex Hybrid'}</strong></div>
-                      <div>Radius: <strong className="text-[#00E5FF] font-semibold">{(activeShellInfo.radius * 0.53).toFixed(2)} Å</strong></div>
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-[8px] text-white/30 text-center font-mono py-1">Select shell node above to excite electronic waves</span>
-                )}
-              </div>
-
-              {/* STP Lattice Matrix */}
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300">
-                <span className="text-[7.5px] font-mono tracking-widest text-amber-400 uppercase font-bold block mb-1.5">
-                  💠 STRUCTURAL STP STATE
-                </span>
-                <div className="text-[9px] text-[#EAF2FF]/85 leading-relaxed font-sans font-light">
-                  {selectedElement.physicalProperties?.crystalStructure || 'Stable STP physical structure.'}
-                </div>
-                <div className="mt-2 flex justify-between font-mono text-[8px] text-white/40 border-t border-white/5 pt-2">
-                  <span>STP state: <strong className="text-white capitalize font-bold">{selectedElement.state}</strong></span>
-                  <span>Density: <strong className="text-[#00E5FF] font-bold">{selectedElement.density || 'N/A'}</strong></span>
-                </div>
-              </div>
-            </div>
-
-            {/* PANEL 3: THERMAL & REACTIVE FIELDS (MIDDLE RIGHT) */}
-            <div className="absolute top-28 right-4 md:right-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300">
-                <div className="text-[7.5px] font-mono tracking-widest text-[#00E5FF] uppercase font-bold mb-2.5">
-                  📊 THERMODYNAMIC METADATA
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 font-mono text-[8PX] font-extrabold max-w-full">
-                  <div className="p-1.5 bg-white/5 rounded border border-white/5">
-                    <span className="text-[6.5px] text-white/40 block">MELTING PT</span>
-                    <span className="text-white truncate block">{selectedElement.meltingPoint}</span>
-                  </div>
-                  <div className="p-1.5 bg-white/5 rounded border border-white/5">
-                    <span className="text-[6.5px] text-white/40 block">BOILING PT</span>
-                    <span className="text-[#00E5FF] truncate block">{selectedElement.boilingPoint}</span>
-                  </div>
-                  <div className="p-1.5 bg-white/5 rounded border border-white/5 col-span-2 flex justify-between items-center px-2">
-                    <span className="text-[6.5px] text-white/40 block">IONIZATION</span>
-                    <span className="text-[#00FFB3] font-bold">{selectedElement.ionizationEnergy}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pauling Electronegativity slider */}
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-1.5">
-                <span className="text-[7.5px] font-mono tracking-widest text-[#FF80AB] uppercase font-bold">
-                  🔗 PAULINGS ELECTRONEGATIVITY GAUGE
-                </span>
-                <div className="flex items-center gap-2 font-mono">
-                  <div className="flex-1 h-1.5 bg-white/5 rounded overflow-hidden relative">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-400 via-amber-400 to-red-500 rounded"
-                      style={{ width: `${Math.min(100, ((selectedElement.electronegativity || 0) / 4) * 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-black text-white">
-                    {selectedElement.electronegativity !== null ? selectedElement.electronegativity.toFixed(2) : '0.00'}
-                  </span>
-                </div>
-                <div className="text-[8px] text-white/40 border-t border-white/5 pt-1.5 flex justify-between font-mono">
-                  <span>VALID OXIDATION STATES:</span>
-                  <span className="text-white font-bold">{(selectedElement.oxidationStates || []).join(', ')}</span>
-                </div>
-              </div>
-
-              {/* Chemical Reactivity brief */}
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-1">
-                <span className="text-[7.5px] font-mono tracking-widest text-emerald-400 uppercase font-bold mb-0.5">
-                  🪐 CORE CHEMICAL REACTIVITY
-                </span>
-                <p className="text-[9px] text-[#EAF2FF]/85 leading-relaxed font-sans font-light">
-                  {selectedElement.chemicalProperties?.reactivityProfile || selectedElement.reactivity || 'Stable and inactive atmospheric noble gas element.'}
-                </p>
-              </div>
-            </div>
-
-            {/* PANEL 4: COSMIC EVOLUTION FLUX (BOTTOM LEFT) */}
-            <div className="absolute bottom-16 left-4 md:left-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-1.5">
-                <span className="text-[7.5px] font-mono tracking-widest text-[#00E5FF] uppercase font-bold flex items-center gap-1">
-                  <Globe className="w-3.5 h-3.5 text-[#00E5FF]" /> 🌌 COSMIC EVOLUTION & ABUNDANCE
-                </span>
-                <p className="text-[9px] text-[#EAF2FF]/80 leading-relaxed font-sans font-light border-b border-white/5 pb-1.5">
-                  {selectedElement.cosmicProperties?.stellarOrigin || selectedElement.cosmicRelevance || 'Material synthesized in cyclotronic high-energy labs.'}
-                </p>
-                <div className="grid grid-cols-2 gap-y-1 gap-x-2 font-mono text-[8px] text-[#EAF2FF]/60 font-bold border-b border-white/5 pb-2">
-                  <div>Universe: <span className="text-white">{selectedElement.cosmicProperties?.cosmicAbundance || 'Trace'}</span></div>
-                  <div>Earth Crust: <span className="text-white">{selectedElement.cosmicProperties?.earthAbundance || 'Trace'}</span></div>
-                </div>
-
-                {/* Nucleosynthesis Step-by-Step Dashed Timeline */}
-                <div className="mt-1.5 flex flex-col gap-2">
-                  <span className="text-[6.8px] font-mono tracking-widest text-[#00FFB3]/90 uppercase font-black block">
-                    NUCLEOSYNTHESIS TIMELINE PATHWAY
-                  </span>
-                  
-                  <div className="relative pl-3.5 flex flex-col gap-3 mt-1">
-                    {/* Vertical Dashed Line */}
-                    <div className="absolute left-[4px] top-1.5 bottom-1.5 w-[1px] border-l border-dashed border-white/20" />
-                    
-                    {getNucleosynthesisTimeline(selectedElement).map((step, idx) => (
-                      <div key={idx} className="relative group/step flex gap-1.5 items-start">
-                        {/* Timeline Node Bullet with interactive glow hover and rings */}
-                        <div className="absolute -left-[14.5px] top-1 flex items-center justify-center">
-                          <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full opacity-35" style={{ backgroundColor: step.accent }} />
-                          <span 
-                            className="relative inline-flex rounded-full h-2 w-2 border border-[#070C1B] shadow-[0_0_8px_var(--node-color)] transition-transform duration-300 group-hover/step:scale-125"
-                            style={{ 
-                              backgroundColor: step.accent,
-                              '--node-color': step.accent 
-                            } as React.CSSProperties}
-                          />
-                        </div>
-                        
-                        <div className="flex flex-col text-[8.5px] leading-tight">
-                          <span 
-                            className="font-mono font-black uppercase tracking-wider transition-colors duration-200 group-hover/step:text-white"
-                            style={{ color: step.accent }}
-                          >
-                            {step.title}
-                          </span>
-                          <span className="text-[8.2px] text-[#EAF2FF]/70 font-light font-sans mt-0.5 max-w-[240px]">
-                            {step.desc}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* PANEL 5: INDUSTRIAL IMPACT & BIORISK MONITOR (BOTTOM RIGHT) */}
-            <div className="absolute bottom-16 right-4 md:right-8 w-72 pointer-events-auto flex flex-col gap-3 animate-fade-in z-30">
-              <div className="relative p-3.5 bg-[#070C1B]/55 backdrop-blur-md border border-white/5 rounded-sm shadow-xl hover:border-[var(--primary-color)]/25 duration-300 flex flex-col gap-2">
-                <span className="text-[7.5px] font-mono tracking-widest text-[#FF9100] uppercase font-bold">
-                  🏭 CIVILLIAN & TECHNOLOGICAL IMPACT
-                </span>
-                
-                <div className="space-y-1.5">
-                  {[
-                    { title: '💻 Semiconductors', desc: selectedElement.industrialApplications?.semiconductors || 'Quantum computational core design.' },
-                    { title: '🩺 Medicine/Sciences', desc: selectedElement.industrialApplications?.medicine || 'Used in radio-isotope tracing.' },
-                    { title: '⚡ Industrial Energy', desc: selectedElement.industrialApplications?.nuclearEnergy || selectedElement.industrialApplications?.batteries || 'Superconductor lattice frameworks.' }
-                  ].map((item, idx) => (
-                    <div key={idx} className="text-[8.5px] font-sans font-light leading-normal border-l border-white/10 pl-1.5 py-0.5">
-                      <span className="font-mono text-[7px] font-bold uppercase text-[#00E5FF] block leading-none mb-0.5">{item.title}</span>
-                      <span className="text-white/80">{item.desc}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Toxicity warnings */}
-                <div className="mt-1 p-1 py-1 px-2.5 bg-red-950/20 border border-red-500/20 text-[8.2px] text-red-300 rounded flex gap-2 items-center font-mono">
-                  <span className="text-[6px] bg-red-500/25 px-1 py-0.5 rounded font-black uppercase tracking-widest">HAZARD</span>
-                  <span className="truncate font-sans font-light text-red-100">{selectedElement.biologicalProperties?.toxicity || 'Non-toxic, safe ecological constituent.'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* PANEL 6: CHEMICAL FUSION PORTAL (BOTTOM CENTER) */}
-            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-85 pointer-events-auto flex flex-col gap-2 items-center text-center animate-fade-in z-30">
-              <div className="w-full relative p-3 bg-[#070C1B]/85 backdrop-blur-sm border border-white/5 rounded-sm shadow-xl text-left hover:border-[var(--primary-color)]/20 transition-colors">
-                <span className="text-[7px] font-mono tracking-widest text-[#00FFB3] uppercase font-bold block mb-1">
-                  🔗 MATTER SYNTHESIS & REACTION AFFINITIES
-                </span>
-                
-                <div className="flex flex-wrap gap-1 justify-center mt-1.5">
-                  {/* Pull common reaction partners */}
-                  {(selectedElement.relationshipNetwork?.commonReactionPartners || 
-                    selectedElement.reactionIntelligence?.compatibleElements || 
-                    ['O', 'H']).slice(0, 4).map((partner: string, idx: number) => {
-                      const cleanSymbol = partner.replace(/[0-9]/g, '').trim();
-                      const linkedEl = ELEMENTS_DATA.find(e => e.symbol === cleanSymbol);
-                      
-                      // Check what compound can be formed
-                      const possibleReaction = REACTION_CONFIGS.find(cfg => 
-                        cfg.reactants.includes(selectedElement.symbol) && cfg.reactants.includes(cleanSymbol)
-                      );
-
-                      return (
-                        <div key={idx} className="relative group">
-                          <button
-                            onClick={() => {
-                              if (possibleReaction) {
-                                // Direct launch into bond lab preloaded
-                                handleReactionInit(possibleReaction);
-                              } else if (linkedEl) {
-                                onSelectElement(linkedEl);
-                              }
-                            }}
-                            className={`px-2 py-0.8 text-[8.5px] bg-[#070B14] border border-white/10 rounded-sm font-mono font-bold text-white transition-all duration-150 cursor-pointer ${
-                              possibleReaction 
-                                ? 'hover:border-[#FF9100] text-[#FF9100]/90 hover:bg-[#FF9100]/10 hover:shadow-[0_0_8px_rgba(255,145,0,0.15)]' 
-                                : 'hover:border-[#00FFB3] hover:bg-white/5'
-                            }`}
-                          >
-                            + {partner} {possibleReaction && '⚛'}
-                          </button>
-                          
-                          {/* Rich feedback tooltip detailing compounding */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 bg-[#090E1F] border border-white/15 p-2 rounded shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 text-[8px] font-mono z-50 text-left scale-95 origin-bottom group-hover:scale-100 ease-out">
-                            {possibleReaction ? (
-                              <>
-                                <div className="text-[#FF9100] font-black uppercase mb-0.5">SYNTHESIS AVAILABLE:</div>
-                                <div className="text-white font-black">{possibleReaction.productFormula}</div>
-                                <div className="text-white/70 leading-tight mt-0.5">{possibleReaction.productName}</div>
-                                <div className="text-[7.5px] text-[#00FFB3] mt-1 font-bold">CLICK SYSTEM TO PRELOAD SYNTHESIS PORTAL</div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="text-[#00FFB3] font-black uppercase mb-0.5">COMPATIBLE PARTNER:</div>
-                                <div className="text-white font-black">{partner}</div>
-                                <div className="text-white/60 leading-tight mt-0.5">Transits matrix to {partner}'s subatomic field.</div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Dismiss element explorer */}
-              <div className="flex gap-2 max-w-sm">
-                <button
-                  onClick={() => {
-                    onSelectElement(null);
-                    if (onSelectCompareElement) onSelectCompareElement(null);
-                    window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
-                  }}
-                  className="flex-1 px-5 py-2.5 bg-red-950/45 border border-red-500/30 hover:border-red-500 text-[9px] font-mono tracking-[0.16em] text-red-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-red-500/15 cursor-pointer max-w-[170px]"
-                >
-                  DISCONNECT ✖
-                </button>
-                <button
-                  onClick={() => setCompareSelectorOpen(true)}
-                  className="flex-1 px-5 py-2.5 bg-blue-950/45 border border-blue-500/30 hover:border-blue-500 text-[9px] font-mono tracking-[0.16em] text-blue-200 font-extrabold uppercase transition-all rounded shadow-2xl hover:bg-blue-500/15 cursor-pointer max-w-[170px]"
-                >
-                  COMPARE ⚄
-                </button>
-              </div>
-            </div>
+            <ElementWorldUI 
+              selectedElement={selectedElement}
+              onSelectElement={onSelectElement}
+              onSelectCompareElement={onSelectCompareElement}
+              setCompareSelectorOpen={setCompareSelectorOpen}
+              setActiveShellInfo={setActiveShellInfo}
+              activeShellInfo={activeShellInfo}
+            />
           </div>
         )}
 
@@ -2836,11 +2490,11 @@ export default function HolographicUI({
             </span>
             <div className="flex items-center gap-1.5 p-0.5 bg-black/40 rounded-sm border border-white/5">
               {[
-                { id: 'cosmic', label: 'Cosmic', metric: '10¹² m', val: 2.2, color: '#7C4DFF' },
-                { id: 'periodic', label: 'Gridmap', metric: '10⁻² m', val: 1.0, color: '#00E5FF' },
-                { id: 'molecular', label: 'Molecular', metric: '10⁻⁹ m', val: 1.35, color: '#00FFB3' },
-                { id: 'atomic', label: 'Atomic', metric: '10⁻¹⁰ m', val: 0.95, color: '#FFD600' },
-                { id: 'subatomic', label: 'Core', metric: '10⁻¹⁵ m', val: 0.42, color: '#FF1744' }
+                { id: 'cosmic', label: 'Cosmic', metric: '10¹² m', val: 2.2, color: '#7C4DFF', info: 'Stellar Nucleosynthesis & Origin of Matter' },
+                { id: 'periodic', label: 'Gridmap', metric: '10⁻² m', val: 1.0, color: '#00E5FF', info: 'Macro-Elemental Patterns & Relationships' },
+                { id: 'molecular', label: 'Molecular', metric: '10⁻⁹ m', val: 1.35, color: '#00FFB3', info: 'Bonds, Geometry, & Reaction Transformations' },
+                { id: 'atomic', label: 'Atomic', metric: '10⁻¹⁰ m', val: 0.95, color: '#FFD600', info: 'Quantum Electron Orbitals & Properties' },
+                { id: 'subatomic', label: 'Core', metric: '10⁻¹⁵ m', val: 0.42, color: '#FF1744', info: 'Protons, Neutrons, & Isotope Stability' }
               ].map((sc) => {
                 const isSelected = scaleMode === sc.id;
                 // Allow selecting only applicable modes per user-intent
@@ -2856,7 +2510,7 @@ export default function HolographicUI({
                       setScaleMode(sc.id as any);
                       window.dispatchEvent(new CustomEvent('set-cosmic-zoom', { detail: { multiplier: sc.val } }));
                     }}
-                    className={`px-3 py-1.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border ${
+                    className={`px-3 py-1.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border relative group ${
                       active
                         ? 'bg-[#00E5FF]/10 text-white font-black shadow-[0_0_12px_rgba(0,229,255,0.2)]'
                         : isDisabled || isAtomsOnly
@@ -2867,9 +2521,25 @@ export default function HolographicUI({
                   >
                     <span className="text-[9px] font-mono uppercase tracking-wider leading-none" style={active ? { color: sc.color } : {}}>{sc.label}</span>
                     <span className="text-[7px] font-mono mt-0.5 tracking-tighter text-white/30 leading-none">{sc.metric}</span>
+                    <div className="absolute bottom-full mb-2 scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-250 z-50 p-2 w-48 bg-[#070C1B]/95 border border-[#00E5FF]/20 rounded-sm shadow-2xl text-center font-mono">
+                       <span className="text-[9px] tracking-wide text-[#EAF2FF] uppercase font-bold" style={{ color: sc.color }}>{sc.label} SCALE</span>
+                       <br />
+                       <span className="text-[8px] tracking-widest text-[#EAF2FF]/70">{sc.info}</span>
+                    </div>
                   </button>
                 );
               })}
+            </div>
+            
+            {/* Active Scale Knowledge Feed */}
+            <div className="mt-1 w-full flex items-center justify-center pt-1.5 border-t border-white/5 overflow-hidden w-full px-2 max-w-[320px]">
+               <span className="text-[8.5px] text-[#00E5FF] tracking-[0.2em] uppercase font-bold animate-pulse text-center leading-tight">
+                 {scaleMode === 'cosmic' ? "ANALYZING: Stellar Nucleosynthesis Origin" :
+                  scaleMode === 'periodic' ? "ANALYZING: Periodicity & Material Affinity" :
+                  scaleMode === 'molecular' ? "ANALYZING: Covalent & Ionic Bond Kinetics" :
+                  scaleMode === 'atomic' ? "ANALYZING: Electron Distribution & Valence Fields" :
+                  scaleMode === 'subatomic' ? "ANALYZING: Nuclear Physics & Strong Forces" : ""}
+               </span>
             </div>
           </div>
 
