@@ -45,7 +45,10 @@ export default function App() {
         setAppMode('explorer');
         setSelectedElement(el);
       }
-    } else if (path === '/' || path === '/observatory') {
+    } else if (path === '/') {
+      setAppMode('explorer');
+      setSelectedElement(null);
+    } else if (path === '/explorer' || path === '/observatory') {
       setAppMode('observatory');
       setSelectedElement(null);
     } else if (path === '/timeline') {
@@ -72,7 +75,8 @@ export default function App() {
     const handleScaleCommand = (e: Event) => {
       const cx = e as CustomEvent;
       if (cx.detail && cx.detail.mode) {
-        if (cx.detail.mode === 'observatory') navigate('/');
+        if (cx.detail.mode === 'observatory') navigate('/explorer');
+        else if (cx.detail.mode === 'explorer') navigate('/');
         else if (cx.detail.mode === 'bond_lab') navigate('/bond-lab');
         else navigate('/' + cx.detail.mode);
       }
@@ -83,11 +87,12 @@ export default function App() {
 
   const handleSelectElement = (el: ChemicalElement | null) => {
     if (el) navigate(`/element/${el.symbol.toLowerCase()}`);
-    else navigate('/explorer');
+    else navigate('/');
   };
 
   const handleChangeAppMode = (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks' | 'network') => {
-    if (mode === 'observatory') navigate('/');
+    if (mode === 'explorer') navigate('/');
+    else if (mode === 'observatory') navigate('/explorer');
     else if (mode === 'bond_lab') navigate('/bond-lab');
     else navigate('/' + mode);
   };

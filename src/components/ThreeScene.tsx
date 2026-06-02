@@ -256,7 +256,7 @@ export default function ThreeScene({
     const atmosphericPlasma = new THREE.Points(plasmaGeometry, plasmaMaterial);
     scene.add(atmosphericPlasma);
 
-    // --- 3B-1B. GIANT ROTATING SCIENTIFIC OBSERVATORY DESIGNATION SHELLS (Distant Structures) ---
+    // --- 3B-1B. GIANT ROTATING SCIENTIFIC EXPLORER DESIGNATION SHELLS (Distant Structures) ---
     const bgObservationGroup = new THREE.Group();
     bgObservationGroup.position.set(0, 0, -45);
     scene.add(bgObservationGroup);
@@ -929,14 +929,22 @@ export default function ThreeScene({
     const sharedCardGeom = new THREE.PlaneGeometry(1.8, 2.3);
     const sharedEdgeConfigGeom = new THREE.EdgesGeometry(sharedCardGeom);
 
-    // Pre-draw standard assets for elements on dynamic CanvasTextures
+    // Progressive texture loading to prevent blocking UI thread during app boot
+    const dummyCanvas = document.createElement('canvas');
+    dummyCanvas.width = 16;
+    dummyCanvas.height = 16;
+    const dummyCtx = dummyCanvas.getContext('2d');
+    if (dummyCtx) {
+       dummyCtx.fillStyle = '#050812';
+       dummyCtx.fillRect(0,0,16,16);
+    }
+    const sharedDummyTexture = new THREE.CanvasTexture(dummyCanvas);
+
     ELEMENTS_DATA.forEach((el, idx) => {
       const categoryConfig = CATEGORY_COLORS[el.category] || { hex: '#00E5FF' };
-      const cardTexture = createCardTexture(el, categoryConfig.hex, false);
-      const timelineTexture = createCardTexture(el, categoryConfig.hex, true);
       
       const cardMat = new THREE.MeshBasicMaterial({
-        map: cardTexture,
+        map: sharedDummyTexture,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.9,
@@ -972,10 +980,29 @@ export default function ThreeScene({
         floatOffset: Math.random() * Math.PI * 2,
         glowOutline,
         material: cardMat,
-        standardTexture: cardTexture,
-        timelineTexture: timelineTexture,
+        standardTexture: sharedDummyTexture,
+        timelineTexture: sharedDummyTexture,
       });
     });
+
+    let progressiveTextureLoadIndex = 0;
+    const processTexturesChunk = () => {
+       const BATCH_SIZE = 8;
+       let end = Math.min(progressiveTextureLoadIndex + BATCH_SIZE, elementCards.length);
+       for (let i = progressiveTextureLoadIndex; i < end; i++) {
+         const card = elementCards[i];
+         const hex = CATEGORY_COLORS[card.element.category]?.hex || '#00E5FF';
+         card.standardTexture = createCardTexture(card.element, hex, false);
+         card.timelineTexture = createCardTexture(card.element, hex, true);
+         card.material.map = propsRef.current.appMode === 'timeline' ? card.timelineTexture : card.standardTexture;
+         card.material.needsUpdate = true;
+       }
+       progressiveTextureLoadIndex = end;
+       if (progressiveTextureLoadIndex < elementCards.length && mountRef.current) {
+          requestAnimationFrame(processTexturesChunk);
+       }
+    };
+    requestAnimationFrame(processTexturesChunk);
 
     // --- 6. ATOM VISUALIZER GROUP ---
     const atomGroup = new THREE.Group();
@@ -1078,24 +1105,26 @@ export default function ThreeScene({
     
     const clearElementWorld = () => {
       activeWorldAnimate = null;
-      while (elementWorldGroup.children.length > 0) {
-        const child = elementWorldGroup.children[0];
-        elementWorldGroup.remove(child);
-        
-        // Safely dispose of geometries and materials on any Object3D child
-        if ('geometry' in child && (child as any).geometry) {
-          (child as any).geometry.dispose();
-        }
-        if ('material' in child && (child as any).material) {
-          const mat = (child as any).material;
-          if (Array.isArray(mat)) {
-            mat.forEach((m: any) => {
-              if (m && typeof m.dispose === 'function') m.dispose();
-            });
-          } else if (mat && typeof mat.dispose === 'function') {
-            mat.dispose();
+      // Recursively traverse to dispose of deeply nested generated meshes
+      elementWorldGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh || child instanceof THREE.Points || child instanceof THREE.LineSegments || child instanceof THREE.Sprite) {
+          if ('geometry' in child && (child as any).geometry) {
+            (child as any).geometry.dispose();
+          }
+          if ('material' in child && (child as any).material) {
+            const mat = (child as any).material;
+            if (Array.isArray(mat)) {
+              mat.forEach((m: any) => {
+                if (m && typeof m.dispose === 'function') m.dispose();
+              });
+            } else if (mat && typeof mat.dispose === 'function') {
+              mat.dispose();
+            }
           }
         }
+      });
+      while (elementWorldGroup.children.length > 0) {
+        elementWorldGroup.remove(elementWorldGroup.children[0]);
       }
       atomicRadiusSphere = null;
       atomicRadiusWireframe = null;
@@ -1830,16 +1859,49 @@ export default function ThreeScene({
 
     const spawnReactants = (re: ReactionConfig) => {
       // Clean up previous reactants if they exist
-      if (reactantA) scene.remove(reactantA);
-      if (reactantB) scene.remove(reactantB);
-      if (fusionShockwave) scene.remove(fusionShockwave);
-      if (sparkPoints) scene.remove(sparkPoints);
+      if (reactantA) {
+        scene.remove(reactantA);
+        reactantA.traverse((child) => {
+          if (child instanceof THREE.Mesh || child instanceof THREE.Points) {
+            child.geometry.dispose();
+            if (child.material instanceof THREE.Material) child.material.dispose();
+          }
+        });
+      }
+      if (reactantB) {
+        scene.remove(reactantB);
+        reactantB.traverse((child) => {
+          if (child instanceof THREE.Mesh || child instanceof THREE.Points) {
+            child.geometry.dispose();
+            if (child.material instanceof THREE.Material) child.material.dispose();
+          }
+        });
+      }
+      if (fusionShockwave) {
+        scene.remove(fusionShockwave);
+        fusionShockwave.geometry.dispose();
+        if (fusionShockwave.material instanceof THREE.Material) fusionShockwave.material.dispose();
+      }
+      if (sparkPoints) {
+        scene.remove(sparkPoints);
+        sparkPoints.geometry.dispose();
+        if (sparkPoints.material instanceof THREE.Material) sparkPoints.material.dispose();
+      }
       if (bondingParticles) {
         scene.remove(bondingParticles);
+        bondingParticles.geometry.dispose();
+        if (bondingParticles.material instanceof THREE.Material) bondingParticles.material.dispose();
         bondingParticles = null;
       }
       if (productMoleculeGroup) {
         scene.remove(productMoleculeGroup);
+        productMoleculeGroup.traverse((child) => {
+          if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+            child.geometry.dispose();
+            if (child.material instanceof THREE.Material) child.material.dispose();
+            else if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+          }
+        });
         productMoleculeGroup = null;
       }
 
@@ -3097,7 +3159,7 @@ export default function ThreeScene({
         rotXTarget *= 0.95;
         rotYTarget *= 0.95;
       } else if (currentProps.appMode === 'observatory') {
-        // Celestial Observatory cinematic drift
+        // Celestial Explorer cinematic drift
         cameraTargetX = Math.sin(elapsed * 0.08) * 8.0;
         cameraTargetY = Math.cos(elapsed * 0.06) * 3.5;
         cameraTargetZ = 35.0 * zoomScaleMultiplier;
@@ -3188,7 +3250,7 @@ export default function ThreeScene({
         if (shakeIntensity < 0.01) shakeIntensity = 0;
       }
 
-      // Rotate nested background scientific observatory coordinates (Observation Rings & Lattice geometry)
+      // Rotate nested background scientific explorer coordinates (Observation Rings & Lattice geometry)
       if (bgObservationGroup) {
         bgObservationGroup.rotation.y = elapsed * 0.008 * simMultiplier;
         bgObservationGroup.rotation.x = elapsed * 0.003 * simMultiplier;
@@ -3428,7 +3490,7 @@ export default function ThreeScene({
       }
 
       // 3. Move and float each element card
-      // Raycast ONLY if inside observatory, not viewing detail, and mouse/touch active to save up to 90% CPU
+      // Raycast ONLY if inside explorer, not viewing detail, and mouse/touch active to save up to 90% CPU
       let intersects: THREE.Intersection[] = [];
       if (currentProps.isObsEntered && !currentProps.selectedElement && (mouseActive || isDragging || elapsed - lastMouseMoveTime < 0.5)) {
         raycaster.setFromCamera(mouse2D, camera);
@@ -3443,9 +3505,47 @@ export default function ThreeScene({
       let currentHoveredElement: ChemicalElement | null = null;
       const layoutLerpFactor = Math.min(1.0, 5.0 * delta);
 
+      const isCardGridVisible = !currentProps.selectedElement && (currentProps.appMode === 'explorer' || currentProps.appMode === 'timeline' || currentProps.appMode === 'blocks' || currentProps.appMode === 'molecular');
+
       elementCards.forEach((ci) => {
+        const isDiscovered = currentProps.appMode !== 'timeline' || ci.element.year <= currentProps.timelineYear;
+        const outlineMat = ci.glowOutline.material as THREE.LineBasicMaterial;
+        const scaleLerpFactor = Math.min(1.0, 12.0 * delta);
+
+        // Apply general grid fading, hide during Bond Lab, and fade undiscovered elements
+        if (currentProps.appMode === 'bond_lab') {
+          ci.material.opacity += (0.01 - ci.material.opacity) * 0.2;
+          ci.glowOutline.visible = false;
+          ci.mesh.visible = ci.material.opacity > 0.02;
+        } else if (currentProps.appMode === 'observatory') {
+          ci.material.opacity += (0.02 - ci.material.opacity) * 0.15;
+          ci.glowOutline.visible = false;
+          ci.mesh.visible = ci.material.opacity > 0.01;
+        } else if (currentProps.selectedElement) {
+          // Fade out ALL cards to reveal the immersive element world (bare atom)
+          ci.material.opacity += (0.0 - ci.material.opacity) * 0.15;
+          ci.glowOutline.visible = false;
+          ci.mesh.visible = ci.material.opacity > 0.02;
+        } else {
+          if (!isDiscovered) {
+            ci.material.opacity += (0.04 - ci.material.opacity) * 0.2;
+            ci.glowOutline.visible = false;
+            ci.mesh.visible = ci.material.opacity > 0.01;
+          } else {
+            ci.mesh.visible = true;
+            ci.material.opacity += (0.9 - ci.material.opacity) * 0.15;
+            ci.glowOutline.visible = true;
+          }
+        }
+
+        // Always smoothly return to target position when fading out, otherwise apply layout changes
         ci.mesh.position.lerp(ci.targetPosition, layoutLerpFactor);
-        
+        const targetQ = new THREE.Quaternion().setFromEuler(ci.targetRotation);
+        ci.mesh.quaternion.slerp(targetQ, layoutLerpFactor);
+
+        // Very important: Skip complex expensive calculations if the card is effectively invisible
+        if (!ci.mesh.visible) return;
+
         // Systemic Scientific Behavior: elements move and respond based on their chemical category
         const cat = ci.element.category;
         let floatFactor = 0;
@@ -3483,15 +3583,12 @@ export default function ThreeScene({
           ci.mesh.position.x += jitterX;
           ci.mesh.position.y += floatFactor;
           ci.mesh.position.z += jitterZ;
-        }
-
-        // Smoothly rotate cards towards targeted layout angle (Frame-rate independent + dynamic scientific wobble)
-        const rotTarget = ci.targetRotation.clone();
-        if (applyPhysics) {
+          
+          const rotTarget = ci.targetRotation.clone();
           rotTarget.z += rotationWobble;
+          const wobbleQ = new THREE.Quaternion().setFromEuler(rotTarget);
+          ci.mesh.quaternion.slerp(wobbleQ, layoutLerpFactor);
         }
-        const targetQ = new THREE.Quaternion().setFromEuler(rotTarget);
-        ci.mesh.quaternion.slerp(targetQ, layoutLerpFactor);
 
         // Select correct map texture depending on app mode
         const desiredMap = currentProps.appMode === 'timeline' ? ci.timelineTexture : ci.standardTexture;
@@ -3501,9 +3598,7 @@ export default function ThreeScene({
         }
 
         // Hover forward thrust inside grid matrices based on discovery status
-        const isDiscovered = currentProps.appMode !== 'timeline' || ci.element.year <= currentProps.timelineYear;
         const isCurrentlyHovered = isDiscovered && hoveredMesh && (hoveredMesh === ci.mesh || hoveredMesh.parent === ci.mesh);
-        const outlineMat = ci.glowOutline.material as THREE.LineBasicMaterial;
         
         let targetScale = 1.05;
         let targetOpacity = isDiscovered ? (0.35 + Math.sin(elapsed * 1.8 + ci.floatOffset) * 0.08) : 0.01;
@@ -3562,8 +3657,6 @@ export default function ThreeScene({
           }
         }
 
-        // Apply smooth scale transition using frame-rate independent elements lerping
-        const scaleLerpFactor = Math.min(1.0, 12.0 * delta);
         ci.glowOutline.scale.x += (targetScale - ci.glowOutline.scale.x) * scaleLerpFactor;
         ci.glowOutline.scale.y += (targetScale - ci.glowOutline.scale.y) * scaleLerpFactor;
         ci.glowOutline.scale.z += (targetScale - ci.glowOutline.scale.z) * scaleLerpFactor;
@@ -3573,36 +3666,9 @@ export default function ThreeScene({
         const baseColor = new THREE.Color(categoryConfig.hex);
         outlineMat.color.copy(baseColor).multiplyScalar(emissiveIntensity);
         outlineMat.opacity += (targetOpacity - outlineMat.opacity) * scaleLerpFactor;
-
-        // Apply general grid fading, hide during Bond Lab, and fade undiscovered elements
-        if (currentProps.appMode === 'bond_lab') {
-          ci.material.opacity += (0.01 - ci.material.opacity) * 0.2;
-          ci.glowOutline.visible = false;
-          ci.mesh.visible = ci.material.opacity > 0.02;
-        } else if (currentProps.appMode === 'observatory') {
-          ci.material.opacity += (0.02 - ci.material.opacity) * 0.15;
-          ci.glowOutline.visible = false;
-          ci.mesh.visible = ci.material.opacity > 0.01;
-        } else if (currentProps.selectedElement) {
-          // Fade out ALL cards to reveal the immersive element world (bare atom)
-          ci.material.opacity += (0.0 - ci.material.opacity) * 0.15;
-          ci.glowOutline.visible = false;
-          ci.mesh.visible = ci.material.opacity > 0.02;
-        } else {
-          if (!isDiscovered) {
-            ci.material.opacity += (0.04 - ci.material.opacity) * 0.2;
-            ci.glowOutline.visible = false;
-            ci.mesh.visible = ci.material.opacity > 0.01;
-          } else {
-            ci.mesh.visible = true;
-            ci.material.opacity += (0.9 - ci.material.opacity) * 0.15;
-            ci.glowOutline.visible = true;
-          }
-        }
       });
 
       // LIVING ECOSYSTEM: Autonomous Regional Interaction Logic
-      const isCardGridVisible = !currentProps.selectedElement && (currentProps.appMode === 'explorer' || currentProps.appMode === 'timeline' || currentProps.appMode === 'molecular');
       
       if (isCardGridVisible && Math.random() > 0.93 && elementCards.length > 50) {
          // Spontaneous element interactions based on real chemical families
@@ -4951,7 +5017,9 @@ export default function ThreeScene({
   }, [onSelectElement, onHoverElement]);
 
   // Helper function to procedurally generate a high-contrast Circular Glow particle texture
+  let cachedParticleTexture: THREE.Texture | null = null;
   function createCircularParticleTexture(): THREE.Texture {
+    if (cachedParticleTexture) return cachedParticleTexture;
     const canvas = document.createElement('canvas');
     canvas.width = 16;
     canvas.height = 16;
@@ -4966,6 +5034,7 @@ export default function ThreeScene({
       ctx.fillRect(0, 0, 16, 16);
     }
     const texture = new THREE.CanvasTexture(canvas);
+    cachedParticleTexture = texture;
     return texture;
   }
 

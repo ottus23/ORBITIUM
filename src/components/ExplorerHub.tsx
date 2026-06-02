@@ -25,7 +25,7 @@ import {
 import { OrbitiumKnowledgeEngine } from '../utils/KnowledgeEngine';
 import { ELEMENTS_DATA } from '../data';
 
-interface ObservatoryHubProps {
+interface ExplorerHubProps {
   onSelectElementBySymbol: (symbol: string) => void;
   onScaleChange?: (scaleId: string) => void;
 }
@@ -434,7 +434,7 @@ const COSMIC_CHRONOLOGY: NucleosynthesisEvent[] = [
   }
 ];
 
-export default function ObservatoryHub({ onSelectElementBySymbol, onScaleChange }: ObservatoryHubProps) {
+export default React.memo(function ExplorerHub({ onSelectElementBySymbol, onScaleChange }: ExplorerHubProps) {
   const [obsTab, setObsTab] = useState<'scale' | 'compounds' | 'materials' | 'civilization' | 'cosmic' | 'engine'>('scale');
   
   // Interactive nodes tracking states
@@ -470,7 +470,7 @@ export default function ObservatoryHub({ onSelectElementBySymbol, onScaleChange 
       <div className="flex border-b border-white/10 pb-2 flex-wrap gap-1 items-center justify-between">
         <div className="flex gap-1 items-center">
           <Orbit className="w-4 h-4 text-[#00E5FF] animate-spin-slow-30" />
-          <span className="text-[10px] font-black tracking-wider text-white uppercase">ORBITIUM_OBSERVATORY.SYS</span>
+          <span className="text-[10px] font-black tracking-wider text-white uppercase">ORBITIUM_EXPLORER.SYS</span>
         </div>
         
         <div className="flex bg-[#0A0D1B]/95 gap-0.5 border border-white/5 rounded p-0.5 max-w-full overflow-x-auto scrollbar-none">
@@ -1215,4 +1215,4 @@ export default function ObservatoryHub({ onSelectElementBySymbol, onScaleChange 
 
     </div>
   );
-}
+});

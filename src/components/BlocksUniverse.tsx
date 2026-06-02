@@ -130,7 +130,7 @@ const BlockBackground = ({ type }: { type: string }) => {
 };
 
 
-export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniverseProps) {
+export const BlocksUniverse = React.memo(function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniverseProps) {
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -354,4 +354,4 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
 
     </div>
   );
-}
+});

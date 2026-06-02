@@ -29,13 +29,14 @@ import {
   Hexagon,
   Network,
   Search,
-  Share2
+  Share2,
+  Home
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
 import { MOLECULAR_DATABASE } from '../utils/molecularGenerator';
 import { ElementExplorationDepth } from './ElementExplorationDepth';
-import ObservatoryHub from './ObservatoryHub';
+import ExplorerHub from './ExplorerHub';
 import { ElementWorldUI } from './ElementWorldUI';
 import { BlocksUniverse } from './BlocksUniverse';
 import { OrbitiumNetwork } from './OrbitiumNetwork';
@@ -276,7 +277,7 @@ export function getNucleosynthesisTimeline(el: ChemicalElement) {
   ];
 }
 
-export default function HolographicUI({
+export default React.memo(function HolographicUI({
   selectedElement,
   compareElement,
   onSelectCompareElement,
@@ -790,25 +791,51 @@ export default function HolographicUI({
       {/* =======================================================
           TOP LAYER NAVIGATION AND BRANDING (ZONE 1)
           ======================================================= */}
-      <header className="w-full flex flex-col md:flex-row justify-between items-center gap-4 pointer-events-auto z-40 bg-[#0A0D1B]/50 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-        {/* Logo and Tagline */}
-        <div id="orb-hud-brand" className="flex items-center gap-3 self-start md:self-center cursor-pointer hover:opacity-80 transition-opacity flex-1" onClick={() => onChangeAppMode('explorer')}>
-          <div className="w-9 h-9 rounded-sm border border-[#00E5FF]/20 flex items-center justify-center bg-[#0B1020]/80 backdrop-blur-md hover:border-[#00E5FF]/60 hover:shadow-[0_0_15px_rgba(0,229,255,0.15)] transition-all">
-            <Atom className="w-5 h-5 text-[#00E5FF] animate-spin" style={{ animationDuration: '10s' }} />
-          </div>
-          <div>
+      <header className="w-full flex flex-col xl:flex-row justify-between items-center gap-4 pointer-events-auto z-40 bg-[#0A0D1B]/50 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+        {/* Logo and Explorer Button */}
+        <div className="flex items-center gap-4 self-start xl:self-center flex-1">
+          <div 
+            id="orb-hud-brand" 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-85 transition-opacity" 
+            onClick={() => {
+              onChangeAppMode('explorer');
+              onSelectElement(null);
+            }}
+            title="Orbitium Home (Periodic Table)"
+          >
+            <div className="w-9 h-9 rounded-sm border border-[#00E5FF]/20 flex items-center justify-center bg-[#0B1020]/80 backdrop-blur-md hover:border-[#00E5FF]/60 hover:shadow-[0_0_15px_rgba(0,229,255,0.15)] transition-all">
+              <Atom className="w-5 h-5 text-[#00E5FF] animate-spin" style={{ animationDuration: '10s' }} />
+            </div>
             <div className="text-sm font-black tracking-[0.2em] text-[#EAF2FF]">ORBITIUM</div>
           </div>
+
+          {/* Premium Compact Explorer Pill Button */}
+          <button
+            onClick={() => {
+              onChangeAppMode('observatory');
+              onSelectElement(null);
+            }}
+            className={`px-3.5 py-1.5 rounded-full border text-[10px] sm:text-xs font-mono font-medium uppercase tracking-widest transition-all gap-1.5 cursor-pointer flex items-center select-none ${
+              appMode === 'observatory' 
+                ? 'bg-[#00FFB3]/15 border-[#00FFB3]/40 text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.3)] font-black' 
+                : 'bg-white/5 border-white/10 text-white/70 hover:border-[#00FFB3]/40 hover:text-[#00FFB3] hover:shadow-[0_0_10px_rgba(0,255,179,0.1)]'
+            }`}
+            title="Open Space Explorer Portal (Scientific Discovery)"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">EXPLORER</span>
+            <span className="inline sm:hidden">EXPLORE</span>
+          </button>
         </div>
 
         {/* Universal Search Bar */}
-        <div className="flex-1 w-full md:max-w-md">
+        <div className="w-full xl:max-w-xs">
           <div className="relative flex items-center w-full">
             <Search className="absolute left-3 w-4 h-4 text-[#00E5FF]/50" />
             <input
               type="text"
-              placeholder="SEARCH ELEMENT, SYMBOL, OR MATERIA..."
-              className="w-full bg-black/40 border border-white/10 text-white font-mono text-[10px] pl-10 pr-4 py-2.5 rounded focus:outline-none focus:border-[#00E5FF]/50 hover:border-white/20 transition-colors uppercase placeholder:text-white/30"
+              placeholder="SEARCH ELEMENT, SYMBOL..."
+              className="w-full bg-black/45 border border-white/10 text-white font-mono text-[10px] pl-10 pr-4 py-2 rounded focus:outline-none focus:border-[#00E5FF]/50 hover:border-white/20 transition-colors uppercase placeholder:text-white/30"
               onChange={(e) => {
                 const query = e.target.value.toLowerCase();
                 if (query.trim() === '') return;
@@ -825,41 +852,99 @@ export default function HolographicUI({
           </div>
         </div>
 
-        {/* Dynamic status widgets and secondary toggles */}
-        <div className="flex gap-3 font-mono text-[10px] self-end md:self-center justify-end items-center flex-1">
+        {/* Top/Right Navigation: Blocks, Reaction, Timeline, More, Audio Toggle */}
+        <div className="flex flex-wrap gap-2 font-mono text-[10px] self-end xl:self-center justify-end items-center flex-1">
           {isObsEntered && (
-            <button
-              id="btn-toggle-more-protocols"
-              onClick={() => {
-                setIsMoreActive(!isMoreActive);
-                import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
-                  OrbitiumAudio.playUnlockChime();
-                }).catch(() => {});
-              }}
-              className={`px-3 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all duration-300 ${
-                isMoreActive
-                  ? 'bg-gradient-to-r from-[#00FFB3]/15 to-[#00E5FF]/15 border-[#00FFB3] text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.25)] font-black'
-                  : 'bg-white/5 border-white/10 text-white/75 hover:border-[#00E5FF] hover:text-[#00E5FF] hover:bg-[#00E5FF]/5'
-              }`}
-              title={isMoreActive ? "Collapse advanced controls" : "Reveal advanced observatory controls"}
-            >
-              <Sliders className={`w-3.5 h-3.5 ${isMoreActive ? 'animate-spin' : ''}`} style={isMoreActive ? { animationDuration: '6s' } : {}} />
-              <span className="hidden md:inline">{isMoreActive ? "CLOSE MENU" : "MORE"}</span>
-            </button>
-          )}
+            <>
+              {/* Blocks */}
+              <button
+                onClick={() => {
+                  onChangeAppMode('blocks');
+                  onSelectElement(null);
+                }}
+                className={`px-3 py-1.5 rounded border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all ${
+                  appMode === 'blocks'
+                    ? 'bg-[#E11D48]/15 border-[#E11D48] text-[#E11D48] shadow-[0_0_15px_rgba(225,29,72,0.25)] font-black'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:border-[#E11D48] hover:text-[#E11D48]'
+                }`}
+                title="Quantum Blocks View"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>BLOCKS</span>
+              </button>
 
-          {isObsEntered && (
-            <button
-              onClick={() => setIsMuted(!isMuted)}
-              className={`px-2 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all ${
-                isMuted
-                  ? 'bg-red-950/20 border-red-500/40 text-red-400'
-                  : 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] hover:border-[#00E5FF]'
-              }`}
-              title={isMuted ? "Unmute cosmic synthesizer engine" : "Mute cosmic synthesizer engine"}
-            >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            </button>
+              {/* Reaction */}
+              <button
+                onClick={() => {
+                  if (selectedElement && compareElement) {
+                    onChangeAppMode('bond_lab');
+                    const reaction = analyzeReaction(selectedElement.symbol, compareElement.symbol);
+                    onTriggerReaction(reaction);
+                  } else {
+                    onChangeAppMode('bond_lab');
+                  }
+                }}
+                className={`px-3 py-1.5 rounded border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all ${
+                  appMode === 'bond_lab'
+                    ? 'bg-[#FF3366]/15 border-[#FF3366] text-[#FF3366] shadow-[0_0_15px_rgba(255,51,102,0.25)] font-black'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:border-[#FF3366] hover:text-[#FF3366]'
+                }`}
+                title="Orbital Reactions & Synthesis"
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>REACTION</span>
+              </button>
+
+              {/* Timeline */}
+              <button
+                onClick={() => {
+                  onChangeAppMode('timeline');
+                  onSelectElement(null);
+                }}
+                className={`px-3 py-1.5 rounded border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all ${
+                  appMode === 'timeline'
+                    ? 'bg-gradient-to-r from-teal-500/15 to-emerald-500/15 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] font-black'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:border-emerald-500/50 hover:text-emerald-400'
+                }`}
+                title="Cosmic Discovery Timeline"
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>TIMELINE</span>
+              </button>
+
+              {/* More Sliders */}
+              <button
+                id="btn-toggle-more-protocols"
+                onClick={() => {
+                  setIsMoreActive(!isMoreActive);
+                  import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                    OrbitiumAudio.playUnlockChime();
+                  }).catch(() => {});
+                }}
+                className={`px-3 py-1.5 rounded border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all duration-300 ${
+                  isMoreActive
+                    ? 'bg-gradient-to-r from-[#00FFB3]/15 to-[#00E5FF]/15 border-[#00FFB3] text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.25)] font-black'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:border-[#00E5FF] hover:text-[#00E5FF]'
+                }`}
+                title={isMoreActive ? "Collapse systems menu" : "Open systems controls menu"}
+              >
+                <Sliders className={`w-3.5 h-3.5 ${isMoreActive ? 'animate-spin' : ''}`} style={isMoreActive ? { animationDuration: '6s' } : {}} />
+                <span>MORE</span>
+              </button>
+
+              {/* Mute toggle */}
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className={`px-2.5 py-1.5 rounded border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all ${
+                  isMuted
+                    ? 'bg-red-950/20 border-red-500/40 text-red-500 hover:border-red-400'
+                    : 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] hover:border-[#00E5FF]'
+                }`}
+                title={isMuted ? "Unmute ambient synthesizer engine" : "Mute ambient synthesizer engine"}
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -872,7 +957,7 @@ export default function HolographicUI({
           MAIN INTERACTION HUD OVERLAYS (Left / Right / Middle)
           ======================================================= */}
       <main className="flex-1 my-4 flex flex-col md:flex-row gap-6 relative justify-between items-stretch">
-        {/* LEFT & RIGHT HUD CONSOLIDATION TO A SINGLE SYSTEMS OBSERVATORY COMMAND DRAWER */}
+        {/* LEFT & RIGHT HUD CONSOLIDATION TO A SINGLE SYSTEMS EXPLORER COMMAND DRAWER */}
         {/* =======================================================
             MORE SYSTEMS: FUTURISTIC SCIENTIFIC CONTROL HUB DRAWER
             ======================================================= */}
@@ -902,7 +987,7 @@ export default function HolographicUI({
               <div>
                 <div className="text-[7.5px] font-mono tracking-[0.3em] text-[#00E5FF] uppercase">// ADVANCED CRITICAL CONTROLS</div>
                 <h2 className="text-xs font-black tracking-widest text-white uppercase mt-0.5">
-                  OBSERVATORY SYSTEMS COMMAND
+                  EXPLORER SYSTEMS COMMAND
                 </h2>
               </div>
             </div>
@@ -936,7 +1021,7 @@ export default function HolographicUI({
                   { id: 'timeline', label: 'Timeline History', icon: TrendingUp },
                   { id: 'molecular', label: 'Molecular Universe', icon: Hexagon },
                   { id: 'blocks', label: 'Quantum Blocks', icon: Layers },
-                  { id: 'observatory', label: 'Deep Space Observatory', icon: Orbit },
+                  { id: 'observatory', label: 'Deep Space Explorer', icon: Orbit },
                 ].map((mode) => {
                   const IconComp = mode.icon;
                   const isActive = appMode === mode.id;
@@ -1372,11 +1457,11 @@ export default function HolographicUI({
         {/* SUBATOMIC SHELL ANALYZER REMOVED - integrated directly into ElementWorldUI array */}
 
         {/* =======================================================
-            CELESTIAL ATLAS OBSERVATORY MASTER DASHBOARD
+            CELESTIAL ATLAS EXPLORER MASTER DASHBOARD
             ======================================================= */}
         {isObsEntered && appMode === 'observatory' && !selectedElement && (
           <div className="flex-1 w-full flex flex-col justify-between p-4 bg-transparent pointer-events-auto overflow-hidden max-h-[85vh] md:max-h-[calc(100vh-130px)] select-none">
-            <ObservatoryHub
+            <ExplorerHub
               onSelectElementBySymbol={(symbol) => {
                 const found = ELEMENTS_DATA.find(e => e.symbol === symbol);
                 if (found) {
@@ -2175,70 +2260,38 @@ export default function HolographicUI({
         )}
 
         {/* ZONE 5: ACTION BAR */}
-        <div className="w-full flex justify-center pb-6">
-          <div className="bg-[#0A0D1B]/80 backdrop-blur-2xl border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-1.5 transition-all">
-            
-            {selectedElement && (
-              <button
-                onClick={() => {
-                  onSelectElement(null);
-                  if (onSelectCompareElement) onSelectCompareElement(null);
-                  window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
-                }}
-                className="px-4 py-2 border-r border-white/10 hover:text-red-400 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer text-white/50"
-              >
-                <X className="w-4 h-4" /> CLOSE
-              </button>
-            )}
-
-            <button
-              onClick={() => onChangeAppMode('explorer')}
-              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'explorer' && !selectedElement ? 'bg-[#00E5FF]/10 text-[#00E5FF] shadow-[0_0_15px_rgba(0,229,255,0.2)]' : 'text-white/60 hover:text-white'}`}
-            >
-              <Compass className="w-4 h-4" /> EXPLORE
-            </button>
-
-            <button
-              onClick={() => {
-                 if(selectedElement) setCompareSelectorOpen(true);
-              }}
-              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${(compareElement || compareSelectorOpen) ? 'bg-[#FF9100]/10 text-[#FF9100] shadow-[0_0_15px_rgba(255,145,0,0.2)]' : 'text-white/60 hover:text-white'} ${!selectedElement && !compareSelectorOpen ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Share2 className="w-4 h-4" /> COMPARE
-            </button>
-
-            <button
-              onClick={() => {
-                 if (selectedElement && compareElement) {
-                   onChangeAppMode('bond_lab');
-                   const reaction = analyzeReaction(selectedElement.symbol, compareElement.symbol);
-                   onTriggerReaction(reaction);
-                 } else {
-                   onChangeAppMode('bond_lab');
-                 }
-              }}
-              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'bond_lab' ? 'bg-[#FF3366]/10 text-[#FF3366] shadow-[0_0_15px_rgba(255,51,102,0.2)]' : 'text-white/60 hover:text-white'}`}
-            >
-              <Flame className="w-4 h-4" /> REACT
-            </button>
-            
-            <button
-              onClick={() => onChangeAppMode('observatory')}
-              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'observatory' ? 'bg-[#00FFB3]/10 text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.2)]' : 'text-white/60 hover:text-white'}`}
-            >
-              <Activity className="w-4 h-4" /> DISCOVER
-            </button>
-
-            <button
-              onClick={() => onChangeAppMode('network')}
-              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'network' ? 'bg-[#7C4DFF]/10 text-[#7C4DFF] shadow-[0_0_15px_rgba(124,77,255,0.2)]' : 'text-white/60 hover:text-white'}`}
-            >
-              <Network className="w-4 h-4" /> NETWORK
-            </button>
-            
+        {(selectedElement || compareElement) && (
+          <div className="w-full flex justify-center pb-6">
+            <div className="bg-[#0A0D1B]/85 backdrop-blur-2xl border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.6)] rounded-full px-4 py-2 flex items-center gap-4 transition-all animate-fade-in">
+              {selectedElement && (
+                <button
+                  onClick={() => {
+                    onSelectElement(null);
+                    if (onSelectCompareElement) onSelectCompareElement(null);
+                    window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
+                  }}
+                  className="px-4 py-1.5 hover:text-red-450 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer text-white/70 hover:bg-white/5 rounded-full"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                  <span>CLOSE DATA ACCESS</span>
+                </button>
+              )}
+              {selectedElement && compareElement && <div className="w-px h-4 bg-white/10" />}
+              {compareElement && (
+                <button
+                  onClick={() => {
+                    if (onSelectCompareElement) onSelectCompareElement(null);
+                  }}
+                  className="px-4 py-1.5 hover:text-red-455 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer text-white/70 hover:bg-white/5 rounded-full"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                  <span>EXIT COMPARISON</span>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </footer>
     </div>
   );
-}
+});

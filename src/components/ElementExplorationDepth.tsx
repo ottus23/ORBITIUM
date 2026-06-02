@@ -18,7 +18,7 @@ interface ElementExplorationDepthProps {
   ELEMENTS_DATA: any[];
 }
 
-export const ElementExplorationDepth: React.FC<ElementExplorationDepthProps> = ({
+export const ElementExplorationDepth: React.FC<ElementExplorationDepthProps> = React.memo(({
   selectedElement,
   activeLayer,
   setActiveLayer,
@@ -330,4 +330,4 @@ export const ElementExplorationDepth: React.FC<ElementExplorationDepthProps> = (
       </AnimatePresence>
     </div>
   );
-};
+});

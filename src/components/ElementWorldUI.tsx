@@ -13,7 +13,7 @@ interface ElementWorldUIProps {
   activeShellInfo: any;
 }
 
-export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompareElement, setCompareSelectorOpen, setActiveShellInfo, activeShellInfo }: ElementWorldUIProps) {
+export const ElementWorldUI = React.memo(function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompareElement, setCompareSelectorOpen, setActiveShellInfo, activeShellInfo }: ElementWorldUIProps) {
   const [activeConstellation, setActiveConstellation] = useState<string>('properties');
 
   const navNodes = [
@@ -125,4 +125,4 @@ export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompa
       
     </div>
   );
-}
+});
