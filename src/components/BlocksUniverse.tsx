@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { ChemicalElement } from '../types';
 import { ELEMENTS_DATA } from '../data';
 import { motion, AnimatePresence } from 'motion/react';
+import { SBlockRealmDetailed } from './SBlockRealmDetailed';
+import { PBlockRealmDetailed } from './PBlockRealmDetailed';
+import { DBlockRealmDetailed } from './DBlockRealmDetailed';
+import { FBlockRealmDetailed } from './FBlockRealmDetailed';
 import { Activity, Hexagon, Zap, Globe, ChevronRight, X, Atom, Orbit } from 'lucide-react';
+
+
 
 interface BlocksUniverseProps {
   onSelectElement: (element: ChemicalElement) => void;
@@ -266,6 +272,15 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
                    {/* Content payload */}
                    <div className="relative z-10 p-6 flex-1 flex flex-col min-h-0 bg-[#0A0F1D]/90">
                       {isActive ? (
+                         block.id === 's' ? (
+                            <SBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
+                         ) : block.id === 'p' ? (
+                            <PBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
+                         ) : block.id === 'd' ? (
+                            <DBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
+                         ) : block.id === 'f' ? (
+                            <FBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
+                         ) : (
                          <motion.div 
                            initial={{ opacity: 0, y: 30 }}
                            animate={{ opacity: 1, y: 0 }}
@@ -322,6 +337,7 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
                                </div>
                             </div>
                          </motion.div>
+                         )
                       ) : (
                          <div className="flex flex-col h-full">
                            <p className="text-xs text-white/50 line-clamp-3 leading-relaxed">
