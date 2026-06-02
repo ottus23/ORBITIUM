@@ -25,7 +25,7 @@ export default function App() {
   const [reactiveIntensity, setReactiveIntensity] = useState<number>(1.0);
   
   // Landing welcome state
-  const [isObsEntered, setIsObsEntered] = useState<boolean>(false);
+  const [isObsEntered, setIsObsEntered] = useState<boolean>(true);
   
   // Action reactions config
   const [activeReaction, setActiveReaction] = useState<ReactionConfig | null>(null);

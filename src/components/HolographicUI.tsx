@@ -780,50 +780,6 @@ export default function HolographicUI({
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div className="w-full h-[1.5px] bg-[#00E5FF]/25 shadow-[0_0_12px_rgba(0,229,255,0.7)] animate-scanline" />
       </div>
-      
-      {/* =======================================================
-          LANDING OVERLAY (IfNotEntered)
-          ======================================================= */}
-      {!isObsEntered && (
-        <div id="orbitium-welcome" className="absolute inset-0 bg-[#070B14]/90 backdrop-blur-lg flex flex-col justify-center items-center pointer-events-auto z-50 text-center px-4">
-          <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(0,229,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
-          
-          <div className="relative max-w-2xl flex flex-col items-center">
-            {/* Pulsing visual core icon */}
-            <div className="w-20 h-20 rounded-full border border-[#00E5FF]/40 mb-6 flex items-center justify-center bg-[#0B1020] shadow-[0_0_30px_rgba(0,229,255,0.2)] animate-pulse">
-              <Atom className="w-10 h-10 text-[#00E5FF]" />
-            </div>
-
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-[0.25em] text-[#EAF2FF] mb-3 uppercase">
-              ORBITIUM
-            </h1>
-            
-            <p className="text-sm sm:text-base text-[#00E5FF] tracking-[0.3em] uppercase mb-8 font-medium">
-              THE LIVING ATOMIC COSMOS
-            </p>
-
-            <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF] to-transparent mb-8" />
-
-            <p className="text-[#EAF2FF]/70 text-sm sm:text-base leading-relaxed mb-10 max-w-lg font-light text-center">
-              Enter a navigable, immersive sub-atomic universe. Travel through the structure of matter, explore element galaxy systems, and discover the unique atmospheric environments of individual elements.
-            </p>
-
-            <button
-              id="btn-enter"
-              onClick={handleEnterWorld}
-              className="px-8 py-3.5 bg-[#070B14] border border-[#00E5FF] text-[#00E5FF] text-xs font-bold tracking-[0.2em] rounded-sm hover:bg-[#00E5FF]/10 hover:shadow-[0_0_25px_rgba(0,229,255,0.25)] transition-all duration-300 uppercase cursor-pointer flex items-center gap-3 active:scale-95"
-            >
-              NAVIGATE THE ATOMIC COSMOS <ArrowRight className="w-4 h-4" />
-            </button>
-
-            {/* Scientific credits */}
-            <div className="mt-16 text-[9px] font-mono text-[#EAF2FF]/30 tracking-[0.15em] uppercase flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '20s' }} />
-              COSMIC LABORATORY ENGINE v3.45.9
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* =======================================================
           TOP LAYER NAVIGATION AND BRANDING
@@ -839,7 +795,6 @@ export default function HolographicUI({
           </div>
           <div>
             <div className="text-sm font-black tracking-[0.2em] text-[#EAF2FF]">ORBITIUM</div>
-            <div className="text-[9px] font-mono tracking-widest text-[#00E5FF] uppercase">ATOMIC OBSERVATORY</div>
           </div>
         </div>
 
@@ -866,7 +821,7 @@ export default function HolographicUI({
                   }`}
                 >
                   <IconComp className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
+                  <span className="hidden md:inline">{tab.label}</span>
                 </button>
               );
             })}
@@ -874,7 +829,7 @@ export default function HolographicUI({
         )}
 
         {/* Dynamic status widgets and audio node toggle */}
-        <div className="flex gap-3.5 font-mono text-[10px] self-end md:self-start items-center">
+        <div className="flex gap-3 font-mono text-[10px] self-end md:self-start items-center">
           {isObsEntered && (
             <button
               id="btn-toggle-more-protocols"
@@ -884,7 +839,7 @@ export default function HolographicUI({
                   OrbitiumAudio.playUnlockChime();
                 }).catch(() => {});
               }}
-              className={`px-3.5 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+              className={`px-3 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all duration-300 ${
                 isMoreActive
                   ? 'bg-gradient-to-r from-[#00FFB3]/15 to-[#00E5FF]/15 border-[#00FFB3] text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.25)] font-black'
                   : 'bg-white/5 border-white/10 text-white/75 hover:border-[#00E5FF] hover:text-[#00E5FF] hover:bg-[#00E5FF]/5'
@@ -892,14 +847,14 @@ export default function HolographicUI({
               title={isMoreActive ? "Collapse advanced controls" : "Reveal advanced observatory controls"}
             >
               <Sliders className={`w-3.5 h-3.5 ${isMoreActive ? 'animate-spin' : ''}`} style={isMoreActive ? { animationDuration: '6s' } : {}} />
-              <span>{isMoreActive ? "COLLAPSE PANEL" : "MORE SYSTEMS"}</span>
+              <span className="hidden md:inline">{isMoreActive ? "COLLAPSE" : "MORE"}</span>
             </button>
           )}
 
           {isObsEntered && (
             <button
               onClick={() => setIsMuted(!isMuted)}
-              className={`px-3 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-2 cursor-pointer transition-all ${
+              className={`px-2 py-1.5 justify-center rounded-sm border backdrop-blur-md flex items-center gap-1.5 cursor-pointer transition-all ${
                 isMuted
                   ? 'bg-red-950/20 border-red-500/40 text-red-400'
                   : 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] hover:border-[#00E5FF]'
@@ -907,85 +862,19 @@ export default function HolographicUI({
               title={isMuted ? "Unmute cosmic synthesizer engine" : "Mute cosmic synthesizer engine"}
             >
               {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              <span>{isMuted ? "SYNTH MUTED" : "COSMIC SYNTH"}</span>
             </button>
           )}
-
-          <div className="flex px-3 py-1.5 bg-[#0B1020]/90 backdrop-blur-md border border-[#EAF2FF]/15 rounded-sm items-center gap-2.5 shadow-lg select-none pointer-events-auto" title="System render rate and performance telemetry">
-            <Activity className={`w-3.5 h-3.5 ${isLowPerfMode ? 'text-[#FF9100] animate-pulse' : 'text-[#00E5FF]'}`} />
-            <span className={`font-mono font-black tracking-widest ${
-              currentFps >= 50 ? 'text-[#00FFB3]' : 
-              currentFps >= 30 ? 'text-[#FF9100]' : 
-              'text-[#FF1744] font-extrabold animate-pulse'
-            }`}>
-              {currentFps} FPS
-            </span>
-            <span className="w-[1px] h-3 bg-white/15" />
-            {isLowPerfMode ? (
-              <div className="flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9100] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#FF9100]"></span>
-                </span>
-                <span className="text-[8.5px] font-mono tracking-wider font-extrabold text-[#FF9100] uppercase animate-pulse">
-                  Adaptive Quality Engaged
-                </span>
-              </div>
-            ) : (
-              <span className="text-[8.5px] font-mono tracking-wider font-extrabold text-[#00E5FF]/80 uppercase">
-                QUALITY: MAX
-              </span>
-            )}
-          </div>
-
-          <div className="hidden lg:flex px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
-            <span className="text-[#00FFB3] uppercase">● OBS:</span> STABLE
-          </div>
-          <div className="hidden lg:flex px-3 py-1.5 bg-[#0B1020]/60 backdrop-blur-md border border-[#EAF2FF]/10 rounded-sm">
-            <span className="text-[#00E5FF] uppercase">CORES:</span> 118
-          </div>
         </div>
       </header>
 
       {/* DYNAMIC PERFORMANCE QUALITY ACTION BANNER */}
-      {isObsEntered && isLowPerfMode && (
-        <div className="absolute top-22 md:top-20 left-1/2 -translate-x-1/2 pointer-events-auto z-40 animate-fade-in flex flex-col items-center select-none">
-          <div className="px-4.5 py-2.5 bg-[#070C1B]/95 backdrop-blur-xl border border-[#FF9100]/40 rounded-sm shadow-[0_0_25px_rgba(255,145,0,0.22)] flex items-center gap-3 text-[9px] font-mono select-none">
-            <div className="relative flex h-2.5 w-2.5 flex-none mb-auto mt-0.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9100]/60 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF9100]"></span>
-            </div>
-            <div className="flex flex-col">
-              <div className="font-extrabold tracking-widest text-[#FF9100] uppercase flex items-center gap-1.5">
-                <Sliders className="w-3.5 h-3.5 text-[#FF9100] animate-spin" style={{ animationDuration: '4s' }} />
-                PERFORMANCE STABILIZER TRIGGERED
-              </div>
-              <div className="text-[#EAF2FF]/60 text-[8px] mt-0.5 tracking-wider uppercase font-semibold">
-                Scene complexity and post-effects dynamically scaled down to stabilize frame rates.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Hidden to declutter UI */}
+
 
       {/* =======================================================
           MAIN INTERACTION HUD OVERLAYS (Left / Right / Middle)
           ======================================================= */}
       <main className="flex-1 my-4 flex flex-col md:flex-row gap-6 relative justify-between items-stretch">
-        {!isMoreActive && !selectedElement && isObsEntered && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 select-none pointer-events-none z-10 text-center animate-fade-in whitespace-nowrap">
-            <span className="text-[7.5px] font-mono tracking-[0.3em] text-[#00E5FF]/45 uppercase">
-              // IMMERSIVE COHERENCE FIELD ACTIVE
-            </span>
-            <div className="px-5 py-1.5 bg-[#0B1020]/50 backdrop-blur-md border border-white/[0.08] rounded-full flex items-center gap-2.5 text-[8.2px] font-mono text-white/50 tracking-wider shadow-xl">
-              <span>DRAG TO ROTATE COSMOS</span>
-              <span className="text-[#00FFB3]/30">•</span>
-              <span>SCROLL TO ZOOM ATOMS</span>
-              <span className="text-[#00FFB3]/30">•</span>
-              <span className="text-[#00FFB3] font-bold">CLICK "MORE SYSTEMS" FOR ADVANCED CONTROLS</span>
-            </div>
-          </div>
-        )}
         {/* LEFT & RIGHT HUD CONSOLIDATION TO A SINGLE SYSTEMS OBSERVATORY COMMAND DRAWER */}
         {/* =======================================================
             MORE SYSTEMS: FUTURISTIC SCIENTIFIC CONTROL HUB DRAWER
@@ -2208,7 +2097,7 @@ export default function HolographicUI({
             CELESTIAL ATLAS OBSERVATORY MASTER DASHBOARD
             ======================================================= */}
         {isObsEntered && appMode === 'observatory' && !selectedElement && (
-          <div className="flex-1 w-full flex flex-col justify-between p-4 bg-[#070B14]/75 border border-white/10 rounded backdrop-blur-2xl pointer-events-auto shadow-2xl overflow-hidden max-h-[85vh] md:max-h-[calc(100vh-130px)] select-none">
+          <div className="flex-1 w-full flex flex-col justify-between p-4 bg-transparent pointer-events-auto overflow-hidden max-h-[85vh] md:max-h-[calc(100vh-130px)] select-none">
             <ObservatoryHub
               onSelectElementBySymbol={(symbol) => {
                 const found = ELEMENTS_DATA.find(e => e.symbol === symbol);
@@ -2409,79 +2298,32 @@ export default function HolographicUI({
       {/* =======================================================
           BOTTOM HOVER CARD AND SYSTEM INDICATORS
           ======================================================= */}
-      <footer className="w-full flex flex-col gap-4 pointer-events-auto z-40 select-none">
-        
-        {/* ELEMENT CATEGORY COLOR CODE LEGEND */}
-        {isObsEntered && (
-          <div id="orbital-category-legend" className="w-full max-w-7xl mx-auto px-4 py-2 bg-[#0B1020]/90 backdrop-blur-md border border-white/10 rounded-sm shadow-xl flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-center font-mono animate-fade-in pointer-events-auto">
-            <div className="text-[8px] font-black uppercase text-[#00E5FF] tracking-widest border-r border-white/10 pr-3 mr-1 hidden lg:block">
-              grid.category_index()
-            </div>
-            {Object.entries(CATEGORY_COLORS).map(([key, cat]) => (
-              <div 
-                key={key} 
-                className="flex items-center gap-1.5 group cursor-help relative"
-              >
-                {/* Glowing indicator dot with category color */}
-                <div 
-                  className="w-2.5 h-2.5 rounded-sm border border-black/40 transition-transform group-hover:scale-125 duration-300"
-                  style={{ 
-                    backgroundColor: cat.hex,
-                    boxShadow: `0 0 10px ${cat.hex}88`
-                  }} 
-                />
-                
-                {/* Label */}
-                <span className="text-[9px] uppercase tracking-wider text-[#EAF2FF]/70 group-hover:text-white transition-colors">
-                  {cat.label}
-                </span>
-
-                {/* Cybernetic Tooltip Hover Box */}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-250 z-50 p-2.5 w-48 bg-[#070C1B]/95 border border-[#00E5FF]/20 rounded-sm shadow-2xl text-left font-mono">
-                  <div className="text-[9.5px] font-bold uppercase tracking-wide" style={{ color: cat.hex }}>{cat.label}</div>
-                  <div className="text-[8.5px] text-[#EAF2FF]/70 leading-normal mt-1 font-light">{cat.description}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <footer className="w-full pointer-events-auto z-40 select-none flex flex-col justify-end">
         
         {/* TIMELINE SLIDER SCALED OVERLAY */}
-        {isObsEntered && appMode === 'timeline' && (
-          <div id="timeline-hud-scrubber" className="w-full max-w-4xl mx-auto px-5 py-4 bg-[#0B1020]/95 backdrop-blur-md border border-[#00FFB3]/30 rounded-md text-left font-mono flex flex-col gap-3 shadow-[0_0_30px_rgba(0,255,179,0.15)] animate-fade-in">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#00FFB3]" />
-                <span className="uppercase text-[#EAF2FF]/50 text-[10px] tracking-widest">CHRONO SEEKER CONSOLE:</span>
-                <span className="text-[#00FFB3] font-bold text-xs tracking-wider">{timelineYear < 0 ? `${Math.abs(timelineYear)} BC` : `${timelineYear} AD`}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsPlayingTimeline(!isPlayingTimeline)}
-                  className={`px-3 py-1 text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 rounded-sm cursor-pointer ${
-                    isPlayingTimeline
-                      ? 'bg-amber-500/20 border border-amber-400 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
-                      : 'bg-[#00FFB3]/10 border border-[#00FFB3]/35 text-[#00FFB3] hover:bg-[#00FFB3]/20'
-                  }`}
-                >
-                  {isPlayingTimeline ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                  <span>{isPlayingTimeline ? "PAUSE DRIFT" : "CHRONO DRIFT"}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    onChangeTimelineYear(-5000);
-                    setIsPlayingTimeline(false);
-                  }}
-                  className="px-2 py-1 bg-white/5 border border-white/10 hover:border-white/30 text-[9px] font-bold uppercase rounded-sm cursor-pointer text-[#EAF2FF]"
-                  title="Reset timeline to deep antiquity"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                </button>
-              </div>
+        {isObsEntered && appMode === 'timeline' && !selectedElement && (
+          <div id="timeline-hud-scrubber" className="w-full max-w-2xl mx-auto px-5 py-4 bg-[#0B1020]/95 backdrop-blur-md border border-[#00FFB3]/30 rounded-md text-left font-mono flex flex-col gap-3 shadow-[0_0_30px_rgba(0,255,179,0.15)] animate-fade-in absolute bottom-8 left-1/2 -translate-x-1/2">
+            <div className="flex justify-between items-center mb-2">
+               <div className="flex items-center gap-2">
+                 <span className="text-[#00FFB3] font-bold text-xs tracking-wider">{timelineYear < 0 ? `${Math.abs(timelineYear)} BC` : `${timelineYear} AD`}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                 <button
+                   onClick={() => setIsPlayingTimeline(!isPlayingTimeline)}
+                   className={`px-3 py-1 text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 rounded-sm cursor-pointer ${
+                     isPlayingTimeline
+                       ? 'bg-amber-500/20 border border-amber-400 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                       : 'bg-[#00FFB3]/10 border border-[#00FFB3]/35 text-[#00FFB3] hover:bg-[#00FFB3]/20'
+                   }`}
+                 >
+                   {isPlayingTimeline ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                   <span>{isPlayingTimeline ? "PAUSING" : "AUTO DRIFT"}</span>
+                 </button>
+               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <span className="text-[9px] text-[#EAF2FF]/30 select-none whitespace-nowrap">ANCIENT BC</span>
+              <span className="text-[9px] text-[#EAF2FF]/30 select-none whitespace-nowrap">ANCIENT</span>
               <div className="flex-1 relative flex items-center">
                 <input
                   type="range"
@@ -2490,143 +2332,29 @@ export default function HolographicUI({
                   step="5"
                   value={timelineYear}
                   onChange={(e) => {
-                    onChangeTimelineYear(parseInt(e.target.value));
-                    setIsPlayingTimeline(false);
+                     onChangeTimelineYear(parseInt(e.target.value));
+                     setIsPlayingTimeline(false);
                   }}
-                  className="w-full h-1.5 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
+                  className="w-full h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
                 />
               </div>
-              <span className="text-[9px] text-[#00FFB3] font-extrabold whitespace-nowrap">2026 AD (MODERN)</span>
-            </div>
-            
-            <div className="flex justify-between text-[7px] text-[#EAF2FF]/30 select-none uppercase tracking-widest font-bold">
-              <span>-5000 BC (Antiquity metals)</span>
-              <span>1700 (Alchemy age)</span>
-              <span>1800 (Gaseous separation)</span>
-              <span>1900 (Mendeleev Matrix)</span>
-              <span>1950 (Superheavy labs)</span>
-              <span>2026 AD (Modern physics)</span>
+              <span className="text-[9px] text-[#00FFB3] font-extrabold whitespace-nowrap">MODERN</span>
             </div>
           </div>
         )}
 
-        <div className="w-full flex justify-between items-end select-none">
-          {/* HOVER STATUS FIELD */}
-          {!selectedElement && (
-            <div id="orb-hud-details-preview" className="px-4 py-3 bg-[#0B1020]/80 backdrop-blur-md border border-white/10 rounded-sm text-left max-w-sm md:max-w-md h-18 font-mono flex items-center justify-between gap-4">
-              {hoveredElement ? (
-                <div className="flex items-center gap-3 animate-fade-in text-left">
-                  <div className="relative flex items-center justify-center relative-symbol-container w-10 h-10 select-none">
-                    {/* The Energy Field Background Expansion Layer */}
-                    <div 
-                      className="absolute inset-0 rounded-sm pointer-events-none energy-field-expansion"
-                      style={{ 
-                        '--en-color': getElectronegativityColor(hoveredElement.electronegativity)
-                      } as React.CSSProperties}
-                    />
-                    
-                    {/* The Main Dynamic Symbol Border Block */}
-                    <div 
-                      className="relative z-10 w-full h-full border bg-[#070B14]/90 flex items-center justify-center text-md font-black italic element-symbol-pulse transition-all duration-300"
-                      style={{ 
-                        '--pulse-color': getElectronegativityColor(hoveredElement.electronegativity), 
-                        color: getCatMeta(hoveredElement.category).hex 
-                      } as React.CSSProperties}
-                    >
-                      {hoveredElement.symbol}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase font-extrabold text-[#EAF2FF]">{hoveredElement.name} ({hoveredElement.number})</div>
-                    <div className="text-[9px] uppercase tracking-wider text-[#EAF2FF]/50 leading-tight">
-                      {getCatMeta(hoveredElement.category).label} | CONFIG: {hoveredElement.electronConfig}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-[#EAF2FF]/30">
-                  <Compass className="w-4.5 h-4.5 animate-pulse text-[#00E5FF]" />
-                  <span className="text-[10px] uppercase tracking-widest">HOVER COSMIC ELEMENTS TO SCAN MOLECULAR STATE...</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* QUANTUM MULTI-SCALE INDICATOR */}
-          <div className="hidden lg:flex flex-col items-center gap-1.5 bg-[#0B1020]/90 border border-white/10 px-4 py-2 rounded-sm shadow-xl backdrop-blur-md pointer-events-auto">
-            <span className="text-[8px] font-mono tracking-widest text-[#00E5FF]/80 uppercase font-black flex items-center gap-1">
-              <Compass className="w-3 h-3 animate-spin" style={{ animationDuration: '12s' }} />
-              QUANTUM SYSTEM SCALE NAVIGATOR
-            </span>
-            <div className="flex items-center gap-1.5 p-0.5 bg-black/40 rounded-sm border border-white/5">
-              {[
-                { id: 'cosmic', label: 'Cosmic', metric: '10¹² m', val: 2.2, color: '#7C4DFF', info: 'Stellar Nucleosynthesis & Origin of Matter' },
-                { id: 'periodic', label: 'Gridmap', metric: '10⁻² m', val: 1.0, color: '#00E5FF', info: 'Macro-Elemental Patterns & Relationships' },
-                { id: 'molecular', label: 'Molecular', metric: '10⁻⁹ m', val: 1.35, color: '#00FFB3', info: 'Bonds, Geometry, & Reaction Transformations' },
-                { id: 'atomic', label: 'Atomic', metric: '10⁻¹⁰ m', val: 0.95, color: '#FFD600', info: 'Quantum Electron Orbitals & Properties' },
-                { id: 'subatomic', label: 'Core', metric: '10⁻¹⁵ m', val: 0.42, color: '#FF1744', info: 'Protons, Neutrons, & Isotope Stability' }
-              ].map((sc) => {
-                const isSelected = scaleMode === sc.id;
-                // Allow selecting only applicable modes per user-intent
-                const isDisabled = (sc.id === 'cosmic' || sc.id === 'periodic') && selectedElement !== null;
-                const isAtomsOnly = (sc.id === 'atomic' || sc.id === 'subatomic') && selectedElement === null;
-                const active = isSelected;
-                
-                return (
-                  <button
-                    key={sc.id}
-                    disabled={isDisabled || isAtomsOnly}
-                    onClick={() => {
-                      setScaleMode(sc.id as any);
-                      window.dispatchEvent(new CustomEvent('set-cosmic-zoom', { detail: { multiplier: sc.val } }));
-                    }}
-                    className={`px-3 py-1.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border relative group ${
-                      active
-                        ? 'bg-[#00E5FF]/10 text-white font-black shadow-[0_0_12px_rgba(0,229,255,0.2)]'
-                        : isDisabled || isAtomsOnly
-                          ? 'opacity-20 cursor-not-allowed border-transparent text-white/10'
-                          : 'border-transparent text-white/50 hover:text-[#00E5FF] hover:bg-white/5'
-                    }`}
-                    style={active ? { borderColor: sc.color } : {}}
-                  >
-                    <span className="text-[9px] font-mono uppercase tracking-wider leading-none" style={active ? { color: sc.color } : {}}>{sc.label}</span>
-                    <span className="text-[7px] font-mono mt-0.5 tracking-tighter text-white/30 leading-none">{sc.metric}</span>
-                    <div className="absolute bottom-full mb-2 scale-90 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-250 z-50 p-2 w-48 bg-[#070C1B]/95 border border-[#00E5FF]/20 rounded-sm shadow-2xl text-center font-mono">
-                       <span className="text-[9px] tracking-wide text-[#EAF2FF] uppercase font-bold" style={{ color: sc.color }}>{sc.label} SCALE</span>
-                       <br />
-                       <span className="text-[8px] tracking-widest text-[#EAF2FF]/70">{sc.info}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Active Scale Knowledge Feed */}
-            <div className="mt-1 w-full flex items-center justify-center pt-1.5 border-t border-white/5 overflow-hidden w-full px-2 max-w-[320px]">
-               <span className="text-[8.5px] text-[#00E5FF] tracking-[0.2em] uppercase font-bold animate-pulse text-center leading-tight">
-                 {scaleMode === 'cosmic' ? "ANALYZING: Stellar Nucleosynthesis Origin" :
-                  scaleMode === 'periodic' ? "ANALYZING: Periodicity & Material Affinity" :
-                  scaleMode === 'molecular' ? "ANALYZING: Covalent & Ionic Bond Kinetics" :
-                  scaleMode === 'atomic' ? "ANALYZING: Electron Distribution & Valence Fields" :
-                  scaleMode === 'subatomic' ? "ANALYZING: Nuclear Physics & Strong Forces" : ""}
-               </span>
-            </div>
-          </div>
-
-          {/* Selected element back indicator */}
-          {selectedElement && (
+        {/* Selected element back indicator */}
+        <div className="w-full flex justify-between items-end pb-8">
+          {selectedElement ? (
             <button
               onClick={() => onSelectElement(null)}
               className="px-4 py-2 bg-[#0B1020]/70 border border-white/15 hover:border-[#00E5FF] hover:text-[#00E5FF] font-mono text-[10px] tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer"
             >
-              ← RETREAT TO COSMIC GRIDMAP
+              ← RETREAT TO GRIDMAP
             </button>
+          ) : (
+            <div className="hidden"></div>
           )}
-
-          {/* System Coordinates */}
-          <div className="hidden sm:block text-[9px] font-mono text-[#EAF2FF]/35 text-right tracking-widest lowercase">
-            sys.status(running: true) // frame_hz: {currentFps}.0
-          </div>
         </div>
       </footer>
     </div>
