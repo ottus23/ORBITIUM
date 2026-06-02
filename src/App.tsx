@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
-import ThreeScene from './components/ThreeScene';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import HolographicUI from './components/HolographicUI';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from './types';
+
+// Lazy load the heavy 3D WebGL scene to improve initial main bundle parse times
+const ThreeScene = lazy(() => import('./components/ThreeScene'));
 
 export default function App() {
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(null);
@@ -63,26 +65,28 @@ export default function App() {
       className="relative w-screen h-screen bg-[#070B14] overflow-hidden select-none select-none flex flex-col items-stretch"
     >
       {/* 3D WebGL Canvas Layer */}
-      <ThreeScene
-        selectedElement={selectedElement}
-        compareElement={compareElement}
-        hoveredElement={hoveredElement}
-        onSelectElement={setSelectedElement}
-        onSelectCompareElement={setCompareElement}
-        onHoverElement={setHoveredElement}
-        layoutMode={layoutMode}
-        appMode={appMode}
-        timelineYear={timelineYear}
-        selectedMoleculeId={selectedMoleculeId}
-        isExplodedView={isExplodedView}
-        simulationSpeed={simulationSpeed}
-        reactiveIntensity={reactiveIntensity}
-        isObsEntered={isObsEntered}
-        activeReaction={activeReaction}
-        adaptiveQualityEnabled={adaptiveQuality}
-        onLowPerfModeChange={setIsLowPerfMode}
-        onFpsChange={setCurrentFps}
-      />
+      <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-[#070B14]"><div className="text-[#00E5FF] font-mono tracking-widest text-sm animate-pulse">BOOTING QUANTUM RENDER CORE...</div></div>}>
+        <ThreeScene
+          selectedElement={selectedElement}
+          compareElement={compareElement}
+          hoveredElement={hoveredElement}
+          onSelectElement={setSelectedElement}
+          onSelectCompareElement={setCompareElement}
+          onHoverElement={setHoveredElement}
+          layoutMode={layoutMode}
+          appMode={appMode}
+          timelineYear={timelineYear}
+          selectedMoleculeId={selectedMoleculeId}
+          isExplodedView={isExplodedView}
+          simulationSpeed={simulationSpeed}
+          reactiveIntensity={reactiveIntensity}
+          isObsEntered={isObsEntered}
+          activeReaction={activeReaction}
+          adaptiveQualityEnabled={adaptiveQuality}
+          onLowPerfModeChange={setIsLowPerfMode}
+          onFpsChange={setCurrentFps}
+        />
+      </Suspense>
 
       {/* Holographic HUD UI Overlays */}
       <HolographicUI

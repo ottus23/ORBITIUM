@@ -2140,18 +2140,15 @@ export default function ThreeScene({
 
         // Standard positions based on Layout Mode
         if (mode === 'grid') {
-          // Curvaceous cylinder panoramic command deck
-          const angle = (ci.element.group - 9.5) * 0.11; // Radians distribution
-          const cylinderRadius = 24;
-          
+          // Standard flat 2D periodic table
           ci.targetPosition.set(
-            Math.sin(angle) * cylinderRadius,
-            (4 - ci.element.period) * 3.4 - 0.5,
-            -Math.cos(angle) * cylinderRadius + cylinderRadius - 2
+            (ci.element.group - 9.5) * 2.2,
+            (4.5 - ci.element.period) * 3.0,
+            0
           );
           
-          // Face elements inward toward the central command point
-          ci.targetRotation.set(0, -angle, 0);
+          // Face elements forward
+          ci.targetRotation.set(0, 0, 0);
 
         } else if (mode === 'spiral') {
           // Glorious vertical sci-fi double-helix array

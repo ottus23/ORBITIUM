@@ -302,6 +302,7 @@ export default function HolographicUI({
 }: HolographicUIProps) {
   const [reactionStage, setReactionStage] = useState<'idle' | 'mixing' | 'stable'>('idle');
   const [reactionCountDown, setReactionCountDown] = useState(0);
+  const [activeReactionTab, setActiveReactionTab] = useState<'overview' | 'reaction' | 'products' | 'applications' | 'pathways'>('overview');
   const [activeTab, setActiveTab] = useState<'overview' | 'atomic' | 'properties' | 'cosmic_bio' | 'applications'>('overview');
   const [activeLayer, setActiveLayer] = useState<number>(1);
   
@@ -926,6 +927,662 @@ export default function HolographicUI({
 
           {/* Content scroll area */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar scrollbar-thin">
+            {/* 3. ATOMIC EXPLORER PANEL CONTROLS */}
+            {appMode === 'explorer' && (
+              <>
+                {/* Collapsible Panel 1: Geometric Field Config & Wavefield Modulations */}
+                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
+                  <button 
+                    onClick={() => setGeometryCollapsed(!geometryCollapsed)}
+                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00E5FF] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
+                  >
+                    <span className="flex items-center gap-2 font-black">
+                      <Layers className="w-4.5 h-4.5" /> COSMIC FIELD & WAVEFIELD
+                    </span>
+                    {geometryCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00E5FF]" />}
+                  </button>
+
+                  <div className={`transition-all duration-300 overflow-hidden ${geometryCollapsed ? 'max-h-0' : 'max-h-[850px] p-4 space-y-4'}`}>
+                    {/* Layout mode buttons */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[8px] font-mono text-white/40 uppercase tracking-widest font-black">CHOOSE ELEMENT LAYOUT GEOMETRY:</span>
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        {(['grid', 'spiral', 'sphere', 'scatter'] as TableLayoutMode[]).map((mode) => (
+                          <button
+                            key={mode}
+                            onClick={() => onChangeLayoutMode(mode)}
+                            className={`py-2 px-2 text-[10px] uppercase tracking-wider font-extrabold border transition-all cursor-pointer ${
+                              layoutMode === mode
+                                ? 'bg-[#00E5FF]/15 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.1)]'
+                                : 'bg-[#0B1020]/50 border-white/10 text-[#EAF2FF]/60 hover:border-white/20 hover:text-[#EAF2FF]'
+                            }`}
+                          >
+                            {mode === 'grid' && 'COSMIC GRIDMAP'}
+                            {mode === 'spiral' && 'STELLAR HELIX'}
+                            {mode === 'sphere' && 'ATOMIC STAR SYSTEM'}
+                            {mode === 'scatter' && 'NEBULA DRIFT'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Symmetrical divider */}
+                    <div className="w-full h-[1px] bg-white/10" />
+
+                    {/* Wavefield Modulations Range sliders */}
+                    <div className="space-y-3.5">
+                      <div className="text-[8.5px] font-mono text-[#7C4DFF] uppercase tracking-widest font-black flex items-center gap-1">
+                        <Sliders className="w-3.5 h-3.5" /> WAVEFIELD PARAMETERS
+                      </div>
+                      {/* Speed Slider */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
+                          <span className="uppercase">TIME COUPLING [SPEED]:</span>
+                          <span className="text-[#00E5FF] font-bold">{simulationSpeed.toFixed(1)}X</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="3"
+                          step="0.1"
+                          value={simulationSpeed}
+                          onChange={(e) => onSetSimulationSpeed(parseFloat(e.target.value))}
+                          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00E5FF]"
+                        />
+                      </div>
+
+                      {/* Energy/Kinetic intensity */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
+                          <span className="uppercase font-semibold">KINETIC ENERGY SCALE:</span>
+                          <span className="text-[#00FFB3] font-bold">{reactiveIntensity.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.5"
+                          step="0.05"
+                          value={reactiveIntensity}
+                          onChange={(e) => onSetReactiveIntensity(parseFloat(e.target.value))}
+                          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Symmetrical divider */}
+                    <div className="w-full h-[1px] bg-white/15" />
+
+                    {/* Performance and diagnostics */}
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex justify-between items-center text-[10px] font-mono">
+                        <span className="text-[#EAF2FF]/60 uppercase">SYSTEM DIAGNOSTICS HZ:</span>
+                        <span className={`font-black tracking-widest text-[#00FFB3] font-bold`}>
+                          {currentFps} FPS
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => onChangeAdaptiveQuality(!adaptiveQuality)}
+                        className={`w-full py-2 px-2 text-[10px] font-extrabold uppercase tracking-widest border transition-all cursor-pointer flex justify-between items-center bg-[#070B14] ${
+                          adaptiveQuality
+                            ? 'border-[#00E5FF]/40 text-[#00E5FF] hover:border-[#00E5FF]/70'
+                            : 'border-white/10 text-[#EAF2FF]/40 hover:border-white/20'
+                      }`}
+                      >
+                        <span>ADAPTIVE STABILIZATION:</span>
+                        <span className="font-extrabold text-xs">{adaptiveQuality ? 'ENABLED' : 'DISABLED'}</span>
+                      </button>
+
+                      {adaptiveQuality && (
+                        <div className="flex items-center gap-1.5 mt-0.5 px-2.5 py-1.5 rounded bg-black/40 text-[9px] font-mono border border-white/5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isLowPerfMode ? 'bg-[#FF9100] animate-pulse' : 'bg-[#00FFB3]'}`} />
+                          <span className={isLowPerfMode ? 'text-[#FF9100]' : 'text-[#EAF2FF]/50'}>
+                            {isLowPerfMode ? 'OPTIMIZED PERFORMANCE MODE ACTIVE' : 'AURA FLOW RATIO: PEAK CAPACITY'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Collapsible Panel 2: Cosmic Sector Telemetries & Anomaly Prober */}
+                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
+                  <button 
+                    onClick={() => setScannerCollapsed(!scannerCollapsed)}
+                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00FFB3] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
+                  >
+                    <span className="flex items-center gap-2 font-black">
+                      <Compass className="w-4.5 h-4.5 text-[#00FFB3]" /> COSMIC SECTORS & SCANNER
+                    </span>
+                    {scannerCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00FFB3]" />}
+                  </button>
+
+                  <div className={`transition-all duration-300 overflow-hidden ${scannerCollapsed ? 'max-h-0' : 'max-h-[8000px] p-4 space-y-4'}`}>
+                    {/* Scanner action trigger */}
+                    <div className="p-3.5 bg-black/40 border border-[#FF1744]/20 rounded-sm flex flex-col gap-2.5 animate-fade-in text-[9px]">
+                      {!isScanning ? (
+                        <button
+                          onClick={handleStartScan}
+                          className="w-full py-2 bg-[#00E5FF]/10 border border-[#00E5FF]/40 hover:border-[#00E5FF] hover:bg-[#00E5FF]/20 text-[#00E5FF] text-[9.5px] uppercase font-mono tracking-widest font-black rounded-sm cursor-pointer transition-all hover:shadow-[0_0_12px_rgba(0,229,255,0.15)] flex justify-center items-center gap-2"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" />
+                          <span>INITIATE ADVANCED DEEP VECTOR SCAN</span>
+                        </button>
+                      ) : (
+                        <div className="flex flex-col gap-2 font-mono text-[9px]">
+                          <div className="flex justify-between items-center text-[#00E5FF] font-semibold">
+                            <span className="animate-pulse">PROBING COSMIC FILAMENTS...</span>
+                            <span>{scanProgress}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] transition-all duration-100"
+                              style={{ width: `${scanProgress}%` }}
+                            />
+                          </div>
+                          <span className="text-[7.5px] text-white/30 text-center uppercase tracking-wider">HARNESSING EM FIELD STEADY FLOW</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Scanned result card */}
+                    {lastDiscovery && (
+                      <div className="p-3.5 bg-[#00FFB3]/5 border border-[#00FFB3]/20 rounded-sm animate-fade-in flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5 text-[#00FFB3] text-[9.5px] font-mono font-bold uppercase">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          <span>ANOMALY DETECTED:</span>
+                        </div>
+                        <div className="text-xs font-black text-white tracking-wide uppercase leading-tight font-sans mt-0.5">
+                          {lastDiscovery.title}
+                        </div>
+                        <div className="text-[8.5px] font-mono text-[#00E5FF] font-bold">
+                          {lastDiscovery.category.toUpperCase()} // UNLOCKED PATH
+                        </div>
+                        <p className="text-[10px] text-[#EAF2FF]/75 font-light leading-relaxed font-sans">
+                          {lastDiscovery.desc}
+                        </p>
+                        {lastDiscovery.reactantA && (
+                          <div className="mt-1 flex flex-col gap-1.5">
+                            <div className="text-[8.5px] font-mono text-white/40 uppercase">VALENCE PAIRS STAGES:</div>
+                            <div className="flex items-center justify-between text-[10.5px] font-mono bg-black/35 p-2 rounded border border-white/5">
+                              <span className="text-[#00FFB3]">{lastDiscovery.pathway}</span>
+                              <button
+                                onClick={() => {
+                                  onChangeAppMode('bond_lab');
+                                  const reaction = REACTION_CONFIGS.find(r => r.reactants.includes(lastDiscovery.reactantA) && r.reactants.includes(lastDiscovery.reactantB));
+                                  if (reaction) {
+                                    onTriggerReaction(reaction);
+                                  }
+                                  setIsMoreActive(false); // Close drawer to focus on active reactants scene
+                                }}
+                                className="px-2 py-0.5 border border-[#00E5FF] text-[#00E5FF] rounded bg-[#070B14] hover:bg-[#00E5FF]/20 text-[9px] cursor-pointer transition-all whitespace-nowrap"
+                              >
+                                ENGAGE FUSION
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Diagnostics archive log summary */}
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="text-[8.5px] font-mono text-white/40 uppercase tracking-widest font-bold">
+                        DIAGNOSTICS ARCHIVE LOG ({discoveredAnomalies.length}/5)
+                      </div>
+                      
+                      {discoveredAnomalies.length === 0 ? (
+                        <div className="border border-dashed border-white/10 rounded p-4 text-center text-[#EAF2FF]/35 font-sans font-light text-[10px]">
+                          No sector anomalies scanned. Execute scans above to populate findings.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1.5 overflow-y-auto max-h-36 pr-1">
+                          {discoveredAnomalies.map((item, index) => (
+                            <div 
+                              key={index}
+                              className="p-2 bg-[#0C1123]/90 border border-white/[0.06] rounded-sm flex flex-col gap-0.5 text-left font-mono text-[8.5px]"
+                            >
+                              <div className="flex justify-between w-full font-bold">
+                                <span className="text-white/80 uppercase tracking-wide truncate max-w-[170px]">{item.title}</span>
+                                <span className="text-[#00E5FF]">{item.category}</span>
+                              </div>
+                              <div className="text-[7.5px] text-white/40 leading-tight">PATHWAY: {item.pathway}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Symmetrical divider */}
+                    <div className="w-full h-[1px] bg-white/10" />
+
+                    {/* Sector tabs cockpit details */}
+                    <div className="flex flex-col gap-2.5">
+                      <div className="text-[8.5px] font-mono text-white/40 uppercase tracking-widest font-bold flex justify-between items-center">
+                        <span>COSMIC REGIONAL ECOSYSTEMS</span>
+                        <span className="text-[7px] text-[#00E5FF] font-black uppercase">GRID INTERACTION</span>
+                      </div>
+
+                      {/* Grid of Sector Tabs */}
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { name: 'Abyss', code: 'SEC-Ω', color: '#FF1744' },
+                          { name: 'Plasma', code: 'SEC-E', color: '#FF9100' },
+                          { name: 'Lattice', code: 'SEC-M', color: '#00FFB3' },
+                          { name: 'Inert', code: 'SEC-N', color: '#00E5FF' },
+                          { name: 'Storm', code: 'SEC-S', color: '#7C4DFF' },
+                          { name: 'Anomaly', code: 'SEC-A', color: '#E040FB' }
+                        ].map((sec, idx) => {
+                          const isActive = activeSectorIndex === idx;
+                          return (
+                            <button
+                              key={sec.code}
+                              onClick={() => {
+                                setActiveSectorIndex(idx);
+                                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 0.95 } }));
+                                import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                                  OrbitiumAudio.playUnlockChime();
+                                }).catch(() => {});
+                              }}
+                              className={`py-1.5 px-0.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border text-center ${
+                                isActive
+                                  ? 'bg-white/5 font-black shadow-[inset_0_0_8px_rgba(255,255,255,0.05)] text-white'
+                                  : 'border-white/5 bg-black/20 text-white/40 hover:text-white/70 hover:bg-white/5'
+                              }`}
+                              style={isActive ? { borderColor: sec.color, color: sec.color } : {}}
+                            >
+                              <span className="text-[9px] font-mono tracking-wider">{sec.code}</span>
+                              <span className="text-[7px] opacity-75 capitalize truncate w-full">{sec.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selected Sector Telemetry description */}
+                      {(() => {
+                        const sectMeta = [
+                          { name: 'Radioactive Abyss', type: 'Transuranic Decay', code: 'SEC-Ω', color: '#FF1744', stats: { temp: '14.8M K', flux: '44.5 mSv', coherent: '12%' }, action: 'Boost Coils' },
+                          { name: 'Plasma Energy Field', type: 'Beta Star Core Fusion', code: 'SEC-E', color: '#FF9100', stats: { temp: '150M K', flux: '1.24 G-deg', coherent: '98%' }, action: 'Ignite Fusion' },
+                          { name: 'Metallic Lattice', type: 'Zero-Ohm Coherence', code: 'SEC-M', color: '#00FFB3', stats: { temp: '4.2 K', flux: '12.4 Tesla', coherent: '100%' }, action: 'Align Field' },
+                          { name: 'Noble Void Envelope', type: 'Inert Buffer Barrier', code: 'SEC-N', color: '#00E5FF', stats: { temp: '77 K', flux: '0.002 bar', coherent: '99%' }, action: 'Saturate Buffer' },
+                          { name: 'Molecular Storm', type: 'Pressure Condensation', code: 'SEC-S', color: '#7C4DFF', stats: { temp: '298 K', flux: '480 Atm', coherent: '45%' }, action: 'Squeeze Core' },
+                          { name: 'Anomaly Warp Fields', type: 'Spacetime Gravitational Warp', code: 'SEC-A', color: '#E040FB', stats: { temp: '0 K', flux: 'G-Flux 1.14', coherent: '3.4%' }, action: 'Distort Space' }
+                        ][activeSectorIndex];
+
+                        if (!sectMeta) return null;
+
+                        const noiseVal = Math.sin(Date.now() / 1500);
+                        const noiseValCos = Math.cos(Date.now() / 2500);
+                        const powerLevel = (84.5 + noiseVal * 4.2).toFixed(2);
+                        const densityFlux = (1.142 + noiseValCos * 0.08).toFixed(3);
+
+                        return (
+                          <div className="p-3 bg-[#070B14]/75 border border-white/5 rounded-sm flex flex-col gap-2 animate-fade-in font-mono text-[9px] select-none text-left">
+                            <div className="flex justify-between items-center text-[10px] font-bold" style={{ color: sectMeta.color }}>
+                              <span className="capitalize">{sectMeta.name}</span>
+                              <span className="text-[7.5px] px-1.5 py-0.5 bg-white/5 rounded uppercase font-normal">{sectMeta.type}</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mt-1 py-1.5 border-t border-b border-white/[0.06] text-white/50">
+                              <div>TEMP: <span className="text-white font-bold">{sectMeta.stats.temp}</span></div>
+                              <div>FLUX: <span className="text-white font-bold">{sectMeta.stats.flux}</span></div>
+                              <div>POWER: <span className="text-white font-bold">{powerLevel} GeV</span></div>
+                              <div>DENSITY: <span className="text-white font-bold">{densityFlux} u³</span></div>
+                            </div>
+
+                            <div className="flex justify-between items-center mt-0.5">
+                              <span className="text-white/40 text-[7px] uppercase tracking-wider">COHERENCE STATUS:</span>
+                              <span className="font-extrabold text-[8px]" style={{ color: sectMeta.color }}>{sectMeta.stats.coherent} INGRESS</span>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 1.85 } }));
+                                import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
+                                  OrbitiumAudio.playUnlockChime();
+                                }).catch(() => {});
+                                const actMsg = `${sectMeta.code} OVERDRIVE: ${sectMeta.action.toUpperCase()} COMMENCED. METRICS BALANCED.`;
+                                setLiveQuantumEvents(prev => [actMsg, ...prev.slice(0, 7)]);
+                              }}
+                              className="w-full mt-1.5 py-1.5 bg-white/5 hover:bg-white/12 hover:text-white transition-all text-white/70 border border-white/10 rounded-sm cursor-pointer uppercase font-extrabold text-[8px] tracking-widest text-center"
+                            >
+                              ENGAGE CORE: {sectMeta.action}
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Collapsible Panel 3: Reaction Registry Synthesizer list & Live logs */}
+                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
+                  <button 
+                    onClick={() => setSynthesizerCollapsed(!synthesizerCollapsed)}
+                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00FFB3] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
+                  >
+                    <span className="flex items-center gap-2 font-black">
+                      <Flame className="w-4.5 h-4.5 text-[#00FFB3]" /> REACTION SYNTHESIZER
+                    </span>
+                    {synthesizerCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00FFB3]" />}
+                  </button>
+
+                  <div className={`transition-all duration-300 overflow-hidden ${synthesizerCollapsed ? 'max-h-0' : 'max-h-[9000px] p-4 space-y-4'}`}>
+                    {/* Reaction options */}
+                    <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                      {REACTION_CONFIGS.map((re, rIdx) => (
+                        <div 
+                          key={rIdx} 
+                          className="p-2.5 bg-white/5 border border-white/10 rounded-sm flex flex-col justify-between items-start gap-1 hover:border-white/25 transition-colors group"
+                        >
+                          <div className="flex justify-between w-full items-center">
+                            <span className="text-[11px] font-extrabold text-[#EAF2FF]/90 group-hover:text-[#00E5FF] transition-colors">{re.productFormula}</span>
+                            <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[#070B14] text-[#EAF2FF]/40">{re.visualType.toUpperCase()}</span>
+                          </div>
+                          <div className="text-[10px] text-[#EAF2FF]/50">{re.productName}</div>
+                          
+                          <button
+                            onClick={() => {
+                              handleReactionInit(re);
+                              setIsMoreActive(false); // Close drawer to focus on active reactants scene
+                            }}
+                            className="mt-1.5 w-full py-1 bg-[#0A0D1A] border border-white/15 hover:border-[#00FFB3] hover:text-[#00FFB3] text-[9.5px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center text-[#EAF2FF]/70"
+                          >
+                            SYNTHESIZE IN 3D FIELD
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Symmetrical divider */}
+                    <div className="w-full h-[1px] bg-white/10" />
+
+                    {/* Live events ticker */}
+                    <div className="space-y-2">
+                      <div className="text-[8.5px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00FFB3] animate-ping" />
+                          COSMOS CHRONO-MONITOR
+                        </span>
+                        <span className="text-[7px] text-white/30">sys.matter_clock()</span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5 pr-1 mt-0.5 max-h-36 overflow-y-auto">
+                        {liveQuantumEvents.map((evt, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`text-[8px] font-mono leading-relaxed p-1.5 bg-[#070B14]/80 border ${
+                              idx === 0 
+                                ? 'text-[#00FFB3] border-[#00FFB3]/25 shadow-[inset_0_0_6px_rgba(0,255,179,0.05)]' 
+                                : 'text-[#EAF2FF]/50 border-white/5'
+                            } rounded-sm animate-fade-in`}
+                          >
+                            <span className="text-white/20 mr-1">[{new Date(Date.now() - idx * 8000).toLocaleTimeString([], { hour12: false })}]</span>
+                            {evt}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer of the Drawer */}
+          <div className="p-4 border-t border-white/10 bg-black/35 flex items-center justify-between font-mono text-[8px] text-[#EAF2FF]/45">
+            <div>CONSOLE STATE: <span className="text-[#00FFB3] font-bold">SECURE ACCESSED</span></div>
+            <div>STATION LINK: <span className="text-[#00E5FF] font-bold">STABLE TETHERED</span></div>
+          </div>
+        </div>
+
+        {/* MIDDLE OVERLAY (Active reaction notifications/simulations) */}
+        {isObsEntered && activeReaction && (
+          <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-0 bottom-4 left-4 md:bottom-12 md:left-12 pointer-events-auto">
+            {reactionStage === 'idle' ? (
+              <div className="w-full max-w-sm mx-auto p-4 sm:p-5 bg-[#040814]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_50px_rgba(255,145,0,0.2)] backdrop-blur-3xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_65px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
+                
+                {/* Corner Frame accents */}
+                <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+                <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
+
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-10 h-10 border border-[#FF9100]/30 rounded-full flex items-center justify-center relative shrink-0">
+                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#FF9100]/60 animate-spin" style={{ animationDuration: '4s' }} />
+                    <Flame className="w-5 h-5 text-[#FF9100] animate-pulse" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[9px] sm:text-[10px] font-mono font-black tracking-[0.3em] text-[#FF9100] uppercase">
+                      CHAMBER ARMED
+                    </h3>
+                    <h1 className="text-xl sm:text-2xl font-black text-white tracking-widest mt-0.5">
+                      {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
+                    </h1>
+                  </div>
+                </div>
+
+                <div className="text-[8px] sm:text-[9px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase shadow-[0_0_10px_rgba(0,229,255,0.1)] w-full mb-3">
+                  TARGET: <span className="font-extrabold text-[#00FFF0]">{activeReaction.productFormula}</span>
+                </div>
+
+                <p className="text-[10px] sm:text-[11px] text-[#EAF2FF]/85 leading-relaxed font-light mb-4 px-2">
+                  <span className="text-[#FF9100] font-bold">Drag and drop</span> the reactants into each other to initiate quantum bonding.
+                </p>
+
+                <button
+                  onClick={handleCancelReaction}
+                  className="w-full px-6 py-2 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[9px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
+                >
+                  ABORT SEQUENCE
+                </button>
+              </div>
+            ) : reactionStage === 'stable' ? (
+              <div className="fixed top-auto bottom-0 left-0 right-0 md:static md:w-80 lg:w-96 max-h-[50vh] md:max-h-[70vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-[#040814]/95 border border-[#00FFF0]/30 rounded-t-lg md:rounded-sm shadow-[0_0_80px_rgba(0,255,240,0.15)] backdrop-blur-3xl flex flex-col pointer-events-auto animate-fade-in-up md:animate-fade-in relative group transition-all duration-700 select-none">
+                
+                {/* Advanced Scientific UI subtle frames/accents */}
+                <div className="absolute top-0 left-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-l-2 border-[#00FFF0]/40 rounded-tl-lg md:rounded-tl-none" />
+                <div className="absolute top-0 right-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-r-2 border-[#00FFF0]/40 rounded-tr-lg md:rounded-tr-none" />
+                <div className="absolute bottom-0 left-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-l-2 border-[#00FFF0]/40 hidden md:block" />
+                <div className="absolute bottom-0 right-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-r-2 border-[#00FFF0]/40 hidden md:block" />
+                
+                <div className="flex flex-col gap-4 items-start w-full">
+                  <div className="flex flex-col items-start w-full border-b border-[#00FFF0]/20 pb-4">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-10 h-10 border border-[#00FFF0]/40 rounded-full flex items-center justify-center bg-[#00FFF0]/10 relative shrink-0">
+                        <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFF0]/60 animate-spin" style={{ animationDuration: '6s' }} />
+                        <CheckCircle2 className="w-5 h-5 text-[#00FFF0]" />
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-mono font-black tracking-[0.3em] text-[#00FFF0] uppercase">SYNTHESIS COMPLETE</div>
+                        <div className="text-[#EAF2FF]/50 text-[8px] font-mono tracking-widest uppercase mt-0.5">Quantum Lock Established</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-4">
+                      <h1 className="text-3xl sm:text-4xl font-black tracking-widest text-[#00FFF0] drop-shadow-[0_0_20px_rgba(0,255,240,0.3)] mb-1 leading-none">
+                        {activeReaction.productFormula}
+                      </h1>
+                      <h2 className="text-lg sm:text-lg font-bold text-white uppercase tracking-wide">
+                        {activeReaction.productName}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 w-full overflow-x-auto pb-2 custom-scrollbar">
+                    {(['overview', 'reaction', 'products', 'applications', 'pathways'] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveReactionTab(tab)}
+                        className={`px-3 py-1.5 text-[9px] font-mono font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                          activeReactionTab === tab
+                            ? 'bg-[#00FFF0]/20 border-[#00FFF0] text-white shadow-[0_0_10px_rgba(0,255,240,0.2)]'
+                            : 'bg-black/30 border-white/5 text-white/40 hover:border-white/20 hover:text-white/80'
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="w-full flex-1 flex flex-col min-h-[150px]">
+                    {activeReactionTab === 'overview' && (
+                      <div className="animate-fade-in flex flex-col gap-4 w-full">
+                        <div className="bg-gradient-to-r from-[#00FFF0]/5 to-transparent border-l-2 border-[#00FFF0] p-3">
+                          <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] mb-2 uppercase font-black">SUMMARY</h3>
+                          <p className="text-xs text-[#EAF2FF]/85 leading-relaxed font-light">{activeReaction.description}</p>
+                        </div>
+                        <div className="flex gap-3 w-full">
+                          <div className="flex-1 bg-black/40 border border-[#00FFF0]/10 p-2.5 rounded-sm">
+                            <div className="text-[8px] font-mono text-[#00FFF0]/60 tracking-widest mb-1.5 uppercase font-bold">REACTION TYPE</div>
+                            <div className="text-[#00FFF0] text-[10px] uppercase font-black tracking-wider">{activeReaction.reactionType || activeReaction.visualType}</div>
+                          </div>
+                          <div className="flex-1 bg-black/40 border border-white/10 p-2.5 rounded-sm">
+                            <div className="text-[8px] font-mono text-white/50 tracking-widest mb-1.5 uppercase font-bold">STABILITY METRIC</div>
+                            <div className="text-white text-[10px] uppercase font-black tracking-wider">{activeReaction.stabilityMetric || 'UNKNOWN STABILITY'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeReactionTab === 'reaction' && (
+                      <div className="animate-fade-in flex flex-col gap-4 w-full">
+                        <div>
+                          <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-3 uppercase">THERMODYNAMIC CONDITIONS</h3>
+                          <p className="text-xs text-[#EAF2FF]/80 leading-relaxed font-light pl-2 border-l border-[#FF9100]/30 ml-1 py-1">
+                            {activeReaction.conditions || "Thermodynamic favorability naturally pulls these elements together into a lower energy state, releasing binding energy into the surrounding environment."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeReactionTab === 'products' && (
+                      <div className="animate-fade-in flex flex-col gap-4 w-full">
+                        <div className="bg-[#00FFF0]/5 border border-[#00FFF0]/10 p-3 rounded-sm">
+                          <div className="text-xs text-white font-black mb-2 uppercase tracking-wide">{activeReaction.resultingMaterial || 'Novel Compound'}</div>
+                          {activeReaction.structure && (
+                            <div className="text-[10px] text-[#EAF2FF]/70 font-mono flex gap-1 border-b border-white/5 pb-2 mb-2 font-bold">
+                              <span className="text-[#00FFF0] shrink-0 font-black">LATTICE:</span> {activeReaction.structure}
+                            </div>
+                          )}
+                          {activeReaction.properties && activeReaction.properties.length > 0 && (
+                            <div>
+                              <div className="text-[8px] font-mono text-[#00FFF0]/70 mb-1.5 tracking-widest uppercase font-black">PROPERTIES</div>
+                              <ul className="text-[10px] text-[#EAF2FF]/80 space-y-1.5 ml-1">
+                                {activeReaction.properties.map((prop, i) => (
+                                  <li key={i} className="flex items-start gap-1.5">
+                                    <span className="text-[#00FFF0] mt-0.5 max-w-[6px] font-black">»</span>
+                                    <span className="font-light">{prop}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeReactionTab === 'applications' && (
+                      <div className="animate-fade-in flex flex-col gap-4 w-full">
+                        <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-1 uppercase text-left w-fit">REAL WORLD DOMAIN</h3>
+                        <p className="text-xs text-[#EAF2FF]/80 leading-relaxed font-light mb-1 pl-2 border-l border-[#00FFF0]/30 ml-1">
+                          {activeReaction.whyItMatters || 'Crucial for future development.'}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 ml-1 mt-2">
+                          {activeReaction.realWorldApplications?.map((app, i) => (
+                            <span key={i} className="bg-white/5 border border-white/10 px-2 py-1.5 text-[8.5px] font-mono text-[#EAF2FF] uppercase tracking-wider font-bold">
+                              {app}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeReactionTab === 'pathways' && (
+                      <div className="animate-fade-in flex flex-col gap-2.5 w-full">
+                        <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-2 uppercase w-fit">INNOVATION PATHWAYS</h3>
+                        <div className="flex flex-col gap-1.5">
+                          {activeReaction.discoveryPathways?.map((pathway, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2.5 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
+                              <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
+                              <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">{pathway}</span>
+                            </div>
+                          ))}
+                          {(!activeReaction.discoveryPathways || activeReaction.discoveryPathways.length === 0) && (
+                            <div className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2.5 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
+                              <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
+                              <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">CONTINUE TO ADVANCED SYNTHESIS</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* BOTTOM ACTIONS */}
+                <div className="w-full flex justify-center mt-5 pt-5 border-t border-white/10">
+                  <button
+                    onClick={handleCancelReaction}
+                    className="w-full text-center py-3 bg-[#070B14] border border-[#00FFF0]/60 hover:bg-[#00FFF0]/15 text-[10px] uppercase font-mono font-black tracking-[0.2em] text-[#00FFF0] transition-all cursor-pointer rounded-sm shadow-[0_0_15px_rgba(0,255,240,0.15)] hover:shadow-[0_0_20px_rgba(0,255,240,0.4)] hover:border-[#00FFF0]"
+                  >
+                    RETURN TO CHAMBER
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* SUBATOMIC SHELL ANALYZER REMOVED - integrated directly into ElementWorldUI array */}
+
+        {/* =======================================================
+            CELESTIAL ATLAS OBSERVATORY MASTER DASHBOARD
+            ======================================================= */}
+        {isObsEntered && appMode === 'observatory' && !selectedElement && (
+          <div className="flex-1 w-full flex flex-col justify-between p-4 bg-transparent pointer-events-auto overflow-hidden max-h-[85vh] md:max-h-[calc(100vh-130px)] select-none">
+            <ObservatoryHub
+              onSelectElementBySymbol={(symbol) => {
+                const found = ELEMENTS_DATA.find(e => e.symbol === symbol);
+                if (found) {
+                  onSelectElement(found);
+                }
+              }}
+              onScaleChange={(scaleId) => {
+                // Trigger customized physical particle waves across visualizers
+                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 1.55 } }));
+              }}
+            />
+          </div>
+        )}
+
+        {/* ELITE COCKPIT: SPATIAL HOLOGRAPHIC HUD PANELS (ELEMENT WORLD EXPERIENCE) */}
+        {isObsEntered && selectedElement && !compareElement && (
+          <div 
+            className="absolute inset-0 z-30 select-none pointer-events-none flex flex-col justify-between"
+            style={{
+              '--primary-color': getCatMeta(selectedElement.category || 'reactive-nonmetal').hex,
+              '--primary-color-alpha': `${getCatMeta(selectedElement.category || 'reactive-nonmetal').hex}38`
+            } as React.CSSProperties}
+          >
+            <ElementWorldUI 
+              selectedElement={selectedElement}
+              onSelectElement={onSelectElement}
+              onSelectCompareElement={onSelectCompareElement}
+              setCompareSelectorOpen={setCompareSelectorOpen}
+              setActiveShellInfo={setActiveShellInfo}
+              activeShellInfo={activeShellInfo}
+            />
+          </div>
+        )}
+
+
+        {/* =======================================================
+            UNIVERSAL KNOWLEDGE ZONE FOR TIMELINE / MOLECULAR / BOND LAB
+            ======================================================= */}
+        {!selectedElement && isObsEntered && (appMode === 'timeline' || appMode === 'bond_lab' || appMode === 'molecular') && (
+          <div className="absolute right-4 md:right-12 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 max-w-[280px] w-full sm:max-w-[340px] md:w-96 pointer-events-auto animate-fade-in-right z-40 bg-[#040814]/90 backdrop-blur-3xl border border-[#00FFF0]/20 p-5 rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar select-none">
             {/* 1. DISCOVERY TIMELINE PANEL CONTROLS */}
             {appMode === 'timeline' && (
               <>
@@ -1397,739 +2054,7 @@ export default function HolographicUI({
               </>
             )}
 
-            {/* 3. ATOMIC EXPLORER PANEL CONTROLS */}
-            {appMode === 'explorer' && (
-              <>
-                {/* Collapsible Panel 1: Geometric Field Config & Wavefield Modulations */}
-                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
-                  <button 
-                    onClick={() => setGeometryCollapsed(!geometryCollapsed)}
-                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00E5FF] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
-                  >
-                    <span className="flex items-center gap-2 font-black">
-                      <Layers className="w-4.5 h-4.5" /> COSMIC FIELD & WAVEFIELD
-                    </span>
-                    {geometryCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00E5FF]" />}
-                  </button>
 
-                  <div className={`transition-all duration-300 overflow-hidden ${geometryCollapsed ? 'max-h-0' : 'max-h-[850px] p-4 space-y-4'}`}>
-                    {/* Layout mode buttons */}
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[8px] font-mono text-white/40 uppercase tracking-widest font-black">CHOOSE ELEMENT LAYOUT GEOMETRY:</span>
-                      <div className="grid grid-cols-2 gap-2 mt-1">
-                        {(['grid', 'spiral', 'sphere', 'scatter'] as TableLayoutMode[]).map((mode) => (
-                          <button
-                            key={mode}
-                            onClick={() => onChangeLayoutMode(mode)}
-                            className={`py-2 px-2 text-[10px] uppercase tracking-wider font-extrabold border transition-all cursor-pointer ${
-                              layoutMode === mode
-                                ? 'bg-[#00E5FF]/15 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.1)]'
-                                : 'bg-[#0B1020]/50 border-white/10 text-[#EAF2FF]/60 hover:border-white/20 hover:text-[#EAF2FF]'
-                            }`}
-                          >
-                            {mode === 'grid' && 'COSMIC GRIDMAP'}
-                            {mode === 'spiral' && 'STELLAR HELIX'}
-                            {mode === 'sphere' && 'ATOMIC STAR SYSTEM'}
-                            {mode === 'scatter' && 'NEBULA DRIFT'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Symmetrical divider */}
-                    <div className="w-full h-[1px] bg-white/10" />
-
-                    {/* Wavefield Modulations Range sliders */}
-                    <div className="space-y-3.5">
-                      <div className="text-[8.5px] font-mono text-[#7C4DFF] uppercase tracking-widest font-black flex items-center gap-1">
-                        <Sliders className="w-3.5 h-3.5" /> WAVEFIELD PARAMETERS
-                      </div>
-                      {/* Speed Slider */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
-                          <span className="uppercase">TIME COUPLING [SPEED]:</span>
-                          <span className="text-[#00E5FF] font-bold">{simulationSpeed.toFixed(1)}X</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="3"
-                          step="0.1"
-                          value={simulationSpeed}
-                          onChange={(e) => onSetSimulationSpeed(parseFloat(e.target.value))}
-                          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00E5FF]"
-                        />
-                      </div>
-
-                      {/* Energy/Kinetic intensity */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex justify-between text-[10px] font-mono text-[#EAF2FF]/60">
-                          <span className="uppercase font-semibold">KINETIC ENERGY SCALE:</span>
-                          <span className="text-[#00FFB3] font-bold">{reactiveIntensity.toFixed(2)}x</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.5"
-                          max="2.5"
-                          step="0.05"
-                          value={reactiveIntensity}
-                          onChange={(e) => onSetReactiveIntensity(parseFloat(e.target.value))}
-                          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00FFB3]"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Symmetrical divider */}
-                    <div className="w-full h-[1px] bg-white/15" />
-
-                    {/* Performance and diagnostics */}
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex justify-between items-center text-[10px] font-mono">
-                        <span className="text-[#EAF2FF]/60 uppercase">SYSTEM DIAGNOSTICS HZ:</span>
-                        <span className={`font-black tracking-widest text-[#00FFB3] font-bold`}>
-                          {currentFps} FPS
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => onChangeAdaptiveQuality(!adaptiveQuality)}
-                        className={`w-full py-2 px-2 text-[10px] font-extrabold uppercase tracking-widest border transition-all cursor-pointer flex justify-between items-center bg-[#070B14] ${
-                          adaptiveQuality
-                            ? 'border-[#00E5FF]/40 text-[#00E5FF] hover:border-[#00E5FF]/70'
-                            : 'border-white/10 text-[#EAF2FF]/40 hover:border-white/20'
-                      }`}
-                      >
-                        <span>ADAPTIVE STABILIZATION:</span>
-                        <span className="font-extrabold text-xs">{adaptiveQuality ? 'ENABLED' : 'DISABLED'}</span>
-                      </button>
-
-                      {adaptiveQuality && (
-                        <div className="flex items-center gap-1.5 mt-0.5 px-2.5 py-1.5 rounded bg-black/40 text-[9px] font-mono border border-white/5">
-                          <span className={`w-1.5 h-1.5 rounded-full ${isLowPerfMode ? 'bg-[#FF9100] animate-pulse' : 'bg-[#00FFB3]'}`} />
-                          <span className={isLowPerfMode ? 'text-[#FF9100]' : 'text-[#EAF2FF]/50'}>
-                            {isLowPerfMode ? 'OPTIMIZED PERFORMANCE MODE ACTIVE' : 'AURA FLOW RATIO: PEAK CAPACITY'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Collapsible Panel 2: Cosmic Sector Telemetries & Anomaly Prober */}
-                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
-                  <button 
-                    onClick={() => setScannerCollapsed(!scannerCollapsed)}
-                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00FFB3] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
-                  >
-                    <span className="flex items-center gap-2 font-black">
-                      <Compass className="w-4.5 h-4.5 text-[#00FFB3]" /> COSMIC SECTORS & SCANNER
-                    </span>
-                    {scannerCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00FFB3]" />}
-                  </button>
-
-                  <div className={`transition-all duration-300 overflow-hidden ${scannerCollapsed ? 'max-h-0' : 'max-h-[8000px] p-4 space-y-4'}`}>
-                    {/* Scanner action trigger */}
-                    <div className="p-3.5 bg-black/40 border border-[#FF1744]/20 rounded-sm flex flex-col gap-2.5 animate-fade-in text-[9px]">
-                      {!isScanning ? (
-                        <button
-                          onClick={handleStartScan}
-                          className="w-full py-2 bg-[#00E5FF]/10 border border-[#00E5FF]/40 hover:border-[#00E5FF] hover:bg-[#00E5FF]/20 text-[#00E5FF] text-[9.5px] uppercase font-mono tracking-widest font-black rounded-sm cursor-pointer transition-all hover:shadow-[0_0_12px_rgba(0,229,255,0.15)] flex justify-center items-center gap-2"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" />
-                          <span>INITIATE ADVANCED DEEP VECTOR SCAN</span>
-                        </button>
-                      ) : (
-                        <div className="flex flex-col gap-2 font-mono text-[9px]">
-                          <div className="flex justify-between items-center text-[#00E5FF] font-semibold">
-                            <span className="animate-pulse">PROBING COSMIC FILAMENTS...</span>
-                            <span>{scanProgress}%</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-[#00E5FF] shadow-[0_0_8px_#00E5FF] transition-all duration-100"
-                              style={{ width: `${scanProgress}%` }}
-                            />
-                          </div>
-                          <span className="text-[7.5px] text-white/30 text-center uppercase tracking-wider">HARNESSING EM FIELD STEADY FLOW</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Scanned result card */}
-                    {lastDiscovery && (
-                      <div className="p-3.5 bg-[#00FFB3]/5 border border-[#00FFB3]/20 rounded-sm animate-fade-in flex flex-col gap-2">
-                        <div className="flex items-center gap-1.5 text-[#00FFB3] text-[9.5px] font-mono font-bold uppercase">
-                          <CheckCircle2 className="w-4 h-4 shrink-0" />
-                          <span>ANOMALY DETECTED:</span>
-                        </div>
-                        <div className="text-xs font-black text-white tracking-wide uppercase leading-tight font-sans mt-0.5">
-                          {lastDiscovery.title}
-                        </div>
-                        <div className="text-[8.5px] font-mono text-[#00E5FF] font-bold">
-                          {lastDiscovery.category.toUpperCase()} // UNLOCKED PATH
-                        </div>
-                        <p className="text-[10px] text-[#EAF2FF]/75 font-light leading-relaxed font-sans">
-                          {lastDiscovery.desc}
-                        </p>
-                        {lastDiscovery.reactantA && (
-                          <div className="mt-1 flex flex-col gap-1.5">
-                            <div className="text-[8.5px] font-mono text-white/40 uppercase">VALENCE PAIRS STAGES:</div>
-                            <div className="flex items-center justify-between text-[10.5px] font-mono bg-black/35 p-2 rounded border border-white/5">
-                              <span className="text-[#00FFB3]">{lastDiscovery.pathway}</span>
-                              <button
-                                onClick={() => {
-                                  onChangeAppMode('bond_lab');
-                                  const reaction = REACTION_CONFIGS.find(r => r.reactants.includes(lastDiscovery.reactantA) && r.reactants.includes(lastDiscovery.reactantB));
-                                  if (reaction) {
-                                    onTriggerReaction(reaction);
-                                  }
-                                  setIsMoreActive(false); // Close drawer to focus on active reactants scene
-                                }}
-                                className="px-2 py-0.5 border border-[#00E5FF] text-[#00E5FF] rounded bg-[#070B14] hover:bg-[#00E5FF]/20 text-[9px] cursor-pointer transition-all whitespace-nowrap"
-                              >
-                                ENGAGE FUSION
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Diagnostics archive log summary */}
-                    <div className="flex-1 flex flex-col gap-2">
-                      <div className="text-[8.5px] font-mono text-white/40 uppercase tracking-widest font-bold">
-                        DIAGNOSTICS ARCHIVE LOG ({discoveredAnomalies.length}/5)
-                      </div>
-                      
-                      {discoveredAnomalies.length === 0 ? (
-                        <div className="border border-dashed border-white/10 rounded p-4 text-center text-[#EAF2FF]/35 font-sans font-light text-[10px]">
-                          No sector anomalies scanned. Execute scans above to populate findings.
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-1.5 overflow-y-auto max-h-36 pr-1">
-                          {discoveredAnomalies.map((item, index) => (
-                            <div 
-                              key={index}
-                              className="p-2 bg-[#0C1123]/90 border border-white/[0.06] rounded-sm flex flex-col gap-0.5 text-left font-mono text-[8.5px]"
-                            >
-                              <div className="flex justify-between w-full font-bold">
-                                <span className="text-white/80 uppercase tracking-wide truncate max-w-[170px]">{item.title}</span>
-                                <span className="text-[#00E5FF]">{item.category}</span>
-                              </div>
-                              <div className="text-[7.5px] text-white/40 leading-tight">PATHWAY: {item.pathway}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Symmetrical divider */}
-                    <div className="w-full h-[1px] bg-white/10" />
-
-                    {/* Sector tabs cockpit details */}
-                    <div className="flex flex-col gap-2.5">
-                      <div className="text-[8.5px] font-mono text-white/40 uppercase tracking-widest font-bold flex justify-between items-center">
-                        <span>COSMIC REGIONAL ECOSYSTEMS</span>
-                        <span className="text-[7px] text-[#00E5FF] font-black uppercase">GRID INTERACTION</span>
-                      </div>
-
-                      {/* Grid of Sector Tabs */}
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {[
-                          { name: 'Abyss', code: 'SEC-Ω', color: '#FF1744' },
-                          { name: 'Plasma', code: 'SEC-E', color: '#FF9100' },
-                          { name: 'Lattice', code: 'SEC-M', color: '#00FFB3' },
-                          { name: 'Inert', code: 'SEC-N', color: '#00E5FF' },
-                          { name: 'Storm', code: 'SEC-S', color: '#7C4DFF' },
-                          { name: 'Anomaly', code: 'SEC-A', color: '#E040FB' }
-                        ].map((sec, idx) => {
-                          const isActive = activeSectorIndex === idx;
-                          return (
-                            <button
-                              key={sec.code}
-                              onClick={() => {
-                                setActiveSectorIndex(idx);
-                                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 0.95 } }));
-                                import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
-                                  OrbitiumAudio.playUnlockChime();
-                                }).catch(() => {});
-                              }}
-                              className={`py-1.5 px-0.5 flex flex-col items-center justify-center rounded-sm transition-all cursor-pointer border text-center ${
-                                isActive
-                                  ? 'bg-white/5 font-black shadow-[inset_0_0_8px_rgba(255,255,255,0.05)] text-white'
-                                  : 'border-white/5 bg-black/20 text-white/40 hover:text-white/70 hover:bg-white/5'
-                              }`}
-                              style={isActive ? { borderColor: sec.color, color: sec.color } : {}}
-                            >
-                              <span className="text-[9px] font-mono tracking-wider">{sec.code}</span>
-                              <span className="text-[7px] opacity-75 capitalize truncate w-full">{sec.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Selected Sector Telemetry description */}
-                      {(() => {
-                        const sectMeta = [
-                          { name: 'Radioactive Abyss', type: 'Transuranic Decay', code: 'SEC-Ω', color: '#FF1744', stats: { temp: '14.8M K', flux: '44.5 mSv', coherent: '12%' }, action: 'Boost Coils' },
-                          { name: 'Plasma Energy Field', type: 'Beta Star Core Fusion', code: 'SEC-E', color: '#FF9100', stats: { temp: '150M K', flux: '1.24 G-deg', coherent: '98%' }, action: 'Ignite Fusion' },
-                          { name: 'Metallic Lattice', type: 'Zero-Ohm Coherence', code: 'SEC-M', color: '#00FFB3', stats: { temp: '4.2 K', flux: '12.4 Tesla', coherent: '100%' }, action: 'Align Field' },
-                          { name: 'Noble Void Envelope', type: 'Inert Buffer Barrier', code: 'SEC-N', color: '#00E5FF', stats: { temp: '77 K', flux: '0.002 bar', coherent: '99%' }, action: 'Saturate Buffer' },
-                          { name: 'Molecular Storm', type: 'Pressure Condensation', code: 'SEC-S', color: '#7C4DFF', stats: { temp: '298 K', flux: '480 Atm', coherent: '45%' }, action: 'Squeeze Core' },
-                          { name: 'Anomaly Warp Fields', type: 'Spacetime Gravitational Warp', code: 'SEC-A', color: '#E040FB', stats: { temp: '0 K', flux: 'G-Flux 1.14', coherent: '3.4%' }, action: 'Distort Space' }
-                        ][activeSectorIndex];
-
-                        if (!sectMeta) return null;
-
-                        const noiseVal = Math.sin(Date.now() / 1500);
-                        const noiseValCos = Math.cos(Date.now() / 2500);
-                        const powerLevel = (84.5 + noiseVal * 4.2).toFixed(2);
-                        const densityFlux = (1.142 + noiseValCos * 0.08).toFixed(3);
-
-                        return (
-                          <div className="p-3 bg-[#070B14]/75 border border-white/5 rounded-sm flex flex-col gap-2 animate-fade-in font-mono text-[9px] select-none text-left">
-                            <div className="flex justify-between items-center text-[10px] font-bold" style={{ color: sectMeta.color }}>
-                              <span className="capitalize">{sectMeta.name}</span>
-                              <span className="text-[7.5px] px-1.5 py-0.5 bg-white/5 rounded uppercase font-normal">{sectMeta.type}</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 mt-1 py-1.5 border-t border-b border-white/[0.06] text-white/50">
-                              <div>TEMP: <span className="text-white font-bold">{sectMeta.stats.temp}</span></div>
-                              <div>FLUX: <span className="text-white font-bold">{sectMeta.stats.flux}</span></div>
-                              <div>POWER: <span className="text-white font-bold">{powerLevel} GeV</span></div>
-                              <div>DENSITY: <span className="text-white font-bold">{densityFlux} u³</span></div>
-                            </div>
-
-                            <div className="flex justify-between items-center mt-0.5">
-                              <span className="text-white/40 text-[7px] uppercase tracking-wider">COHERENCE STATUS:</span>
-                              <span className="font-extrabold text-[8px]" style={{ color: sectMeta.color }}>{sectMeta.stats.coherent} INGRESS</span>
-                            </div>
-
-                            <button
-                              onClick={() => {
-                                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 1.85 } }));
-                                import('../utils/audioSynth').then(({ OrbitiumAudio }) => {
-                                  OrbitiumAudio.playUnlockChime();
-                                }).catch(() => {});
-                                const actMsg = `${sectMeta.code} OVERDRIVE: ${sectMeta.action.toUpperCase()} COMMENCED. METRICS BALANCED.`;
-                                setLiveQuantumEvents(prev => [actMsg, ...prev.slice(0, 7)]);
-                              }}
-                              className="w-full mt-1.5 py-1.5 bg-white/5 hover:bg-white/12 hover:text-white transition-all text-white/70 border border-white/10 rounded-sm cursor-pointer uppercase font-extrabold text-[8px] tracking-widest text-center"
-                            >
-                              ENGAGE CORE: {sectMeta.action}
-                            </button>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Collapsible Panel 3: Reaction Registry Synthesizer list & Live logs */}
-                <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
-                  <button 
-                    onClick={() => setSynthesizerCollapsed(!synthesizerCollapsed)}
-                    className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00FFB3] tracking-widest bg-white/[0.02] border-b border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"
-                  >
-                    <span className="flex items-center gap-2 font-black">
-                      <Flame className="w-4.5 h-4.5 text-[#00FFB3]" /> REACTION SYNTHESIZER
-                    </span>
-                    {synthesizerCollapsed ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronUp className="w-4.5 h-4.5 text-[#00FFB3]" />}
-                  </button>
-
-                  <div className={`transition-all duration-300 overflow-hidden ${synthesizerCollapsed ? 'max-h-0' : 'max-h-[9000px] p-4 space-y-4'}`}>
-                    {/* Reaction options */}
-                    <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-                      {REACTION_CONFIGS.map((re, rIdx) => (
-                        <div 
-                          key={rIdx} 
-                          className="p-2.5 bg-white/5 border border-white/10 rounded-sm flex flex-col justify-between items-start gap-1 hover:border-white/25 transition-colors group"
-                        >
-                          <div className="flex justify-between w-full items-center">
-                            <span className="text-[11px] font-extrabold text-[#EAF2FF]/90 group-hover:text-[#00E5FF] transition-colors">{re.productFormula}</span>
-                            <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-[#070B14] text-[#EAF2FF]/40">{re.visualType.toUpperCase()}</span>
-                          </div>
-                          <div className="text-[10px] text-[#EAF2FF]/50">{re.productName}</div>
-                          
-                          <button
-                            onClick={() => {
-                              handleReactionInit(re);
-                              setIsMoreActive(false); // Close drawer to focus on active reactants scene
-                            }}
-                            className="mt-1.5 w-full py-1 bg-[#0A0D1A] border border-white/15 hover:border-[#00FFB3] hover:text-[#00FFB3] text-[9.5px] uppercase tracking-wider font-bold transition-all cursor-pointer text-center text-[#EAF2FF]/70"
-                          >
-                            SYNTHESIZE IN 3D FIELD
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Symmetrical divider */}
-                    <div className="w-full h-[1px] bg-white/10" />
-
-                    {/* Live events ticker */}
-                    <div className="space-y-2">
-                      <div className="text-[8.5px] font-mono uppercase text-[#00E5FF] tracking-widest flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#00FFB3] animate-ping" />
-                          COSMOS CHRONO-MONITOR
-                        </span>
-                        <span className="text-[7px] text-white/30">sys.matter_clock()</span>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5 pr-1 mt-0.5 max-h-36 overflow-y-auto">
-                        {liveQuantumEvents.map((evt, idx) => (
-                          <div 
-                            key={idx} 
-                            className={`text-[8px] font-mono leading-relaxed p-1.5 bg-[#070B14]/80 border ${
-                              idx === 0 
-                                ? 'text-[#00FFB3] border-[#00FFB3]/25 shadow-[inset_0_0_6px_rgba(0,255,179,0.05)]' 
-                                : 'text-[#EAF2FF]/50 border-white/5'
-                            } rounded-sm animate-fade-in`}
-                          >
-                            <span className="text-white/20 mr-1">[{new Date(Date.now() - idx * 8000).toLocaleTimeString([], { hour12: false })}]</span>
-                            {evt}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Footer of the Drawer */}
-          <div className="p-4 border-t border-white/10 bg-black/35 flex items-center justify-between font-mono text-[8px] text-[#EAF2FF]/45">
-            <div>CONSOLE STATE: <span className="text-[#00FFB3] font-bold">SECURE ACCESSED</span></div>
-            <div>STATION LINK: <span className="text-[#00E5FF] font-bold">STABLE TETHERED</span></div>
-          </div>
-        </div>
-
-        {/* MIDDLE OVERLAY (Active reaction notifications/simulations) */}
-        {isObsEntered && activeReaction && (
-          <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-0 bottom-4 left-4 md:bottom-12 md:left-12 pointer-events-auto">
-            {reactionStage === 'idle' ? (
-              <div className="w-full max-w-sm mx-auto p-4 sm:p-5 bg-[#040814]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_50px_rgba(255,145,0,0.2)] backdrop-blur-3xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_65px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
-                
-                {/* Corner Frame accents */}
-                <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="w-10 h-10 border border-[#FF9100]/30 rounded-full flex items-center justify-center relative shrink-0">
-                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#FF9100]/60 animate-spin" style={{ animationDuration: '4s' }} />
-                    <Flame className="w-5 h-5 text-[#FF9100] animate-pulse" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-[9px] sm:text-[10px] font-mono font-black tracking-[0.3em] text-[#FF9100] uppercase">
-                      CHAMBER ARMED
-                    </h3>
-                    <h1 className="text-xl sm:text-2xl font-black text-white tracking-widest mt-0.5">
-                      {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
-                    </h1>
-                  </div>
-                </div>
-
-                <div className="text-[8px] sm:text-[9px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase shadow-[0_0_10px_rgba(0,229,255,0.1)] w-full mb-3">
-                  TARGET: <span className="font-extrabold text-[#00FFF0]">{activeReaction.productFormula}</span>
-                </div>
-
-                <p className="text-[10px] sm:text-[11px] text-[#EAF2FF]/85 leading-relaxed font-light mb-4 px-2">
-                  <span className="text-[#FF9100] font-bold">Drag and drop</span> the reactants into each other to initiate quantum bonding.
-                </p>
-
-                <button
-                  onClick={handleCancelReaction}
-                  className="w-full px-6 py-2 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[9px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
-                >
-                  ABORT SEQUENCE
-                </button>
-              </div>
-            ) : reactionStage === 'stable' ? (
-              <div className="fixed top-auto bottom-0 left-0 right-0 md:static md:w-80 lg:w-96 max-h-[50vh] md:max-h-[70vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-[#040814]/95 border border-[#00FFF0]/30 rounded-t-lg md:rounded-sm shadow-[0_0_80px_rgba(0,255,240,0.15)] backdrop-blur-3xl flex flex-col pointer-events-auto animate-fade-in-up md:animate-fade-in relative group transition-all duration-700 select-none">
-                
-                {/* Advanced Scientific UI subtle frames/accents */}
-                <div className="absolute top-0 left-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-l-2 border-[#00FFF0]/40 rounded-tl-lg md:rounded-tl-none" />
-                <div className="absolute top-0 right-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-r-2 border-[#00FFF0]/40 rounded-tr-lg md:rounded-tr-none" />
-                <div className="absolute bottom-0 left-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-l-2 border-[#00FFF0]/40 hidden md:block" />
-                <div className="absolute bottom-0 right-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-r-2 border-[#00FFF0]/40 hidden md:block" />
-                
-                <div className="flex flex-col gap-8 items-start">
-                  {/* LEFT COLUMN: IDENTITY & WHAT HAPPENED */}
-                  <div className="flex flex-col items-start w-full">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-10 h-10 border border-[#00FFF0]/40 rounded-full flex items-center justify-center bg-[#00FFF0]/10 relative shrink-0">
-                        <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFF0]/60 animate-spin" style={{ animationDuration: '6s' }} />
-                        <CheckCircle2 className="w-5 h-5 text-[#00FFF0]" />
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-mono font-black tracking-[0.3em] text-[#00FFF0] uppercase">SYNTHESIS COMPLETE</div>
-                        <div className="text-[#EAF2FF]/50 text-[8px] font-mono tracking-widest uppercase mt-0.5">Quantum Lock Established</div>
-                      </div>
-                    </div>
-                    
-                    <h1 className="text-3xl sm:text-4xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] mb-1 mt-2 leading-none">
-                      {activeReaction.productFormula}
-                    </h1>
-                    <h2 className="text-lg sm:text-xl font-bold text-[#00FFF0] uppercase tracking-wide mb-4">
-                      {activeReaction.productName}
-                    </h2>
-
-                    <div className="w-full h-[1px] bg-gradient-to-r from-[#00FFF0]/50 to-transparent mb-5" />
-                    
-                    <div className="mb-5 w-full">
-                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-2 uppercase">1. WHAT HAPPENED?</h3>
-                      <p className="text-xs text-[#EAF2FF]/85 leading-relaxed font-light pl-1 border-l-2 border-[#00FFF0]/30 ml-1 py-1">
-                        {activeReaction.description}
-                      </p>
-                    </div>
-                    
-                    <div className="mb-5 w-full">
-                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-2 uppercase">2. WHY DID IT HAPPEN?</h3>
-                      <p className="text-[11px] text-[#EAF2FF]/70 leading-relaxed font-light pl-1 border-l-2 border-[#FF9100]/30 ml-1 py-1">
-                        {activeReaction.conditions || "Thermodynamic favorability naturally pulls these elements together into a lower energy state, releasing binding energy into the surrounding environment."}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-3 w-full mb-5">
-                      <div className="bg-black/30 border border-[#00FFF0]/20 p-3 rounded-sm">
-                        <div className="text-[8px] font-mono text-[#00FFF0] tracking-widest mb-1.5 uppercase">REACTION TYPE</div>
-                        <div className="text-xs font-bold text-white uppercase">{activeReaction.reactionType || activeReaction.visualType}</div>
-                      </div>
-                      <div className="bg-black/30 border border-[#00FFF0]/20 p-3 rounded-sm">
-                        <div className="text-[8px] font-mono text-[#00FFF0] tracking-widest mb-1.5 uppercase">STABILITY METRIC</div>
-                        <div className="text-xs font-bold text-white uppercase">{activeReaction.stabilityMetric || 'UNKNOWN STABILITY'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* RIGHT COLUMN: DEPTH, STRUCTURE, PATHWAYS */}
-                  <div className="flex flex-col w-full border-t border-white/10 pt-6">
-                    <div className="mb-5">
-                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-2 uppercase">3. WHAT WAS CREATED?</h3>
-                      <div className="bg-[#00FFF0]/5 border border-[#00FFF0]/10 p-3 rounded-sm ml-1">
-                        <div className="text-xs text-white font-medium mb-2">{activeReaction.resultingMaterial || 'Novel Compound'}</div>
-                        {activeReaction.structure && (
-                          <div className="text-[10px] text-[#EAF2FF]/70 font-mono flex gap-1 border-b border-white/5 pb-2 mb-2">
-                            <span className="text-[#00FFF0] shrink-0">◇ STRUCTURE:</span> {activeReaction.structure}
-                          </div>
-                        )}
-                        {activeReaction.properties && activeReaction.properties.length > 0 && (
-                          <div>
-                            <div className="text-[8px] font-mono text-[#00FFF0]/70 mb-1.5 tracking-widest uppercase">CORE PROPERTIES</div>
-                            <ul className="text-[11px] text-[#EAF2FF]/80 space-y-1 ml-1">
-                              {activeReaction.properties.map((prop, i) => (
-                                <li key={i} className="flex items-start gap-1.5">
-                                  <span className="text-[#00FFF0] mt-0.5 max-w-[6px]">-</span>
-                                  <span>{prop}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mb-5">
-                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-2 uppercase">4. WHERE IS IT USED?</h3>
-                      <div className="text-[11px] text-[#EAF2FF]/80 leading-relaxed font-light mb-2 ml-1 pl-1 border-l-2 border-[#00FFF0]/30">
-                        {activeReaction.whyItMatters || 'Crucial for future development.'}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mt-2 ml-1">
-                        {activeReaction.realWorldApplications?.map((app, i) => (
-                          <span key={i} className="bg-white/5 border border-white/10 px-1.5 py-1 text-[8px] font-mono text-[#EAF2FF] uppercase tracking-wide">
-                            {app}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mb-5">
-                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-2 uppercase">5. WHAT DOES IT LEAD TO?</h3>
-                      <div className="flex flex-col gap-1.5 ml-1">
-                        {activeReaction.discoveryPathways?.map((pathway, i) => (
-                          <div key={i} className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
-                            <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
-                            <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">{pathway}</span>
-                          </div>
-                        ))}
-                        {(!activeReaction.discoveryPathways || activeReaction.discoveryPathways.length === 0) && (
-                          <div className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
-                            <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
-                            <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">CONTINUE TO ADVANCED SYNTHESIS</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* BOTTOM ACTIONS */}
-                <div className="w-full flex justify-center mt-5 pt-5 border-t border-white/10">
-                  <button
-                    onClick={handleCancelReaction}
-                    className="w-full text-center py-3 bg-[#070B14] border border-[#00FFF0]/60 hover:bg-[#00FFF0]/15 text-[10px] uppercase font-mono font-black tracking-[0.2em] text-[#00FFF0] transition-all cursor-pointer rounded-sm shadow-[0_0_15px_rgba(0,255,240,0.15)] hover:shadow-[0_0_20px_rgba(0,255,240,0.4)] hover:border-[#00FFF0]"
-                  >
-                    RETURN TO CHAMBER
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        
-
-        {/* SUBATOMIC SHELL ANALYZER DEDICATED HUD PANEL */}
-        {isObsEntered && selectedElement && activeShellInfo && (
-          <div 
-            id="subatomic-shell-hud"
-            className="absolute z-50 right-4 md:right-[360px] top-20 md:top-24 w-[calc(100%-2rem)] md:w-72 mx-0 p-4 md:p-5 bg-[#070C1B]/92 backdrop-blur-xl border border-[#00FFB3]/40 rounded-sm shadow-[0_0_25px_rgba(0,255,179,0.22)] animate-fade-in text-[#EAF2FF] select-none pointer-events-auto"
-          >
-            {/* Holographic grid lines & corner elements for futuristic high-end feel */}
-            <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#00FFB3]" />
-            <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#00FFB3]" />
-            <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#00FFB3]" />
-            <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#00FFB3]" />
-            
-            <div className="flex justify-between items-start mb-3 border-b border-white/10 pb-2">
-              <div>
-                <span className="text-[8px] font-mono tracking-[0.3em] text-[#00FFB3] uppercase">// SUBATOMIC SHELL ANALYZER</span>
-                <h3 className="text-[10px] md:text-xs font-black tracking-widest text-white uppercase mt-0.5">
-                  Quantum Orb: {activeShellInfo.shellName} ({['k_shell', 'l_shell', 'm_shell', 'n_shell', 'o_shell', 'p_shell', 'q_shell'][activeShellInfo.shellIndex]})
-                </h3>
-              </div>
-              <button
-                onClick={() => {
-                  setActiveShellInfo(null);
-                  window.dispatchEvent(new CustomEvent('orbit-shell-clicked', { detail: { selected: false } }));
-                }}
-                className="w-5 h-5 border border-white/10 hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center text-[#EAF2FF]/50 cursor-pointer transition-colors"
-                title="Dismiss Shell Probe"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Shell Metrics Layout */}
-              <div className="grid grid-cols-2 gap-2 md:gap-3 font-mono text-[9px] md:text-[10px]">
-                <div className="p-2 md:p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
-                  <div className="text-white/40 text-[7px] md:text-[7.5px] uppercase tracking-wider">Shell Index (n)</div>
-                  <div className="text-sm md:text-base font-black text-[#00FFB3] mt-0.5">n = {activeShellInfo.shellIndex + 1}</div>
-                </div>
-                <div className="p-2 md:p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
-                  <div className="text-white/40 text-[7px] md:text-[7.5px] uppercase tracking-wider">Occupancy</div>
-                  <div className="text-sm md:text-base font-black text-[#00E5FF] mt-0.5">
-                    {activeShellInfo.electrons} <span className="text-[8px] md:text-[10px] font-medium text-white/50">Electrons</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Specific Atomic Orbital Types (s, p, d, f) associated with that shell */}
-              <div className="p-3.5 bg-white/[0.02] border border-white/[0.07] rounded-sm flex flex-col gap-2">
-                <div className="text-white/40 font-mono text-[7.5px] uppercase tracking-widest">Orbital Structure (s, p, d, f)</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { type: 's', label: 's [Spherical]', active: activeShellInfo.shellIndex >= 0, desc: 'Lobe-free uniform spherical wave density.' },
-                    { type: 'p', label: 'p [Dumbbell]', active: activeShellInfo.shellIndex >= 1, desc: 'Two lobes with a single focal nodal plane.' },
-                    { type: 'd', label: 'd [Cloverleaf]', active: activeShellInfo.shellIndex >= 2, desc: 'Four lobes in clover geometry.' },
-                    { type: 'f', label: 'f [Multi-Lobe]', active: activeShellInfo.shellIndex >= 3, desc: 'Complex eight-lobed spatial packet.' }
-                  ].map((orb) => (
-                    <div 
-                      key={orb.type}
-                      className={`flex-1 p-1.5 rounded-sm border text-center font-mono transition-all duration-300 flex flex-col items-center justify-center min-w-[62px] ${
-                        orb.active
-                          ? 'border-[#00FFB3]/40 bg-[#00FFB3]/5 text-white'
-                          : 'border-white/[0.04] bg-white/[0.01] text-white/20'
-                      }`}
-                      title={orb.active ? orb.desc : 'Orbital unpopulated / energetically inaccessible'}
-                    >
-                      <span className={`text-[12px] font-black ${orb.active ? 'text-[#00FFB3]' : 'text-white/20'}`}>{orb.type}</span>
-                      <span className="text-[6px] uppercase tracking-tighter mt-0.5">{orb.active ? 'Active' : 'Locked'}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* Dynamically active orbital descriptions */}
-                <div className="font-mono text-[8.2px] text-[#EAF2FF]/55 leading-relaxed mt-1">
-                  <span>Constituent Subshells: </span>
-                  <span className="text-[#00FFB3] font-bold">
-                    {activeShellInfo.shellIndex === 0 && '1s'}
-                    {activeShellInfo.shellIndex === 1 && '2s, 2p'}
-                    {activeShellInfo.shellIndex === 2 && '3s, 3p, 3d'}
-                    {activeShellInfo.shellIndex === 3 && '4s, 4p, 4d, 4f'}
-                    {activeShellInfo.shellIndex >= 4 && `${activeShellInfo.shellIndex + 1}s, ${activeShellInfo.shellIndex + 1}p, ${activeShellInfo.shellIndex + 1}d, ${activeShellInfo.shellIndex + 1}f [complex series]`}
-                  </span>
-                  <p className="text-white/35 text-[7.5px] mt-1 leading-normal italic">
-                    * Shell highlights trigger quantum tunneling simulations. Hover or zoom elements to monitor cloud variations.
-                  </p>
-                </div>
-              </div>
-
-              {/* Toggle 'Probability Density Cloud' overlay for individual electron shells */}
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between font-mono text-[9px]">
-                <div className="flex flex-col">
-                  <span className="text-white/50 font-bold uppercase text-[7.5px] tracking-wider">Probability Cloud</span>
-                  <span className="text-white/35 text-[7px] leading-tight font-sans">Augmented wave representation</span>
-                </div>
-                <button
-                  id="btn-toggle-prob-density"
-                  onClick={() => setIsDensityCloudActive(!isDensityCloudActive)}
-                  className={`px-3 py-1.5 rounded-sm border cursor-pointer font-bold transition-all duration-200 uppercase flex items-center gap-1.5 ${
-                    isDensityCloudActive
-                      ? 'bg-[#00FFB3]/15 border-[#00FFB3] text-[#00FFB3] shadow-[0_0_8px_rgba(0,255,179,0.15)]'
-                      : 'bg-white/5 border-white/10 text-white/55 hover:border-white/25 hover:text-white'
-                  }`}
-                >
-                  <Atom className={`w-3.5 h-3.5 ${isDensityCloudActive ? 'animate-spin' : ''}`} style={isDensityCloudActive ? { animationDuration: '4s' } : {}} />
-                  <span>{isDensityCloudActive ? "CLOUD ENABLED" : "CLOUD DISABLED"}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =======================================================
-            CELESTIAL ATLAS OBSERVATORY MASTER DASHBOARD
-            ======================================================= */}
-        {isObsEntered && appMode === 'observatory' && !selectedElement && (
-          <div className="flex-1 w-full flex flex-col justify-between p-4 bg-transparent pointer-events-auto overflow-hidden max-h-[85vh] md:max-h-[calc(100vh-130px)] select-none">
-            <ObservatoryHub
-              onSelectElementBySymbol={(symbol) => {
-                const found = ELEMENTS_DATA.find(e => e.symbol === symbol);
-                if (found) {
-                  onSelectElement(found);
-                }
-              }}
-              onScaleChange={(scaleId) => {
-                // Trigger customized physical particle waves across visualizers
-                window.dispatchEvent(new CustomEvent('cosmic-pulse', { detail: { intensity: 1.55 } }));
-              }}
-            />
-          </div>
-        )}
-
-        {/* ELITE COCKPIT: SPATIAL HOLOGRAPHIC HUD PANELS (ELEMENT WORLD EXPERIENCE) */}
-        {isObsEntered && selectedElement && !compareElement && (
-          <div 
-            className="absolute inset-0 z-30 select-none pointer-events-none flex flex-col justify-between"
-            style={{
-              '--primary-color': getCatMeta(selectedElement.category || 'reactive-nonmetal').hex,
-              '--primary-color-alpha': `${getCatMeta(selectedElement.category || 'reactive-nonmetal').hex}38`
-            } as React.CSSProperties}
-          >
-            <ElementWorldUI 
-              selectedElement={selectedElement}
-              onSelectElement={onSelectElement}
-              onSelectCompareElement={onSelectCompareElement}
-              setCompareSelectorOpen={setCompareSelectorOpen}
-              setActiveShellInfo={setActiveShellInfo}
-              activeShellInfo={activeShellInfo}
-            />
           </div>
         )}
 
