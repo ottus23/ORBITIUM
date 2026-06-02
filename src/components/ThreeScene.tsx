@@ -19,7 +19,7 @@ interface ThreeSceneProps {
   onSelectCompareElement?: (element: ChemicalElement | null) => void;
   onHoverElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
-  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular';
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks';
   timelineYear: number;
   selectedMoleculeId?: string | null;
   isExplodedView?: boolean;

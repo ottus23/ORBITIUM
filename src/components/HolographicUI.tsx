@@ -34,6 +34,7 @@ import { MOLECULAR_DATABASE } from '../utils/molecularGenerator';
 import { ElementExplorationDepth } from './ElementExplorationDepth';
 import ObservatoryHub from './ObservatoryHub';
 import { ElementWorldUI } from './ElementWorldUI';
+import { BlocksUniverse } from './BlocksUniverse';
 
 interface HolographicUIProps {
   selectedElement: ChemicalElement | null;
@@ -43,8 +44,8 @@ interface HolographicUIProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
   onChangeLayoutMode: (mode: TableLayoutMode) => void;
-  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular';
-  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular') => void;
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks';
+  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks') => void;
   timelineYear: number;
   onChangeTimelineYear: (year: number | ((prev: number) => number)) => void;
   selectedMoleculeId?: string | null;
@@ -807,7 +808,8 @@ export default function HolographicUI({
               { id: 'explorer', label: 'Explorer', icon: Compass },
               { id: 'molecular', label: 'Molecular Uni.', icon: Hexagon },
               { id: 'bond_lab', label: '3D Bond Reactor', icon: Flame },
-              { id: 'timeline', label: 'Timeline History', icon: TrendingUp }
+              { id: 'timeline', label: 'Timeline History', icon: TrendingUp },
+              { id: 'blocks', label: 'Quantum Blocks', icon: Layers }
             ].map((tab) => {
               const IconComp = tab.icon;
               const isActive = appMode === tab.id;
@@ -1555,6 +1557,16 @@ export default function HolographicUI({
               }}
             />
           </div>
+        )}
+
+        {/* =======================================================
+            BLOCKS FOUNDATION EXPERIENCE
+            ======================================================= */}
+        {isObsEntered && appMode === 'blocks' && !selectedElement && (
+          <BlocksUniverse 
+             onSelectElement={onSelectElement} 
+             onNavigateHome={() => onChangeAppMode('observatory')} 
+          />
         )}
 
         {/* ELITE COCKPIT: SPATIAL HOLOGRAPHIC HUD PANELS (ELEMENT WORLD EXPERIENCE) */}
