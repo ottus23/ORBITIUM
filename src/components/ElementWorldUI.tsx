@@ -19,13 +19,15 @@ export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompa
 
   const navNodes = [
     { id: 'overview', label: 'OVERVIEW', icon: Share2, layer: 1 },
-    { id: 'structure', label: 'ATOMIC STRUCTURE', icon: Atom, layer: 2 },
+    { id: 'structure', label: 'ATOMIC ARCHITECTURE', icon: Atom, layer: 2 },
     { id: 'physical', label: 'PHYSICAL PROPERTIES', icon: Eye, layer: 3 },
-    { id: 'chemical', label: 'CHEMICAL BEHAVIOR', icon: Eye, layer: 4 },
+    { id: 'chemical', label: 'CHEMICAL PROPERTIES', icon: Eye, layer: 4 },
     { id: 'cosmic', label: 'COSMIC ORIGIN', icon: Globe, layer: 6 },
-    { id: 'biological', label: 'BIOLOGICAL ROLE', icon: Network, layer: 7 },
-    { id: 'applications', label: 'APPLICATIONS', icon: Network, layer: 5 },
-    { id: 'reaction', label: 'REACTION NETWORKS', icon: Activity, layer: 9 },
+    { id: 'biological', label: 'BIOLOGICAL SYSTEM', icon: Network, layer: 7 },
+    { id: 'historical', label: 'HISTORICAL SYSTEM', icon: Activity, layer: 8 },
+    { id: 'applications', label: 'INDUSTRIAL SYSTEM', icon: Network, layer: 5 },
+    { id: 'reaction', label: 'REACTION INTELLIGENCE', icon: Activity, layer: 9 },
+    { id: 'personality', label: 'ORBITIUM PERSONALITY', icon: Globe, layer: 10 },
   ];
 
   const getCatMeta = (cat: string) => CATEGORY_COLORS[cat] || { label: 'Unknown', hex: '#FFFFFF' };
@@ -78,7 +80,7 @@ export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompa
       </div>
 
       {/* Floating Constellation Nodes (Navigation) */}
-      <div className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 flex flex-col gap-4 md:gap-6 pointer-events-auto z-40">
+      <div className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 flex flex-col gap-2 md:gap-4 pointer-events-auto z-40 transform scale-90 md:scale-100 origin-left">
         <div className="h-20 md:h-40 w-[1px] bg-gradient-to-b from-transparent via-[var(--primary-color)]/30 to-transparent absolute left-3 top-[-10px] md:top-[-20px] -z-10" />
         <div className="h-20 md:h-40 w-[1px] bg-gradient-to-b from-transparent via-[var(--primary-color)]/30 to-transparent absolute left-3 bottom-[-10px] md:bottom-[-20px] -z-10" />
         
@@ -109,7 +111,7 @@ export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompa
       </div>
 
       {/* Active Constellation Data Cluster */}
-      <div className="absolute right-4 md:right-12 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 max-w-[280px] w-full sm:max-w-sm md:w-80 pointer-events-auto animate-fade-in-right z-50 bg-[#040814]/80 backdrop-blur-3xl border border-[var(--primary-color)]/20 p-6 rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+      <div className="absolute right-4 md:right-12 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 max-w-[340px] w-full sm:max-w-md md:w-[480px] pointer-events-auto animate-fade-in-right z-50 bg-[#040814]/80 backdrop-blur-3xl border border-[var(--primary-color)]/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-lg overflow-hidden">
         <ElementExplorationDepth 
           selectedElement={selectedElement}
           activeLayer={getActiveLayerMap()}

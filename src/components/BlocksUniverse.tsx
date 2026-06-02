@@ -160,6 +160,16 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
         >
           <ChevronRight className="w-3.5 h-3.5 rotate-180" /> OBSERVATORY
         </button>
+        <button 
+          onClick={(e) => {
+             e.stopPropagation();
+             const uiEvent = new CustomEvent('request-change-app-mode', { detail: { mode: 'network' } });
+             window.dispatchEvent(uiEvent);
+          }}
+          className="flex items-center gap-2 text-[#EAF2FF] hover:bg-white hover:text-black transition-all border border-white/20 hover:border-white px-4 py-1.5 rounded-sm bg-black/40 backdrop-blur-md cursor-pointer font-sans text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+        >
+          <Globe className="w-3.5 h-3.5" /> ENTER ECOSYSTEM
+        </button>
       </div>
 
       <AnimatePresence>

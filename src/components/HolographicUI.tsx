@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ChevronUp,
   Orbit,
-  Hexagon
+  Hexagon,
+  Network
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
@@ -35,6 +36,7 @@ import { ElementExplorationDepth } from './ElementExplorationDepth';
 import ObservatoryHub from './ObservatoryHub';
 import { ElementWorldUI } from './ElementWorldUI';
 import { BlocksUniverse } from './BlocksUniverse';
+import { OrbitiumNetwork } from './OrbitiumNetwork';
 
 interface HolographicUIProps {
   selectedElement: ChemicalElement | null;
@@ -44,8 +46,8 @@ interface HolographicUIProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
   onChangeLayoutMode: (mode: TableLayoutMode) => void;
-  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks';
-  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks') => void;
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks' | 'network';
+  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks' | 'network') => void;
   timelineYear: number;
   onChangeTimelineYear: (year: number | ((prev: number) => number)) => void;
   selectedMoleculeId?: string | null;
@@ -809,7 +811,8 @@ export default function HolographicUI({
               { id: 'molecular', label: 'Molecular Uni.', icon: Hexagon },
               { id: 'bond_lab', label: '3D Bond Reactor', icon: Flame },
               { id: 'timeline', label: 'Timeline History', icon: TrendingUp },
-              { id: 'blocks', label: 'Quantum Blocks', icon: Layers }
+              { id: 'blocks', label: 'Quantum Blocks', icon: Layers },
+              { id: 'network', label: 'Ecosystem', icon: Network }
             ].map((tab) => {
               const IconComp = tab.icon;
               const isActive = appMode === tab.id;
@@ -1566,6 +1569,16 @@ export default function HolographicUI({
           <BlocksUniverse 
              onSelectElement={onSelectElement} 
              onNavigateHome={() => onChangeAppMode('observatory')} 
+          />
+        )}
+
+        {/* =======================================================
+            ORBITIUM KNOWLEDGE NETWORK
+            ======================================================= */}
+        {isObsEntered && appMode === 'network' && !selectedElement && (
+          <OrbitiumNetwork
+             onSelectElement={onSelectElement}
+             onNavigateHome={() => onChangeAppMode('blocks')}
           />
         )}
 

@@ -17,7 +17,7 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('grid');
   
   // Custom Application Modes
-  const [appMode, setAppMode] = useState<'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks'>('explorer');
+  const [appMode, setAppMode] = useState<'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks' | 'network'>('explorer');
   const [timelineYear, setTimelineYear] = useState<number>(2026);
   const [selectedMoleculeId, setSelectedMoleculeId] = useState<string | null>('water');
   const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
