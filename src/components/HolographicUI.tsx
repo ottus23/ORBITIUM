@@ -277,6 +277,8 @@ export function getNucleosynthesisTimeline(el: ChemicalElement) {
   ];
 }
 
+const SHOW_QUICK_EXPLORER = false;
+
 export default React.memo(function HolographicUI({
   selectedElement,
   compareElement,
@@ -1499,7 +1501,7 @@ export default React.memo(function HolographicUI({
         {/* =======================================================
             ZONE 3: HOME CONTEXT PANEL (QUICK EXPLORE)
             ======================================================= */}
-        {isObsEntered && appMode === 'explorer' && !selectedElement && (
+        {SHOW_QUICK_EXPLORER && isObsEntered && appMode === 'explorer' && !selectedElement && (
           <div className="absolute left-6 top-24 bottom-24 w-[340px] pointer-events-auto flex flex-col animate-fade-in z-30 space-y-4 justify-end">
             {/* Quick Explore Quick-Links */}
             <div className="bg-[#050812]/90 backdrop-blur-2xl border-l-[3px] border-[#00E5FF]/40 shadow-[0_0_20px_rgba(0,0,0,0.8)] rounded-r-lg p-5 flex flex-col max-h-[85vh]">
@@ -1686,7 +1688,7 @@ export default React.memo(function HolographicUI({
                     {bondLabTab === 'registry' ? (
                       <>
                         <p className="text-[10px] text-[#EAF2FF]/60 leading-relaxed font-light mb-3 font-sans">
-                          Select a molecular formula from the synthesized registry below to construct the reactants in 3D, then drag them together to observe orbital bonding.
+                          Select a molecular formula from the synthesized registry below to construct the reactants in 3D, then drag them together to explore orbital bonding.
                         </p>
 
                         <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
