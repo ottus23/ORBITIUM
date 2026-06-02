@@ -4,13 +4,18 @@
  */
 
 import { useState, useEffect, Suspense, lazy } from 'react';
+import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
 import HolographicUI from './components/HolographicUI';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from './types';
+import { ELEMENTS_DATA } from './data';
 
 // Lazy load the heavy 3D WebGL scene to improve initial main bundle parse times
 const ThreeScene = lazy(() => import('./components/ThreeScene'));
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(null);
   const [compareElement, setCompareElement] = useState<ChemicalElement | null>(null);
   const [hoveredElement, setHoveredElement] = useState<ChemicalElement | null>(null);
@@ -22,55 +27,82 @@ export default function App() {
   const [selectedMoleculeId, setSelectedMoleculeId] = useState<string | null>('water');
   const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
   
-  // Wavefield Modulations Settings
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1.2);
   const [reactiveIntensity, setReactiveIntensity] = useState<number>(1.0);
-  
-  // Landing welcome state
   const [isObsEntered, setIsObsEntered] = useState<boolean>(true);
-  
-  // Action reactions config
   const [activeReaction, setActiveReaction] = useState<ReactionConfig | null>(null);
-
-  // Adaptive Quality System
   const [adaptiveQuality, setAdaptiveQuality] = useState<boolean>(true);
   const [isLowPerfMode, setIsLowPerfMode] = useState<boolean>(false);
   const [currentFps, setCurrentFps] = useState<number>(60);
+
+  // Sync React Router URL -> App State
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/element/')) {
+      const sym = path.split('/')[2];
+      const el = ELEMENTS_DATA.find(e => e.symbol.toLowerCase() === sym.toLowerCase());
+      if (el) {
+        setAppMode('explorer');
+        setSelectedElement(el);
+      }
+    } else if (path === '/' || path === '/observatory') {
+      setAppMode('observatory');
+      setSelectedElement(null);
+    } else if (path === '/timeline') {
+      setAppMode('timeline');
+      setSelectedElement(null);
+    } else if (path === '/blocks') {
+      setAppMode('blocks');
+      setSelectedElement(null);
+    } else if (path === '/network') {
+      setAppMode('network');
+      setSelectedElement(null);
+    } else if (path === '/bond-lab') {
+      setAppMode('bond_lab');
+      setSelectedElement(null);
+    } else {
+      setAppMode('explorer');
+      if (!path.startsWith('/element/')) {
+        setSelectedElement(null);
+      }
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleScaleCommand = (e: Event) => {
       const cx = e as CustomEvent;
       if (cx.detail && cx.detail.mode) {
-        setAppMode(cx.detail.mode);
-        if (cx.detail.mode !== 'explorer') {
-           setSelectedElement(null);
-           setCompareElement(null);
-        }
-        if (cx.detail.mode !== 'bond_lab') {
-           setActiveReaction(null);
-        }
+        if (cx.detail.mode === 'observatory') navigate('/');
+        else if (cx.detail.mode === 'bond_lab') navigate('/bond-lab');
+        else navigate('/' + cx.detail.mode);
       }
     };
     window.addEventListener('request-change-app-mode', handleScaleCommand);
     return () => window.removeEventListener('request-change-app-mode', handleScaleCommand);
-  }, []);
+  }, [navigate]);
 
-  const handleEnterObs = () => {
-    setIsObsEntered(true);
+  const handleSelectElement = (el: ChemicalElement | null) => {
+    if (el) navigate(`/element/${el.symbol.toLowerCase()}`);
+    else navigate('/explorer');
+  };
+
+  const handleChangeAppMode = (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular' | 'blocks' | 'network') => {
+    if (mode === 'observatory') navigate('/');
+    else if (mode === 'bond_lab') navigate('/bond-lab');
+    else navigate('/' + mode);
   };
 
   return (
     <div 
       id="orbitium-frame"
-      className="relative w-screen h-screen bg-[#070B14] overflow-hidden select-none select-none flex flex-col items-stretch"
+      className="relative w-screen h-screen bg-[#070B14] overflow-hidden select-none flex flex-col items-stretch"
     >
-      {/* 3D WebGL Canvas Layer */}
       <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-[#070B14]"><div className="text-[#00E5FF] font-mono tracking-widest text-sm animate-pulse">BOOTING QUANTUM RENDER CORE...</div></div>}>
         <ThreeScene
           selectedElement={selectedElement}
           compareElement={compareElement}
           hoveredElement={hoveredElement}
-          onSelectElement={setSelectedElement}
+          onSelectElement={handleSelectElement}
           onSelectCompareElement={setCompareElement}
           onHoverElement={setHoveredElement}
           layoutMode={layoutMode}
@@ -88,27 +120,16 @@ export default function App() {
         />
       </Suspense>
 
-      {/* Holographic HUD UI Overlays */}
       <HolographicUI
         selectedElement={selectedElement}
         compareElement={compareElement}
         onSelectCompareElement={setCompareElement}
         hoveredElement={hoveredElement}
-        onSelectElement={setSelectedElement}
+        onSelectElement={handleSelectElement}
         layoutMode={layoutMode}
         onChangeLayoutMode={setLayoutMode}
         appMode={appMode}
-        onChangeAppMode={(mode) => {
-          setAppMode(mode);
-          // If switching model, perform cleanups
-          if (mode !== 'explorer') {
-            setSelectedElement(null);
-            setCompareElement(null);
-          }
-          if (mode !== 'bond_lab') {
-            setActiveReaction(null);
-          }
-        }}
+        onChangeAppMode={handleChangeAppMode}
         timelineYear={timelineYear}
         onChangeTimelineYear={setTimelineYear}
         selectedMoleculeId={selectedMoleculeId}
@@ -120,7 +141,7 @@ export default function App() {
         reactiveIntensity={reactiveIntensity}
         onSetReactiveIntensity={setReactiveIntensity}
         isObsEntered={isObsEntered}
-        onEnterObs={handleEnterObs}
+        onEnterObs={() => setIsObsEntered(true)}
         activeReaction={activeReaction}
         onTriggerReaction={setActiveReaction}
         adaptiveQuality={adaptiveQuality}

@@ -28,7 +28,8 @@ import {
   Orbit,
   Hexagon,
   Network,
-  Search
+  Search,
+  Share2
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
@@ -2175,9 +2176,8 @@ export default function HolographicUI({
 
         {/* ZONE 5: ACTION BAR */}
         <div className="w-full flex justify-center pb-6">
-          <div className="bg-[#050812]/90 backdrop-blur-2xl border border-[var(--primary-color,white)]/20 shadow-[0_0_20px_rgba(0,0,0,0.8)] rounded-lg px-2 py-2 flex items-center gap-2">
+          <div className="bg-[#0A0D1B]/80 backdrop-blur-2xl border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-1.5 transition-all">
             
-            {/* Core Navigation Controls */}
             {selectedElement && (
               <button
                 onClick={() => {
@@ -2185,7 +2185,7 @@ export default function HolographicUI({
                   if (onSelectCompareElement) onSelectCompareElement(null);
                   window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
                 }}
-                className="px-4 py-2 border-r border-white/10 hover:text-red-400 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer text-white"
+                className="px-4 py-2 border-r border-white/10 hover:text-red-400 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer text-white/50"
               >
                 <X className="w-4 h-4" /> CLOSE
               </button>
@@ -2193,38 +2193,47 @@ export default function HolographicUI({
 
             <button
               onClick={() => onChangeAppMode('explorer')}
-              className={`px-4 py-2 border border-transparent hover:border-[#00E5FF]/50 hover:bg-[#00E5FF]/10 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer ${appMode === 'explorer' && !selectedElement ? 'text-[#00E5FF]' : 'text-white/60 hover:text-white'}`}
+              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'explorer' && !selectedElement ? 'bg-[#00E5FF]/10 text-[#00E5FF] shadow-[0_0_15px_rgba(0,229,255,0.2)]' : 'text-white/60 hover:text-white'}`}
             >
               <Compass className="w-4 h-4" /> EXPLORE
             </button>
 
-            {selectedElement && !compareElement && (
-              <button
-                onClick={() => setCompareSelectorOpen(true)}
-                className="px-4 py-2 border border-transparent hover:border-[#FF9100]/50 hover:bg-[#FF9100]/10 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer text-white/60 hover:text-[#FF9100]"
-              >
-                <Share2 className="w-4 h-4" /> COMPARE
-              </button>
-            )}
+            <button
+              onClick={() => {
+                 if(selectedElement) setCompareSelectorOpen(true);
+              }}
+              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${(compareElement || compareSelectorOpen) ? 'bg-[#FF9100]/10 text-[#FF9100] shadow-[0_0_15px_rgba(255,145,0,0.2)]' : 'text-white/60 hover:text-white'} ${!selectedElement && !compareSelectorOpen ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Share2 className="w-4 h-4" /> COMPARE
+            </button>
 
-            {selectedElement && compareElement && (
-              <button
-                onClick={() => {
+            <button
+              onClick={() => {
+                 if (selectedElement && compareElement) {
                    onChangeAppMode('bond_lab');
                    const reaction = analyzeReaction(selectedElement.symbol, compareElement.symbol);
                    onTriggerReaction(reaction);
-                }}
-                className="px-4 py-2 border border-[#FF3366]/40 bg-[#FF3366]/20 hover:bg-[#FF3366]/40 hover:border-[#FF3366] shadow-[0_0_15px_rgba(255,51,102,0.3)] text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer text-white"
-              >
-                <Flame className="w-4 h-4 text-[#FF3366]" /> RUN REACTION
-              </button>
-            )}
+                 } else {
+                   onChangeAppMode('bond_lab');
+                 }
+              }}
+              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'bond_lab' ? 'bg-[#FF3366]/10 text-[#FF3366] shadow-[0_0_15px_rgba(255,51,102,0.2)]' : 'text-white/60 hover:text-white'}`}
+            >
+              <Flame className="w-4 h-4" /> REACT
+            </button>
+            
+            <button
+              onClick={() => onChangeAppMode('observatory')}
+              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'observatory' ? 'bg-[#00FFB3]/10 text-[#00FFB3] shadow-[0_0_15px_rgba(0,255,179,0.2)]' : 'text-white/60 hover:text-white'}`}
+            >
+              <Activity className="w-4 h-4" /> DISCOVER
+            </button>
 
             <button
               onClick={() => onChangeAppMode('network')}
-              className={`px-4 py-2 border border-transparent hover:border-[#7C4DFF]/50 hover:bg-[#7C4DFF]/10 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer ${appMode === 'network' ? 'text-[#7C4DFF]' : 'text-white/60 hover:text-white'}`}
+              className={`px-4 py-2 border border-transparent rounded-full hover:bg-white/5 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer ${appMode === 'network' ? 'bg-[#7C4DFF]/10 text-[#7C4DFF] shadow-[0_0_15px_rgba(124,77,255,0.2)]' : 'text-white/60 hover:text-white'}`}
             >
-              <Network className="w-4 h-4" /> VIEW NETWORK
+              <Network className="w-4 h-4" /> NETWORK
             </button>
             
           </div>

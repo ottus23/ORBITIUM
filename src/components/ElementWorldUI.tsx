@@ -14,19 +14,13 @@ interface ElementWorldUIProps {
 }
 
 export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompareElement, setCompareSelectorOpen, setActiveShellInfo, activeShellInfo }: ElementWorldUIProps) {
-  const [activeConstellation, setActiveConstellation] = useState<string>('overview');
+  const [activeConstellation, setActiveConstellation] = useState<string>('properties');
 
   const navNodes = [
-    { id: 'overview', label: 'OVERVIEW', icon: Share2, layer: 1 },
-    { id: 'structure', label: 'ATOMIC ARCHITECTURE', icon: Atom, layer: 2 },
-    { id: 'physical', label: 'PHYSICAL', icon: Eye, layer: 3 },
-    { id: 'chemical', label: 'CHEMICAL', icon: Eye, layer: 4 },
-    { id: 'cosmic', label: 'COSMIC ORIGIN', icon: Globe, layer: 6 },
-    { id: 'biological', label: 'BIOLOGICAL', icon: Network, layer: 7 },
-    { id: 'historical', label: 'HISTORICAL', icon: Activity, layer: 8 },
-    { id: 'applications', label: 'INDUSTRIAL', icon: Network, layer: 5 },
-    { id: 'reaction', label: 'REACTION INTEL', icon: Activity, layer: 9 },
-    { id: 'personality', label: 'PERSONALITY', icon: Globe, layer: 10 },
+    { id: 'properties', label: 'PROPERTIES', icon: Eye, layer: 3 },
+    { id: 'reactivity', label: 'REACTIVITY', icon: Activity, layer: 9 },
+    { id: 'applications', label: 'APPLICATIONS', icon: Network, layer: 5 },
+    { id: 'deep_dive', label: 'DEEP DIVE', icon: Globe, layer: 11 },
   ];
 
   const getCatMeta = (cat: string) => CATEGORY_COLORS[cat] || { label: 'Unknown', hex: '#FFFFFF' };
