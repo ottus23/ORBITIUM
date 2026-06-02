@@ -25,10 +25,12 @@ import {
   VolumeX,
   ChevronDown,
   ChevronUp,
-  Orbit
+  Orbit,
+  Hexagon
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
+import { MOLECULAR_DATABASE } from '../utils/molecularGenerator';
 import { ElementExplorationDepth } from './ElementExplorationDepth';
 import ObservatoryHub from './ObservatoryHub';
 import { ElementWorldUI } from './ElementWorldUI';
@@ -41,10 +43,14 @@ interface HolographicUIProps {
   onSelectElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
   onChangeLayoutMode: (mode: TableLayoutMode) => void;
-  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline';
-  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline') => void;
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular';
+  onChangeAppMode: (mode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular') => void;
   timelineYear: number;
   onChangeTimelineYear: (year: number | ((prev: number) => number)) => void;
+  selectedMoleculeId?: string | null;
+  onSelectMoleculeId?: (id: string | null) => void;
+  isExplodedView?: boolean;
+  onSetExplodedView?: (val: boolean) => void;
   simulationSpeed: number;
   onSetSimulationSpeed: (speed: number) => void;
   reactiveIntensity: number;
@@ -277,6 +283,10 @@ export default function HolographicUI({
   onChangeAppMode,
   timelineYear,
   onChangeTimelineYear,
+  selectedMoleculeId,
+  onSelectMoleculeId,
+  isExplodedView,
+  onSetExplodedView,
   simulationSpeed,
   onSetSimulationSpeed,
   reactiveIntensity,
@@ -329,7 +339,7 @@ export default function HolographicUI({
       } else {
         setScaleMode('atomic');
       }
-    } else if (appMode === 'bond_lab') {
+    } else if (appMode === 'bond_lab' || appMode === 'molecular') {
       setScaleMode('molecular');
     } else if (appMode === 'observatory') {
       setScaleMode('cosmic');
@@ -839,6 +849,7 @@ export default function HolographicUI({
             {[
               { id: 'observatory', label: 'Observatory', icon: Orbit },
               { id: 'explorer', label: 'Explorer', icon: Compass },
+              { id: 'molecular', label: 'Molecular Uni.', icon: Hexagon },
               { id: 'bond_lab', label: '3D Bond Reactor', icon: Flame },
               { id: 'timeline', label: 'Timeline History', icon: TrendingUp }
             ].map((tab) => {
@@ -1432,6 +1443,71 @@ export default function HolographicUI({
               </>
             )}
 
+            {/* MOLECULAR UNIVERSE CONTROLS */}
+            {appMode === 'molecular' && (
+              <>
+                <div className="border border-[#7C4DFF]/30 rounded-sm bg-[#7C4DFF]/[0.02] overflow-hidden">
+                  <div className="p-3 bg-[#7C4DFF]/[0.05] border-b border-[#7C4DFF]/20 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-black text-[#7C4DFF] tracking-widest">
+                      <Hexagon className="w-4 h-4 text-[#7C4DFF]" /> MOLECULAR UNIVERSE
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    <p className="text-[10px] text-[#EAF2FF]/60 leading-relaxed font-light font-sans">
+                      Explore the building blocks of the universe. Select a molecule or material to inspect its 3D atomic structure, geometric formulation, and real-world domain.
+                    </p>
+
+                    <div className="flex justify-between items-center bg-black/40 p-2 rounded-sm border border-white/5">
+                      <span className="text-[9px] font-mono text-white/50 uppercase font-black">Spatial Explosion</span>
+                      <button
+                        onClick={() => onSetExplodedView?.(!isExplodedView)}
+                        className={`text-[9.5px] font-mono tracking-wider font-extrabold uppercase px-3 py-1 cursor-pointer transition-colors border rounded-sm ${
+                          isExplodedView 
+                            ? 'bg-[#FF9100]/20 text-[#FF9100] border-[#FF9100]' 
+                            : 'bg-white/5 text-white/50 border-white/10 hover:border-[#FF9100]/50'
+                        }`}
+                      >
+                        {isExplodedView ? 'Collapse' : 'Explode'}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto pr-1">
+                      {['molecule', 'biology', 'material'].map((cat) => (
+                        <div key={cat} className="mb-2">
+                           <div className="text-[8px] font-mono text-[#00E5FF] tracking-widest font-black uppercase mb-1 border-b border-[#00E5FF]/20 pb-1">
+                             {cat === 'molecule' ? 'Elemental Molecules' : cat === 'biology' ? 'Molecular Biology' : 'Materials & Lattices'}
+                           </div>
+                           <div className="flex flex-col gap-1.5">
+                             {MOLECULAR_DATABASE.filter(m => m.category === cat).map((mol) => {
+                               const isActive = selectedMoleculeId === mol.id;
+                               return (
+                                 <button
+                                   key={mol.id}
+                                   onClick={() => onSelectMoleculeId?.(mol.id)}
+                                   className={`p-2.5 rounded-sm flex flex-col justify-between items-start text-left gap-1 border transition-all cursor-pointer group ${
+                                     isActive 
+                                       ? 'bg-[#7C4DFF]/20 border-[#7C4DFF] shadow-[0_0_12px_rgba(124,77,255,0.25)]'
+                                       : 'bg-white/5 border-white/10 hover:border-[#7C4DFF]/50'
+                                   }`}
+                                 >
+                                   <div className="flex justify-between w-full items-center">
+                                      <span className={`text-[11px] font-black tracking-wider ${isActive ? 'text-white' : 'text-[#7C4DFF] group-hover:text-white'}`}>{mol.name}</span>
+                                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-black/50 text-[#00E5FF] border border-[#00E5FF]/20">{mol.formula}</span>
+                                   </div>
+                                   <span className="text-[9px] font-sans font-light text-white/50">{mol.description}</span>
+                                   <div className="text-[7.5px] font-mono text-[#FF9100] mt-0.5 tracking-wider w-full text-right">{mol.worldType.toUpperCase()}</div>
+                                 </button>
+                               )
+                             })}
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* 3. ATOMIC EXPLORER PANEL CONTROLS */}
             {appMode === 'explorer' && (
               <>
@@ -1843,9 +1919,9 @@ export default function HolographicUI({
 
         {/* MIDDLE OVERLAY (Active reaction notifications/simulations) */}
         {isObsEntered && activeReaction && (
-          <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-4 md:px-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:left-12 lg:left-16 md:translate-x-0 md:top-1/2 md:-translate-y-1/2">
+          <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-0 bottom-4 left-4 md:bottom-12 md:left-12 pointer-events-auto">
             {reactionStage === 'idle' ? (
-              <div className="w-full max-w-sm sm:max-w-md mx-auto p-6 sm:p-7 bg-[#040814]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_50px_rgba(255,145,0,0.2)] backdrop-blur-3xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_65px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
+              <div className="w-full max-w-sm mx-auto p-4 sm:p-5 bg-[#040814]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_50px_rgba(255,145,0,0.2)] backdrop-blur-3xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_65px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
                 
                 {/* Corner Frame accents */}
                 <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
@@ -1853,118 +1929,112 @@ export default function HolographicUI({
                 <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
                 <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
 
-                <div className="w-14 h-14 border border-[#FF9100]/30 rounded-full flex items-center justify-center relative mb-5">
-                  <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#FF9100]/60 animate-spin" style={{ animationDuration: '4s' }} />
-                  <Flame className="w-6 h-6 text-[#FF9100] animate-pulse" />
-                </div>
-                
-                {/* Header text */}
-                <h3 className="text-[10px] sm:text-[11px] font-mono font-black tracking-[0.3em] text-[#FF9100] uppercase mb-1">
-                  REACTION CHAMBER ARMED
-                </h3>
-
-                <h1 className="text-3xl sm:text-4xl font-black text-white tracking-widest mt-2 mb-2">
-                  {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
-                </h1>
-
-                <div className="text-[9px] sm:text-[10px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-3 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase mt-2 shadow-[0_0_10px_rgba(0,229,255,0.1)]">
-                  TARGET SYNTHESIS: <span className="font-extrabold text-[#00FFF0] ml-2">{activeReaction.productFormula}</span>
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-10 h-10 border border-[#FF9100]/30 rounded-full flex items-center justify-center relative shrink-0">
+                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#FF9100]/60 animate-spin" style={{ animationDuration: '4s' }} />
+                    <Flame className="w-5 h-5 text-[#FF9100] animate-pulse" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[9px] sm:text-[10px] font-mono font-black tracking-[0.3em] text-[#FF9100] uppercase">
+                      CHAMBER ARMED
+                    </h3>
+                    <h1 className="text-xl sm:text-2xl font-black text-white tracking-widest mt-0.5">
+                      {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
+                    </h1>
+                  </div>
                 </div>
 
-                <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-[#FF9100]/30 to-transparent my-5" />
+                <div className="text-[8px] sm:text-[9px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase shadow-[0_0_10px_rgba(0,229,255,0.1)] w-full mb-3">
+                  TARGET: <span className="font-extrabold text-[#00FFF0]">{activeReaction.productFormula}</span>
+                </div>
 
-                <h3 className="text-[10px] font-mono text-[#00FFF0] tracking-widest uppercase mb-2">AWAITING CATALYST</h3>
-                <p className="text-[11px] sm:text-xs text-[#EAF2FF]/85 leading-relaxed font-light mb-6 px-2">
-                  Atomic cores have been suspended in the electromagnetic grid. <span className="text-[#FF9100] font-bold">Drag and drop</span> the reactants into each other to initiate quantum bonding and observe structural transformation.
+                <p className="text-[10px] sm:text-[11px] text-[#EAF2FF]/85 leading-relaxed font-light mb-4 px-2">
+                  <span className="text-[#FF9100] font-bold">Drag and drop</span> the reactants into each other to initiate quantum bonding.
                 </p>
 
                 <button
                   onClick={handleCancelReaction}
-                  className="w-full sm:w-auto px-8 py-2.5 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[10px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
+                  className="w-full px-6 py-2 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[9px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
                 >
                   ABORT SEQUENCE
                 </button>
               </div>
             ) : reactionStage === 'stable' ? (
-              <div className="w-full max-w-4xl max-h-[85vh] overflow-y-auto custom-scrollbar mx-auto p-8 sm:p-10 bg-[#040814]/95 border border-[#00FFF0]/30 rounded-sm shadow-[0_0_80px_rgba(0,255,240,0.15)] backdrop-blur-3xl flex flex-col pointer-events-auto animate-fade-in relative group transition-all duration-700 select-none">
+              <div className="fixed top-auto bottom-0 left-0 right-0 md:static md:w-80 lg:w-96 max-h-[50vh] md:max-h-[70vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-[#040814]/95 border border-[#00FFF0]/30 rounded-t-lg md:rounded-sm shadow-[0_0_80px_rgba(0,255,240,0.15)] backdrop-blur-3xl flex flex-col pointer-events-auto animate-fade-in-up md:animate-fade-in relative group transition-all duration-700 select-none">
                 
                 {/* Advanced Scientific UI subtle frames/accents */}
-                <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-[#00FFF0]/40" />
-                <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-[#00FFF0]/40" />
-                <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-[#00FFF0]/40" />
-                <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-[#00FFF0]/40" />
+                <div className="absolute top-0 left-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-l-2 border-[#00FFF0]/40 rounded-tl-lg md:rounded-tl-none" />
+                <div className="absolute top-0 right-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-r-2 border-[#00FFF0]/40 rounded-tr-lg md:rounded-tr-none" />
+                <div className="absolute bottom-0 left-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-l-2 border-[#00FFF0]/40 hidden md:block" />
+                <div className="absolute bottom-0 right-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-r-2 border-[#00FFF0]/40 hidden md:block" />
                 
-                <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div className="flex flex-col gap-8 items-start">
                   {/* LEFT COLUMN: IDENTITY & WHAT HAPPENED */}
-                  <div className="flex-1 flex flex-col items-start w-full">
+                  <div className="flex flex-col items-start w-full">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 border border-[#00FFF0]/40 rounded-full flex items-center justify-center bg-[#00FFF0]/10 relative">
+                      <div className="w-10 h-10 border border-[#00FFF0]/40 rounded-full flex items-center justify-center bg-[#00FFF0]/10 relative shrink-0">
                         <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFF0]/60 animate-spin" style={{ animationDuration: '6s' }} />
-                        <CheckCircle2 className="w-6 h-6 text-[#00FFF0]" />
+                        <CheckCircle2 className="w-5 h-5 text-[#00FFF0]" />
                       </div>
                       <div>
-                        <div className="text-[10px] font-mono font-black tracking-[0.3em] text-[#00FFF0] uppercase">SYNTHESIS COMPLETE</div>
-                        <div className="text-[#EAF2FF]/50 text-[9px] font-mono tracking-widest uppercase mt-0.5">Quantum Lock Established</div>
+                        <div className="text-[9px] font-mono font-black tracking-[0.3em] text-[#00FFF0] uppercase">SYNTHESIS COMPLETE</div>
+                        <div className="text-[#EAF2FF]/50 text-[8px] font-mono tracking-widest uppercase mt-0.5">Quantum Lock Established</div>
                       </div>
                     </div>
                     
-                    <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] mb-2 mt-4 leading-none">
+                    <h1 className="text-3xl sm:text-4xl font-black tracking-widest text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] mb-1 mt-2 leading-none">
                       {activeReaction.productFormula}
                     </h1>
-                    <h2 className="text-xl sm:text-2xl font-bold text-[#00FFF0] uppercase tracking-wide mb-6">
+                    <h2 className="text-lg sm:text-xl font-bold text-[#00FFF0] uppercase tracking-wide mb-4">
                       {activeReaction.productName}
                     </h2>
 
-                    <div className="w-full h-[1px] bg-gradient-to-r from-[#00FFF0]/50 to-transparent mb-6" />
+                    <div className="w-full h-[1px] bg-gradient-to-r from-[#00FFF0]/50 to-transparent mb-5" />
                     
-                    <div className="mb-6 w-full">
-                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-3 py-1 mb-3 uppercase">1. WHAT HAPPENED?</h3>
-                      <p className="text-sm text-[#EAF2FF]/85 leading-relaxed font-light pl-1 border-l-2 border-[#00FFF0]/30 ml-2 py-1">
+                    <div className="mb-5 w-full">
+                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-2 uppercase">1. WHAT HAPPENED?</h3>
+                      <p className="text-xs text-[#EAF2FF]/85 leading-relaxed font-light pl-1 border-l-2 border-[#00FFF0]/30 ml-1 py-1">
                         {activeReaction.description}
                       </p>
                     </div>
                     
-                    <div className="mb-6 w-full">
-                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-3 py-1 mb-3 uppercase">2. WHY DID IT HAPPEN?</h3>
-                      <p className="text-xs text-[#EAF2FF]/70 leading-relaxed font-light pl-1 border-l-2 border-[#FF9100]/30 ml-2 py-1">
+                    <div className="mb-5 w-full">
+                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-2 uppercase">2. WHY DID IT HAPPEN?</h3>
+                      <p className="text-[11px] text-[#EAF2FF]/70 leading-relaxed font-light pl-1 border-l-2 border-[#FF9100]/30 ml-1 py-1">
                         {activeReaction.conditions || "Thermodynamic favorability naturally pulls these elements together into a lower energy state, releasing binding energy into the surrounding environment."}
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 w-full mb-6">
-                      <div className="bg-black/30 border border-[#00FFF0]/20 p-4 rounded-sm">
-                        <div className="text-[9px] font-mono text-[#00FFF0] tracking-widest mb-2 uppercase">REACTION TYPE</div>
-                        <div className="text-sm font-bold text-white uppercase">{activeReaction.reactionType || activeReaction.visualType}</div>
+                    <div className="flex flex-col gap-3 w-full mb-5">
+                      <div className="bg-black/30 border border-[#00FFF0]/20 p-3 rounded-sm">
+                        <div className="text-[8px] font-mono text-[#00FFF0] tracking-widest mb-1.5 uppercase">REACTION TYPE</div>
+                        <div className="text-xs font-bold text-white uppercase">{activeReaction.reactionType || activeReaction.visualType}</div>
                       </div>
-                      <div className="bg-black/30 border border-[#00FFF0]/20 p-4 rounded-sm">
-                        <div className="text-[9px] font-mono text-[#00FFF0] tracking-widest mb-2 uppercase">BOND ENERGY</div>
-                        <div className="text-sm font-bold text-white">{activeReaction.bondEnergy ? `${activeReaction.bondEnergy} kJ/mol` : 'VARIABLE'}</div>
-                      </div>
-                      <div className="bg-black/30 border border-[#00FFF0]/20 p-4 rounded-sm col-span-2">
-                        <div className="text-[9px] font-mono text-[#00FFF0] tracking-widest mb-2 uppercase">STABILITY METRIC</div>
-                        <div className="text-sm font-bold text-white uppercase">{activeReaction.stabilityMetric || 'UNKNOWN STABILITY'}</div>
+                      <div className="bg-black/30 border border-[#00FFF0]/20 p-3 rounded-sm">
+                        <div className="text-[8px] font-mono text-[#00FFF0] tracking-widest mb-1.5 uppercase">STABILITY METRIC</div>
+                        <div className="text-xs font-bold text-white uppercase">{activeReaction.stabilityMetric || 'UNKNOWN STABILITY'}</div>
                       </div>
                     </div>
                   </div>
 
                   {/* RIGHT COLUMN: DEPTH, STRUCTURE, PATHWAYS */}
-                  <div className="flex-1 flex flex-col w-full md:border-l md:border-white/10 md:pl-8">
-                    <div className="mb-6">
-                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-3 py-1 mb-3 uppercase">3. WHAT WAS CREATED?</h3>
-                      <div className="bg-[#00FFF0]/5 border border-[#00FFF0]/10 p-4 rounded-sm ml-2">
-                        <div className="text-sm text-white font-medium mb-3">{activeReaction.resultingMaterial || 'Novel Compound'}</div>
+                  <div className="flex flex-col w-full border-t border-white/10 pt-6">
+                    <div className="mb-5">
+                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-2 uppercase">3. WHAT WAS CREATED?</h3>
+                      <div className="bg-[#00FFF0]/5 border border-[#00FFF0]/10 p-3 rounded-sm ml-1">
+                        <div className="text-xs text-white font-medium mb-2">{activeReaction.resultingMaterial || 'Novel Compound'}</div>
                         {activeReaction.structure && (
-                          <div className="text-[11px] text-[#EAF2FF]/70 font-mono mt-2 flex gap-2 border-b border-white/5 pb-3">
+                          <div className="text-[10px] text-[#EAF2FF]/70 font-mono flex gap-1 border-b border-white/5 pb-2 mb-2">
                             <span className="text-[#00FFF0] shrink-0">◇ STRUCTURE:</span> {activeReaction.structure}
                           </div>
                         )}
                         {activeReaction.properties && activeReaction.properties.length > 0 && (
-                          <div className="mt-4">
-                            <div className="text-[9px] font-mono text-[#00FFF0]/70 mb-2 tracking-widest uppercase">CORE PROPERTIES</div>
-                            <ul className="text-xs text-[#EAF2FF]/80 space-y-1.5 ml-1">
+                          <div>
+                            <div className="text-[8px] font-mono text-[#00FFF0]/70 mb-1.5 tracking-widest uppercase">CORE PROPERTIES</div>
+                            <ul className="text-[11px] text-[#EAF2FF]/80 space-y-1 ml-1">
                               {activeReaction.properties.map((prop, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                  <span className="text-[#00FFF0] mt-0.5 max-w-[8px]">-</span>
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <span className="text-[#00FFF0] mt-0.5 max-w-[6px]">-</span>
                                   <span>{prop}</span>
                                 </li>
                               ))}
@@ -1974,33 +2044,33 @@ export default function HolographicUI({
                       </div>
                     </div>
 
-                    <div className="mb-6">
-                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-3 py-1 mb-3 uppercase">4. WHERE IS IT USED?</h3>
-                      <div className="text-xs text-[#EAF2FF]/80 leading-relaxed font-light mb-3 ml-2 pl-1 border-l-2 border-[#00FFF0]/30">
+                    <div className="mb-5">
+                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-2 uppercase">4. WHERE IS IT USED?</h3>
+                      <div className="text-[11px] text-[#EAF2FF]/80 leading-relaxed font-light mb-2 ml-1 pl-1 border-l-2 border-[#00FFF0]/30">
                         {activeReaction.whyItMatters || 'Crucial for future development.'}
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-3 ml-2">
+                      <div className="flex flex-wrap gap-1.5 mt-2 ml-1">
                         {activeReaction.realWorldApplications?.map((app, i) => (
-                          <span key={i} className="bg-white/5 border border-white/10 px-2 py-1.5 text-[9px] font-mono text-[#EAF2FF] uppercase tracking-wide">
+                          <span key={i} className="bg-white/5 border border-white/10 px-1.5 py-1 text-[8px] font-mono text-[#EAF2FF] uppercase tracking-wide">
                             {app}
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    <div className="mb-6">
-                      <h3 className="text-[10px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-3 py-1 mb-3 uppercase">5. WHAT DOES IT LEAD TO?</h3>
-                      <div className="flex flex-col gap-2 ml-2">
+                    <div className="mb-5">
+                      <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-2 uppercase">5. WHAT DOES IT LEAD TO?</h3>
+                      <div className="flex flex-col gap-1.5 ml-1">
                         {activeReaction.discoveryPathways?.map((pathway, i) => (
-                          <div key={i} className="flex items-center gap-3 bg-[#FF9100]/5 border border-[#FF9100]/20 p-3 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
-                            <ArrowRight className="w-4 h-4 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
-                            <span className="text-xs font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">{pathway}</span>
+                          <div key={i} className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
+                            <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
+                            <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">{pathway}</span>
                           </div>
                         ))}
                         {(!activeReaction.discoveryPathways || activeReaction.discoveryPathways.length === 0) && (
-                          <div className="flex items-center gap-3 bg-[#FF9100]/5 border border-[#FF9100]/20 p-3 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
-                            <ArrowRight className="w-4 h-4 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
-                            <span className="text-xs font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">CONTINUE TO ADVANCED SYNTHESIS</span>
+                          <div className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
+                            <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
+                            <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">CONTINUE TO ADVANCED SYNTHESIS</span>
                           </div>
                         )}
                       </div>
@@ -2010,10 +2080,10 @@ export default function HolographicUI({
                 </div>
 
                 {/* BOTTOM ACTIONS */}
-                <div className="w-full flex justify-center mt-6 pt-6 border-t border-white/10">
+                <div className="w-full flex justify-center mt-5 pt-5 border-t border-white/10">
                   <button
                     onClick={handleCancelReaction}
-                    className="px-10 py-4 bg-[#070B14] border border-[#00FFF0]/60 hover:bg-[#00FFF0]/15 text-xs uppercase font-mono font-black tracking-[0.2em] text-[#00FFF0] transition-all cursor-pointer rounded-sm shadow-[0_0_15px_rgba(0,255,240,0.15)] hover:shadow-[0_0_30px_rgba(0,255,240,0.4)] hover:border-[#00FFF0] hover:scale-105"
+                    className="w-full text-center py-3 bg-[#070B14] border border-[#00FFF0]/60 hover:bg-[#00FFF0]/15 text-[10px] uppercase font-mono font-black tracking-[0.2em] text-[#00FFF0] transition-all cursor-pointer rounded-sm shadow-[0_0_15px_rgba(0,255,240,0.15)] hover:shadow-[0_0_20px_rgba(0,255,240,0.4)] hover:border-[#00FFF0]"
                   >
                     RETURN TO CHAMBER
                   </button>
@@ -2029,7 +2099,7 @@ export default function HolographicUI({
         {isObsEntered && selectedElement && activeShellInfo && (
           <div 
             id="subatomic-shell-hud"
-            className="absolute z-50 md:right-[380px] bottom-32 md:bottom-auto md:top-[140px] w-[calc(100%-2rem)] md:w-80 mx-4 md:mx-0 p-5 bg-[#070C1B]/92 backdrop-blur-xl border border-[#00FFB3]/40 rounded-sm shadow-[0_0_25px_rgba(0,255,179,0.22)] animate-fade-in text-[#EAF2FF] select-none pointer-events-auto"
+            className="absolute z-50 right-4 md:right-[360px] top-20 md:top-24 w-[calc(100%-2rem)] md:w-72 mx-0 p-4 md:p-5 bg-[#070C1B]/92 backdrop-blur-xl border border-[#00FFB3]/40 rounded-sm shadow-[0_0_25px_rgba(0,255,179,0.22)] animate-fade-in text-[#EAF2FF] select-none pointer-events-auto"
           >
             {/* Holographic grid lines & corner elements for futuristic high-end feel */}
             <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#00FFB3]" />
@@ -2040,7 +2110,7 @@ export default function HolographicUI({
             <div className="flex justify-between items-start mb-3 border-b border-white/10 pb-2">
               <div>
                 <span className="text-[8px] font-mono tracking-[0.3em] text-[#00FFB3] uppercase">// SUBATOMIC SHELL ANALYZER</span>
-                <h3 className="text-xs font-black tracking-widest text-white uppercase mt-0.5">
+                <h3 className="text-[10px] md:text-xs font-black tracking-widest text-white uppercase mt-0.5">
                   Quantum Orb: {activeShellInfo.shellName} ({['k_shell', 'l_shell', 'm_shell', 'n_shell', 'o_shell', 'p_shell', 'q_shell'][activeShellInfo.shellIndex]})
                 </h3>
               </div>
@@ -2058,15 +2128,15 @@ export default function HolographicUI({
 
             <div className="space-y-4">
               {/* Shell Metrics Layout */}
-              <div className="grid grid-cols-2 gap-3 font-mono text-[10px]">
-                <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
-                  <div className="text-white/40 text-[7.5px] uppercase tracking-wider">Shell Index (n)</div>
-                  <div className="text-base font-black text-[#00FFB3] mt-0.5">n = {activeShellInfo.shellIndex + 1}</div>
+              <div className="grid grid-cols-2 gap-2 md:gap-3 font-mono text-[9px] md:text-[10px]">
+                <div className="p-2 md:p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
+                  <div className="text-white/40 text-[7px] md:text-[7.5px] uppercase tracking-wider">Shell Index (n)</div>
+                  <div className="text-sm md:text-base font-black text-[#00FFB3] mt-0.5">n = {activeShellInfo.shellIndex + 1}</div>
                 </div>
-                <div className="p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
-                  <div className="text-white/40 text-[7.5px] uppercase tracking-wider">Occupancy</div>
-                  <div className="text-base font-black text-[#00E5FF] mt-0.5">
-                    {activeShellInfo.electrons} <span className="text-[10px] font-medium text-white/50">Electrons</span>
+                <div className="p-2 md:p-2.5 bg-white/[0.03] border border-white/5 rounded-sm">
+                  <div className="text-white/40 text-[7px] md:text-[7.5px] uppercase tracking-wider">Occupancy</div>
+                  <div className="text-sm md:text-base font-black text-[#00E5FF] mt-0.5">
+                    {activeShellInfo.electrons} <span className="text-[8px] md:text-[10px] font-medium text-white/50">Electrons</span>
                   </div>
                 </div>
               </div>
@@ -2229,24 +2299,24 @@ export default function HolographicUI({
                 '--primary-color-alpha': `${getCatMeta(selectedElement.category || 'reactive-nonmetal').hex}38`
               } as React.CSSProperties}
             >
-              <div className="absolute top-22 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center text-center animate-fade-in z-30 w-full max-w-sm px-4">
-                <div className="text-7xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
+              <div className="absolute top-22 left-4 md:left-12 pointer-events-auto flex flex-col items-start text-left animate-fade-in z-30 w-[calc(100%-1rem)] sm:w-full max-w-[280px] md:max-w-sm px-0">
+                <div className="text-5xl md:text-7xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
                   {selectedElement.symbol}
                 </div>
-                <h1 className="text-xl font-black tracking-[0.25em] uppercase text-white mt-1">
+                <h1 className="text-lg md:text-xl font-black tracking-[0.25em] uppercase text-white mt-1">
                   {selectedElement.name}
                 </h1>
                 
-                <div className="mt-8 p-4 bg-[#070C1B]/55 backdrop-blur-md border border-[var(--primary-color)]/30 rounded-sm shadow-xl w-full text-left">
-                  <div className="text-[9px] font-mono tracking-widest text-[var(--primary-color)] mb-2">ATOMIC ARCHITECTURE</div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white mb-4">
+                <div className="mt-4 md:mt-8 p-3 md:p-4 bg-[#070C1B]/55 backdrop-blur-md border border-[var(--primary-color)]/30 rounded-sm shadow-xl w-full text-left">
+                  <div className="text-[8px] md:text-[9px] font-mono tracking-widest text-[var(--primary-color)] mb-2">ATOMIC ARCHITECTURE</div>
+                  <div className="grid grid-cols-2 gap-2 text-[9px] md:text-[10px] font-mono font-bold text-white mb-4">
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">MASS:</span> {selectedElement.mass.toFixed(3)}</div>
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">ELECTRONS:</span> {selectedElement.electrons}</div>
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">PROTONS:</span> {selectedElement.protons}</div>
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">NEUTRONS:</span> {selectedElement.neutrons}</div>
                   </div>
-                  <div className="text-[9px] font-mono tracking-widest text-[#FF9100] mb-2 mt-4">PHYSICAL PROPERTIES</div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white">
+                  <div className="text-[8px] md:text-[9px] font-mono tracking-widest text-[#FF9100] mb-2 mt-4">PHYSICAL PROPERTIES</div>
+                  <div className="grid grid-cols-2 gap-2 text-[9px] md:text-[10px] font-mono font-bold text-white">
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">MELT:</span> {selectedElement.meltingPoint || 'N/A'} K</div>
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">BOIL:</span> {selectedElement.boilingPoint || 'N/A'} K</div>
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5"><span className="text-[#EAF2FF]/50">DENSITY:</span> {selectedElement.density || 'N/A'}</div>
@@ -2271,17 +2341,17 @@ export default function HolographicUI({
                 '--primary-color-alpha': `${getCatMeta(compareElement.category || 'reactive-nonmetal').hex}38`
               } as React.CSSProperties}
             >
-              <div className="absolute top-22 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center text-center animate-fade-in z-30 w-full max-w-sm px-4">
-                <div className="text-7xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
+              <div className="absolute top-22 right-4 md:right-12 pointer-events-auto flex flex-col items-end text-right animate-fade-in z-30 w-[calc(100%-1rem)] sm:w-full max-w-[280px] md:max-w-sm px-0">
+                <div className="text-5xl md:text-7xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-[0_0_25px_var(--primary-color-alpha)]">
                   {compareElement.symbol}
                 </div>
-                <h1 className="text-xl font-black tracking-[0.25em] uppercase text-white mt-1">
+                <h1 className="text-lg md:text-xl font-black tracking-[0.25em] uppercase text-white mt-1">
                   {compareElement.name}
                 </h1>
                 
-                <div className="mt-8 p-4 bg-[#070C1B]/55 backdrop-blur-md border border-[var(--primary-color)]/30 rounded-sm shadow-xl w-full text-left">
-                  <div className="text-[9px] font-mono tracking-widest text-[var(--primary-color)] mb-2">ATOMIC ARCHITECTURE</div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white mb-4">
+                <div className="mt-4 md:mt-8 p-3 md:p-4 bg-[#070C1B]/55 backdrop-blur-md border border-[var(--primary-color)]/30 rounded-sm shadow-xl w-full text-left">
+                  <div className="text-[8px] md:text-[9px] font-mono tracking-widest text-[var(--primary-color)] mb-2">ATOMIC ARCHITECTURE</div>
+                  <div className="grid grid-cols-2 gap-2 text-[9px] md:text-[10px] font-mono font-bold text-white mb-4">
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5">
                       <span className="text-[#EAF2FF]/50">MASS:</span> {compareElement.mass.toFixed(3)}
                       {compareElement.mass > selectedElement.mass && <span className="ml-2 text-emerald-400">▲</span>}
@@ -2297,8 +2367,8 @@ export default function HolographicUI({
                       <span className="text-[#EAF2FF]/50">NEUTRONS:</span> {compareElement.neutrons}
                     </div>
                   </div>
-                  <div className="text-[9px] font-mono tracking-widest text-[#FF9100] mb-2 mt-4">PHYSICAL PROPERTIES</div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold text-white">
+                  <div className="text-[8px] md:text-[9px] font-mono tracking-widest text-[#FF9100] mb-2 mt-4">PHYSICAL PROPERTIES</div>
+                  <div className="grid grid-cols-2 gap-2 text-[9px] md:text-[10px] font-mono font-bold text-white">
                     <div className="bg-black/40 p-2 rounded-sm border border-white/5">
                       <span className="text-[#EAF2FF]/50">MELT:</span> {compareElement.meltingPoint || 'N/A'} K
                       {compareElement.meltingPoint && selectedElement.meltingPoint && parseFloat(compareElement.meltingPoint) > parseFloat(selectedElement.meltingPoint) && <span className="ml-2 text-emerald-400">▲</span>}
@@ -2498,8 +2568,8 @@ export default function HolographicUI({
               ].map((sc) => {
                 const isSelected = scaleMode === sc.id;
                 // Allow selecting only applicable modes per user-intent
-                const isDisabled = (sc.id === 'cosmic' || sc.id === 'periodic') && selectedElement;
-                const isAtomsOnly = (sc.id === 'atomic' || sc.id === 'subatomic') && !selectedElement;
+                const isDisabled = (sc.id === 'cosmic' || sc.id === 'periodic') && selectedElement !== null;
+                const isAtomsOnly = (sc.id === 'atomic' || sc.id === 'subatomic') && selectedElement === null;
                 const active = isSelected;
                 
                 return (

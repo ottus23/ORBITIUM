@@ -9,6 +9,7 @@ import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { ELEMENTS_DATA, CATEGORY_COLORS } from '../data';
 import { buildProceduralAtomWorld } from '../utils/atomWorldGenerator';
 import { OrbitiumKnowledgeEngine } from '../utils/KnowledgeEngine';
+import { buildMolecularStructure } from '../utils/molecularGenerator';
 
 interface ThreeSceneProps {
   selectedElement: ChemicalElement | null;
@@ -18,8 +19,10 @@ interface ThreeSceneProps {
   onSelectCompareElement?: (element: ChemicalElement | null) => void;
   onHoverElement: (element: ChemicalElement | null) => void;
   layoutMode: TableLayoutMode;
-  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline';
+  appMode: 'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular';
   timelineYear: number;
+  selectedMoleculeId?: string | null;
+  isExplodedView?: boolean;
   simulationSpeed: number;
   reactiveIntensity: number;
   isObsEntered: boolean;
@@ -53,6 +56,8 @@ export default function ThreeScene({
   layoutMode,
   appMode,
   timelineYear,
+  selectedMoleculeId,
+  isExplodedView,
   simulationSpeed,
   reactiveIntensity,
   isObsEntered,
@@ -71,6 +76,8 @@ export default function ThreeScene({
     layoutMode,
     appMode,
     timelineYear,
+    selectedMoleculeId,
+    isExplodedView,
     simulationSpeed,
     reactiveIntensity,
     isObsEntered,
@@ -88,6 +95,8 @@ export default function ThreeScene({
       layoutMode,
       appMode,
       timelineYear,
+      selectedMoleculeId,
+      isExplodedView,
       simulationSpeed,
       reactiveIntensity,
       isObsEntered,
@@ -882,7 +891,37 @@ export default function ThreeScene({
       material: THREE.MeshBasicMaterial;
       standardTexture: THREE.Texture;
       timelineTexture: THREE.Texture;
+      // Autonomous Living Ecosystem States
+      burstTimer?: number;
+      burstDuration?: number;
+      burstType?: 'radioactive' | 'reactive';
     }
+
+    // Living Ecosystem: Autonomous Reactions & Events
+    const ecosystemGroup = new THREE.Group();
+    scene.add(ecosystemGroup);
+
+    interface EcosystemConnection {
+      fromIdx: number;
+      toIdx: number;
+      life: number;
+      maxLife: number;
+      line: THREE.Line;
+      particles: THREE.Mesh[];
+    }
+    const activeEcosystemConnections: EcosystemConnection[] = [];
+    
+    interface CardBurst {
+      cardIdx: number;
+      timer: number;
+      duration: number;
+      type: 'radioactive' | 'reactive';
+    }
+    const activeCardBursts: CardBurst[] = [];
+    
+    // Shared materials for ecosystem particles to avoid GPU allocations
+    const ecosystemParticleGeom = new THREE.SphereGeometry(0.04, 4, 4);
+    const ecosystemParticleMat = new THREE.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.8 });
 
     const elementCards: CardMeshInfo[] = [];
 
@@ -1019,6 +1058,7 @@ export default function ThreeScene({
       tunnelDuration?: number;
       tunnelTimer?: number;
       tunnelRadiusOffset?: number;
+      burstTimer?: number;
     }
     
     let activeElectrons: ExtendedElectron[] = [];
@@ -1079,7 +1119,9 @@ export default function ThreeScene({
     let reactantB: THREE.Group | null = null;
     let draggedReactant: THREE.Group | null = null;
     let activeBondModeReaction: ReactionConfig | null = null;
-
+    let activeMolecularGroup: THREE.Group | null = null;
+    let currentMoleculeIdStr: string | null = null;
+    
     // Fusion visual assets
     let fusionShockwave: THREE.Mesh | null = null;
     let sparkPoints: THREE.Points | null = null;
@@ -2077,8 +2119,8 @@ export default function ThreeScene({
     const updateLayouts = (mode: TableLayoutMode, selectedEl: ChemicalElement | null) => {
       elementCards.forEach((ci, index) => {
         // Render and update positions
-        if (selectedEl) {
-          // If an element is selected, make the periodic grid fly past the camera (positive Z)
+        if (selectedEl || propsRef.current.appMode === 'molecular') {
+          // If an element is selected or we're in molecular mode, make the periodic grid fly past the camera (positive Z)
           // and fade out. The selected element's card also flies past so the user arrives at the bare atom.
           const randomOffsetX = (Math.random() - 0.5) * 20;
           const randomOffsetY = (Math.random() - 0.5) * 20;
@@ -2876,6 +2918,7 @@ export default function ThreeScene({
 
     let lastSelected: ChemicalElement | null = null;
     let lastLayout: TableLayoutMode = 'grid';
+    let lastAppMode = propsRef.current.appMode;
 
     // Adaptive Quality state and dynamic adjustments helper
     let isLowPerfActive = false;
@@ -2965,9 +3008,10 @@ export default function ThreeScene({
       }
 
       // 1. Detect dynamic layout swaps or selection changes
-      if (currentProps.layoutMode !== lastLayout || currentProps.selectedElement !== lastSelected) {
+      if (currentProps.layoutMode !== lastLayout || currentProps.selectedElement !== lastSelected || currentProps.appMode !== lastAppMode) {
         lastLayout = currentProps.layoutMode;
         lastSelected = currentProps.selectedElement;
+        lastAppMode = currentProps.appMode;
         
         updateLayouts(currentProps.layoutMode, currentProps.selectedElement);
         
@@ -2991,6 +3035,47 @@ export default function ThreeScene({
           }
           selectedShellIndex = null;
         }
+      }
+
+      // Check for Molecular Universe updates
+      if (currentProps.appMode === 'molecular' && currentProps.selectedMoleculeId !== currentMoleculeIdStr) {
+        currentMoleculeIdStr = currentProps.selectedMoleculeId || null;
+        if (activeMolecularGroup) {
+          scene.remove(activeMolecularGroup);
+          activeMolecularGroup = null;
+        }
+        if (currentMoleculeIdStr) {
+          activeMolecularGroup = buildMolecularStructure(currentMoleculeIdStr);
+          scene.add(activeMolecularGroup);
+        }
+      } else if (currentProps.appMode !== 'molecular' && activeMolecularGroup) {
+        scene.remove(activeMolecularGroup);
+        activeMolecularGroup = null;
+        currentMoleculeIdStr = null;
+      }
+      
+      // Animate active molecular group if present
+      if (activeMolecularGroup) {
+        activeMolecularGroup.rotation.y += delta * 0.2;
+        activeMolecularGroup.rotation.x += delta * 0.1;
+        // Float
+        activeMolecularGroup.position.y = Math.sin(elapsed * 1.5) * 0.2;
+        
+        // Gentle explosion based on click status
+        const targetExplode = currentProps.isExplodedView ? 1.5 : 0.0;
+        activeMolecularGroup.children.forEach(child => {
+           if (child.userData.originalPos && child.userData.randomDir) {
+              const orig = child.userData.originalPos as THREE.Vector3;
+              const dir = child.userData.randomDir as THREE.Vector3;
+              const currentT = child.userData.explodeT || 0;
+              const newT = currentT + (targetExplode - currentT) * 0.05;
+              child.userData.explodeT = newT;
+              
+              child.position.copy(orig).add(dir.clone().multiplyScalar(newT * 2.0));
+              // Also add wobble
+              child.position.y += Math.sin(elapsed * 2.0 + child.id) * 0.05 * (1.0 + newT);
+           }
+        });
       }
 
       // 2. Cinematic weightless floating and panning drone camera response
@@ -3042,6 +3127,12 @@ export default function ThreeScene({
         }
         rotYTarget += (0 - rotYTarget) * 0.1;
         rotXTarget += (0 - rotXTarget) * 0.1;
+      } else if (currentProps.appMode === 'molecular') {
+        cameraTargetX = Math.sin(elapsed * 0.1) * 2.0;
+        cameraTargetY = Math.cos(elapsed * 0.15) * 1.5;
+        cameraTargetZ = 12.0 * zoomScaleMultiplier;
+        rotYTarget = elapsed * 0.1;
+        rotXTarget = Math.sin(elapsed * 0.05) * 0.1;
       } else {
         if (currentProps.layoutMode === 'spiral') {
           cameraTargetZ = 30 * zoomScaleMultiplier;
@@ -3437,6 +3528,41 @@ export default function ThreeScene({
             const flicker = Math.random() > 0.88 ? 0.9 : 0.35;
             targetOpacity = flicker;
           }
+          
+          // Autonomous Bursts on Cards (Living Ecosystem Spontaneous Events)
+          if (isDiscovered && applyPhysics) {
+             if (ci.burstTimer && ci.burstTimer > 0) {
+                ci.burstTimer -= delta * speedMult;
+                if (ci.burstTimer <= 0) {
+                   ci.burstTimer = 0;
+                } else {
+                   const burstProgress = ci.burstTimer / (ci.burstDuration || 1.0);
+                   if (ci.burstType === 'reactive') {
+                      emissiveIntensity = 1.0 + burstProgress * 6.0;
+                      targetScale = 1.05 + burstProgress * 0.15;
+                      targetOpacity = Math.min(1.0, 0.35 + burstProgress * 1.5);
+                      // Add erratic jitter
+                      ci.mesh.position.x += (Math.random() - 0.5) * 0.12 * burstProgress;
+                      ci.mesh.position.y += (Math.random() - 0.5) * 0.12 * burstProgress;
+                   } else if (ci.burstType === 'radioactive') {
+                      emissiveIntensity = 1.0 + burstProgress * 4.0;
+                      targetOpacity = Math.random() > 0.5 ? 0.95 : 0.2; // Erratic flashing
+                      ci.mesh.position.z += (Math.random() - 0.5) * 0.25 * burstProgress; // Pop forward
+                   }
+                }
+             } else {
+                // Trigger new bursts occasionally
+                if (Math.random() > 0.999 && (cat === 'alkali-metal' || cat === 'alkaline-earth' || cat === 'halogen')) {
+                   ci.burstTimer = 0.5 + Math.random();
+                   ci.burstDuration = ci.burstTimer;
+                   ci.burstType = 'reactive';
+                } else if (Math.random() > 0.998 && (cat === 'actinide' || cat === 'lanthanide')) {
+                   ci.burstTimer = 0.4 + Math.random() * 0.6;
+                   ci.burstDuration = ci.burstTimer;
+                   ci.burstType = 'radioactive';
+                }
+             }
+          }
         }
 
         // Apply smooth scale transition using frame-rate independent elements lerping
@@ -3477,6 +3603,97 @@ export default function ThreeScene({
           }
         }
       });
+
+      // LIVING ECOSYSTEM: Autonomous Regional Interaction Logic
+      const isCardGridVisible = !currentProps.selectedElement && (currentProps.appMode === 'explorer' || currentProps.appMode === 'timeline' || currentProps.appMode === 'molecular');
+      
+      if (isCardGridVisible && Math.random() > 0.93 && elementCards.length > 50) {
+         // Spontaneous element interactions based on real chemical families
+         const sourceIdx = Math.floor(Math.random() * elementCards.length);
+         const sourceCard = elementCards[sourceIdx];
+         const scat = sourceCard.element.category;
+         
+         // Only active reactive elements spark connections
+         if ((scat === 'alkali-metal' || scat === 'alkaline-earth' || scat === 'halogen') && activeEcosystemConnections.length < 25) {
+            // Find a random target
+            const targetIdx = Math.floor(Math.random() * elementCards.length);
+            const targetCard = elementCards[targetIdx];
+            const tcat = targetCard.element.category;
+            
+            // Pairings and Rules (Halogens love alkali metals)
+            const isReactivePair = (scat === 'alkali-metal' && tcat === 'halogen') || (scat === 'halogen' && tcat === 'alkali-metal') || (scat === 'alkaline-earth' && tcat === 'halogen');
+            const isDistanceReasonable = sourceCard.mesh.position.distanceTo(targetCard.mesh.position) < 35;
+            
+            if (isReactivePair && isDistanceReasonable) {
+               // Spawn a living connection bond
+               const lineGeom = new THREE.BufferGeometry().setFromPoints([sourceCard.mesh.position, targetCard.mesh.position]);
+               const lineMat = new THREE.LineBasicMaterial({
+                  color: (scat === 'halogen' || tcat === 'halogen') ? '#00FFB3' : '#FF00FF',
+                  transparent: true,
+                  opacity: 0.1
+               });
+               const line = new THREE.Line(lineGeom, lineMat);
+               ecosystemGroup.add(line);
+               
+               // Spawn electron particles moving across the bond
+               const particles = [];
+               for(let p=0; p < 4; p++) {
+                 const mesh = new THREE.Mesh(ecosystemParticleGeom, ecosystemParticleMat);
+                 ecosystemGroup.add(mesh);
+                 particles.push(mesh);
+               }
+               
+               activeEcosystemConnections.push({
+                 fromIdx: sourceIdx,
+                 toIdx: targetIdx,
+                 life: 0,
+                 maxLife: 1.5 + Math.random() * 2.5,
+                 line,
+                 particles
+               });
+            }
+         }
+      }
+      
+      // Update existing ecosystem connections & particles
+      for (let i = activeEcosystemConnections.length - 1; i >= 0; i--) {
+        const conn = activeEcosystemConnections[i];
+        conn.life += delta * simMultiplier;
+        
+        const fromPos = elementCards[conn.fromIdx].mesh.position;
+        const toPos = elementCards[conn.toIdx].mesh.position;
+        
+        // Update line path (live tracking)
+        const posAttr = conn.line.geometry.attributes.position as THREE.BufferAttribute;
+        posAttr.setXYZ(0, fromPos.x, fromPos.y, fromPos.z);
+        posAttr.setXYZ(1, toPos.x, toPos.y, toPos.z);
+        posAttr.needsUpdate = true;
+        
+        // Pulse line opacity to simulate a burst
+        const lifeRatio = conn.life / conn.maxLife;
+        (conn.line.material as THREE.LineBasicMaterial).opacity = Math.sin(lifeRatio * Math.PI) * 0.75;
+        
+        // Travel particles along the bond
+        conn.particles.forEach((p, pIdx) => {
+           const t = ((lifeRatio * 3.0) + (pIdx * 0.25)) % 1.0; 
+           p.position.lerpVectors(fromPos, toPos, t);
+           // Sine wave jitter for plasma-like electron tunneling effect
+           p.position.x += Math.sin(elapsed * 25 + pIdx) * 0.25;
+           p.position.y += Math.cos(elapsed * 25 + pIdx) * 0.25;
+           
+           (p.material as THREE.MeshBasicMaterial).opacity = Math.sin(lifeRatio * Math.PI) * 0.9;
+        });
+        
+        if (conn.life >= conn.maxLife || !isCardGridVisible) {
+           ecosystemGroup.remove(conn.line);
+           conn.line.geometry.dispose();
+           (conn.line.material as THREE.Material).dispose();
+           conn.particles.forEach(p => {
+              ecosystemGroup.remove(p);
+           });
+           activeEcosystemConnections.splice(i, 1);
+        }
+      }
 
       // 3B. Reactant & Fusion collision loop in Bond Lab mode
       if (currentProps.appMode !== 'bond_lab') {
@@ -4150,8 +4367,6 @@ export default function ThreeScene({
         const isRadioactiveOrActinide = 
           category === 'actinide' || 
           atmosphereType === 'decay' || 
-          atmosphereType === 'actinide' || 
-          atmosphereType === 'radioactive' ||
           selectedEl.visual?.energyBehavior === 'radioactive' ||
           selectedEl.orbitiumPersonality?.visualConfig?.energyBehavior === 'radioactive';
 
@@ -4228,6 +4443,7 @@ export default function ThreeScene({
               if (el.tunnelTimer >= (el.tunnelDuration || 0.3)) {
                 el.isTunneling = false;
                 el.tunnelRadiusOffset = 0.0;
+                el.burstTimer = 0.5; // Trigger burst effect for 500ms
               }
             }
           } else {
@@ -4242,14 +4458,15 @@ export default function ThreeScene({
           // Compute custom excitation wave jump radius
           const orbitJumpMultiplier = el.isJumping ? Math.sin(el.jumpRatio * Math.PI) * 3.2 : 0.0;
           const tunnelAnimOffset = el.isTunneling ? (el.tunnelRadiusOffset || 0.0) : 0.0;
+          const burstOffset = (el.burstTimer && el.burstTimer > 0) ? Math.sin((el.burstTimer/0.5) * Math.PI) * 1.5 : 0.0;
           
           // Reaction kinetic shell vibrations
           const ringWobble = currentProps.activeReaction 
             ? Math.sin(elapsed * 15.0 + el.angle * 2.0) * 0.18 * currentProps.reactiveIntensity
             : Math.sin(elapsed * 3.5 + el.angle) * 0.02;
 
-          let rx = rxBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
-          let ry = ryBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble;
+          let rx = rxBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble + burstOffset;
+          let ry = ryBase + orbitJumpMultiplier + tunnelAnimOffset + ringWobble + burstOffset;
 
           // Temporary trajectory trail distortion when jumping between shells
           if (el.isTunneling && isHighIntensity) {
@@ -4277,8 +4494,20 @@ export default function ThreeScene({
           // Position matching
           el.mesh.position.copy(p);
 
+          // Update burst timer
+          if (el.burstTimer !== undefined && el.burstTimer > 0) {
+            el.burstTimer -= delta * simMultiplier;
+            if (el.burstTimer < 0) el.burstTimer = 0;
+          }
+
           // Energetic color flares during quantum excitation or highlighted shell states
-          if (el.isJumping) {
+          if (el.burstTimer && el.burstTimer > 0) {
+             const burstProgress = el.burstTimer / 0.5;
+             el.mesh.scale.setScalar(1.5 + burstProgress * 6.0);
+             // High-intensity color keyframes: White -> Hot Magenta/Cyan -> Base
+             const colorHex = burstProgress > 0.6 ? '#FFFFFF' : (burstProgress > 0.2 ? '#FF00FF' : '#00FFFF');
+             (el.mesh.material as THREE.MeshBasicMaterial).color.set(colorHex);
+          } else if (el.isJumping) {
             el.mesh.scale.setScalar(1.0 + Math.sin(el.jumpRatio * Math.PI) * 1.5);
             (el.mesh.material as THREE.MeshBasicMaterial).color.set('#FFF176'); // glowing bright gold-yellow
           } else if (el.isTunneling) {
@@ -4338,7 +4567,11 @@ export default function ThreeScene({
           
           // Animate and fade the trail line visibility
           const trailMat = el.trail.material as THREE.LineBasicMaterial;
-          if (el.isJumping) {
+          if (el.burstTimer && el.burstTimer > 0) {
+            trailMat.color.set((Math.random() > 0.4) ? '#FF00FF' : '#FFFFFF');
+            trailMat.opacity = 1.0;
+            trailMat.linewidth = 4;
+          } else if (el.isJumping) {
             trailMat.color.set('#FFD54F');
             trailMat.opacity = 0.85;
             trailMat.linewidth = 2;

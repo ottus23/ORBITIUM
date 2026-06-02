@@ -15,8 +15,10 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<TableLayoutMode>('grid');
   
   // Custom Application Modes
-  const [appMode, setAppMode] = useState<'observatory' | 'explorer' | 'bond_lab' | 'timeline'>('explorer');
+  const [appMode, setAppMode] = useState<'observatory' | 'explorer' | 'bond_lab' | 'timeline' | 'molecular'>('explorer');
   const [timelineYear, setTimelineYear] = useState<number>(2026);
+  const [selectedMoleculeId, setSelectedMoleculeId] = useState<string | null>('water');
+  const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
   
   // Wavefield Modulations Settings
   const [simulationSpeed, setSimulationSpeed] = useState<number>(1.2);
@@ -71,6 +73,8 @@ export default function App() {
         layoutMode={layoutMode}
         appMode={appMode}
         timelineYear={timelineYear}
+        selectedMoleculeId={selectedMoleculeId}
+        isExplodedView={isExplodedView}
         simulationSpeed={simulationSpeed}
         reactiveIntensity={reactiveIntensity}
         isObsEntered={isObsEntered}
@@ -103,6 +107,10 @@ export default function App() {
         }}
         timelineYear={timelineYear}
         onChangeTimelineYear={setTimelineYear}
+        selectedMoleculeId={selectedMoleculeId}
+        onSelectMoleculeId={setSelectedMoleculeId}
+        isExplodedView={isExplodedView}
+        onSetExplodedView={setIsExplodedView}
         simulationSpeed={simulationSpeed}
         onSetSimulationSpeed={setSimulationSpeed}
         reactiveIntensity={reactiveIntensity}
