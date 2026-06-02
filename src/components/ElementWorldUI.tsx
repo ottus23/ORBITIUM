@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ChemicalElement } from '../types';
 import { Share2, Beaker, Atom, Eye, Network, Globe, Activity } from 'lucide-react';
-import Markdown from 'react-markdown';
 import { ElementExplorationDepth } from './ElementExplorationDepth';
 import { CATEGORY_COLORS, ELEMENTS_DATA } from '../data';
 
@@ -20,17 +19,18 @@ export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompa
   const navNodes = [
     { id: 'overview', label: 'OVERVIEW', icon: Share2, layer: 1 },
     { id: 'structure', label: 'ATOMIC ARCHITECTURE', icon: Atom, layer: 2 },
-    { id: 'physical', label: 'PHYSICAL PROPERTIES', icon: Eye, layer: 3 },
-    { id: 'chemical', label: 'CHEMICAL PROPERTIES', icon: Eye, layer: 4 },
+    { id: 'physical', label: 'PHYSICAL', icon: Eye, layer: 3 },
+    { id: 'chemical', label: 'CHEMICAL', icon: Eye, layer: 4 },
     { id: 'cosmic', label: 'COSMIC ORIGIN', icon: Globe, layer: 6 },
-    { id: 'biological', label: 'BIOLOGICAL SYSTEM', icon: Network, layer: 7 },
-    { id: 'historical', label: 'HISTORICAL SYSTEM', icon: Activity, layer: 8 },
-    { id: 'applications', label: 'INDUSTRIAL SYSTEM', icon: Network, layer: 5 },
-    { id: 'reaction', label: 'REACTION INTELLIGENCE', icon: Activity, layer: 9 },
-    { id: 'personality', label: 'ORBITIUM PERSONALITY', icon: Globe, layer: 10 },
+    { id: 'biological', label: 'BIOLOGICAL', icon: Network, layer: 7 },
+    { id: 'historical', label: 'HISTORICAL', icon: Activity, layer: 8 },
+    { id: 'applications', label: 'INDUSTRIAL', icon: Network, layer: 5 },
+    { id: 'reaction', label: 'REACTION INTEL', icon: Activity, layer: 9 },
+    { id: 'personality', label: 'PERSONALITY', icon: Globe, layer: 10 },
   ];
 
   const getCatMeta = (cat: string) => CATEGORY_COLORS[cat] || { label: 'Unknown', hex: '#FFFFFF' };
+  const catColor = getCatMeta(selectedElement.category).hex;
   
   const getActiveLayerMap = () => {
     const node = navNodes.find(n => n.id === activeConstellation);
@@ -38,106 +38,97 @@ export function ElementWorldUI({ selectedElement, onSelectElement, onSelectCompa
   };
 
   const mapLayerToConstellation = (layer: number | ((prev: number) => number)) => {
-    // If it's a function update, compute new layer:
     let nextLayer = typeof layer === 'function' ? layer(getActiveLayerMap()) : layer;
     const node = navNodes.find(n => n.layer === nextLayer);
-    if (node) {
-      setActiveConstellation(node.id);
-    }
+    if (node) setActiveConstellation(node.id);
   };
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-30 select-none">
-      {/* Immersive HUD framing */}
-      <div className="absolute top-4 md:top-8 left-4 md:left-8 border-l-2 border-t-2 border-[var(--primary-color)]/30 w-8 md:w-16 h-8 md:h-16 opacity-50" />
-      <div className="absolute top-4 md:top-8 right-4 md:right-8 border-r-2 border-t-2 border-[var(--primary-color)]/30 w-8 md:w-16 h-8 md:h-16 opacity-50" />
-      <div className="absolute bottom-20 md:bottom-28 left-4 md:left-8 border-l-2 border-b-2 border-[var(--primary-color)]/30 w-8 md:w-16 h-8 md:h-16 opacity-50" />
-      <div className="absolute bottom-20 md:bottom-28 right-4 md:right-8 border-r-2 border-b-2 border-[var(--primary-color)]/30 w-8 md:w-16 h-8 md:h-16 opacity-50" />
+    <div className="absolute inset-0 pointer-events-none z-30 select-none flex justify-between p-6">
+      
+      {/* ZONE 3: CONTEXT PANEL (LEFT) */}
+      <div className="pointer-events-auto h-full flex flex-col w-[340px] gap-6 animate-fade-in">
+        <div className="bg-[#050812]/90 backdrop-blur-2xl border-l-[3px] border-[var(--primary-color)] p-6 shadow-[0_0_30px_rgba(0,0,0,0.8)] rounded-r-lg">
+          <div className="text-[10px] font-mono tracking-[0.3em] text-[var(--primary-color)] mb-1 uppercase">
+            {selectedElement.nameOrigin || 'ELEMENTAL MATRIX'}
+          </div>
+          
+          <div className="flex items-baseline gap-4 mt-2 mb-4">
+            <h1 className="text-7xl leading-none font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+              {selectedElement.symbol}
+            </h1>
+            <h2 className="text-3xl font-black uppercase text-white tracking-[0.2em] truncate">
+              {selectedElement.name}
+            </h2>
+          </div>
 
-      {/* Hero Name / Core Identity */}
-      <div className="absolute top-16 md:top-12 left-4 md:left-12 max-w-[280px] sm:max-w-sm md:max-w-lg pointer-events-auto animate-fade-in group">
-        <div className="text-[9px] md:text-[10px] font-mono tracking-[0.3em] text-[var(--primary-color)] mb-1 uppercase bg-[var(--primary-color)]/10 inline-block px-2 py-1 md:px-3 md:py-1 border border-[var(--primary-color)]/20 shadow-[0_0_15px_var(--primary-color-alpha)]">
-          {selectedElement.nameOrigin || 'ELEMENTAL MATRIX'}
+          <div className="flex flex-col gap-2 font-mono text-[11px] text-white/50 tracking-widest mt-2 border-t border-white/10 pt-4">
+            <div className="flex justify-between items-center">
+              <span>ATOMIC MASS</span>
+              <span className="text-white font-bold">{selectedElement.mass.toFixed(4)} u</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>ATOMIC NUMBER</span>
+              <span className="text-white font-bold">{selectedElement.number}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>CATEGORY</span>
+              <span className="text-[var(--primary-color)] font-bold uppercase">{selectedElement.category.replace('-', ' ')}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>STATE AT STP</span>
+              <span className="text-white font-bold uppercase">{selectedElement.state}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>LOCATION</span>
+              <span className="text-white font-bold uppercase">GROUP {selectedElement.group} / PERIOD {selectedElement.period}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-baseline gap-2 md:gap-4 mt-1 md:mt-2">
-          <h1 className="text-6xl md:text-8xl lg:text-[7rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 drop-shadow-[0_0_20px_var(--primary-color-alpha)]">
-            {selectedElement.symbol}
-          </h1>
-          <h2 className="text-xl md:text-3xl lg:text-4xl font-black uppercase text-white tracking-[0.2em] truncate">
-            {selectedElement.name}
-          </h2>
+      </div>
+
+      {/* ZONE 4: KNOWLEDGE PANEL (RIGHT) */}
+      <div className="pointer-events-auto h-full w-[480px] flex flex-col justify-start pb-6 animate-fade-in-right">
+        <div className="bg-[#040814]/85 backdrop-blur-3xl border border-[var(--primary-color)]/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-lg overflow-hidden flex flex-col flex-1 h-[80%] max-h-[85vh]">
+          
+          {/* TABS HEADER */}
+          <div className="flex overflow-x-auto scrollbar-none border-b border-white/10 bg-black/40 px-2 pt-2">
+            {navNodes.map((node) => {
+              const isActive = activeConstellation === node.id;
+              const Icon = node.icon;
+              return (
+                <button
+                  key={node.id}
+                  onClick={() => setActiveConstellation(node.id)}
+                  className={`flex flex-col items-center gap-1.5 px-4 py-3 min-w-max border-b-2 transition-all ${
+                    isActive 
+                      ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-white' 
+                      : 'border-transparent text-white/40 hover:text-white/80 hover:bg-white/5'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-[var(--primary-color)]' : ''}`} />
+                  <span className="text-[9px] font-mono tracking-widest uppercase font-bold">{node.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* TAB CONTENT (ElementExplorationDepth) */}
+          <div className="flex-1 relative overflow-hidden">
+            <ElementExplorationDepth 
+              selectedElement={selectedElement}
+              activeLayer={getActiveLayerMap()}
+              setActiveLayer={mapLayerToConstellation as any}
+              onSelectElement={onSelectElement}
+              activeShellInfo={activeShellInfo}
+              setActiveShellInfo={setActiveShellInfo}
+              getCatMeta={getCatMeta}
+              ELEMENTS_DATA={ELEMENTS_DATA}
+            />
+          </div>
         </div>
-        <div className="text-[9px] md:text-[11px] font-mono text-white/60 tracking-widest mt-1 md:mt-2 px-1 flex flex-wrap gap-x-2 md:gap-x-3 gap-y-1">
-          <span>ATOMIC MASS: <span className="text-white font-bold">{selectedElement.mass.toFixed(4)} u</span></span>
-          <span className="hidden md:inline border-l border-white/20" />
-          <span>Z: <span className="text-white font-bold">{selectedElement.number}</span></span>
-          <span className="hidden md:inline border-l border-white/20" />
-          <span>STATE: <span className="text-[var(--primary-color)] font-bold">{selectedElement.state}</span></span>
-        </div>
-        <p className="mt-2 md:mt-4 text-[10px] md:text-xs font-sans font-light leading-relaxed text-[#EAF2FF]/80 max-w-sm md:max-w-md pl-3 md:pl-4 border-l-2 border-[var(--primary-color)]/40 hover:border-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 py-1 transition-colors line-clamp-3 md:line-clamp-none">
-          {selectedElement.summary}
-        </p>
       </div>
-
-      {/* Floating Constellation Nodes (Navigation) */}
-      <div className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 flex flex-col gap-2 md:gap-4 pointer-events-auto z-40 transform scale-90 md:scale-100 origin-left">
-        <div className="h-20 md:h-40 w-[1px] bg-gradient-to-b from-transparent via-[var(--primary-color)]/30 to-transparent absolute left-3 top-[-10px] md:top-[-20px] -z-10" />
-        <div className="h-20 md:h-40 w-[1px] bg-gradient-to-b from-transparent via-[var(--primary-color)]/30 to-transparent absolute left-3 bottom-[-10px] md:bottom-[-20px] -z-10" />
-        
-        {navNodes.map((node, i) => {
-          const isActive = activeConstellation === node.id;
-          const Icon = node.icon;
-          return (
-            <button
-              key={node.id}
-              onClick={() => setActiveConstellation(node.id)}
-              className={`flex items-center gap-3 md:gap-4 group transition-all duration-300 ${isActive ? 'translate-x-1 md:translate-x-2' : 'hover:translate-x-1'}`}
-            >
-              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border flex items-center justify-center transition-all ${
-                isActive 
-                  ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/20 shadow-[0_0_15px_var(--primary-color-alpha)]' 
-                  : 'border-white/20 bg-black/50 group-hover:border-[var(--primary-color)]/50 group-hover:bg-[var(--primary-color)]/10'
-              }`}>
-                <Icon className={`w-3 h-3 ${isActive ? 'text-[var(--primary-color)]' : 'text-white/50 group-hover:text-[var(--primary-color)]'}`} />
-              </div>
-              <span className={`text-[9px] md:text-[10px] font-mono tracking-[0.2em] uppercase font-bold transition-colors ${
-                isActive ? 'text-white' : 'text-white/40 group-hover:text-white/80'
-              }`}>
-                {node.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active Constellation Data Cluster */}
-      <div className="absolute right-4 md:right-12 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 max-w-[340px] w-full sm:max-w-md md:w-[480px] pointer-events-auto animate-fade-in-right z-50 bg-[#040814]/80 backdrop-blur-3xl border border-[var(--primary-color)]/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-lg overflow-hidden">
-        <ElementExplorationDepth 
-          selectedElement={selectedElement}
-          activeLayer={getActiveLayerMap()}
-          setActiveLayer={mapLayerToConstellation as any}
-          onSelectElement={onSelectElement}
-          activeShellInfo={activeShellInfo}
-          setActiveShellInfo={setActiveShellInfo}
-          getCatMeta={getCatMeta}
-          ELEMENTS_DATA={ELEMENTS_DATA}
-        />
-      </div>
-
-      {/* Disconnect and action bar at the very bottom center */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 pointer-events-auto flex items-center gap-4">
-        <button
-          onClick={() => {
-            onSelectElement(null);
-            if (onSelectCompareElement) onSelectCompareElement(null);
-            window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
-          }}
-          className="px-8 py-3 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 hover:border-[var(--primary-color)] text-[10px] font-mono tracking-[0.2em] text-white font-bold uppercase transition-all rounded-sm shadow-[0_0_20px_var(--primary-color-alpha)] hover:shadow-[0_0_30px_var(--primary-color)] cursor-pointer"
-        >
-          OPEN COSMIC GRID ✖
-        </button>
-      </div>
-
+      
     </div>
   );
 }

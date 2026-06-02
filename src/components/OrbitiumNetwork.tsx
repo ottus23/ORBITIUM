@@ -112,7 +112,7 @@ export function OrbitiumNetwork({ onSelectElement, onNavigateHome }: OrbitiumNet
   const currentTabColor = NETWORK_TABS.find(t => t.id === activeTab)?.color || '#00E5FF';
 
   return (
-    <div className="absolute inset-0 z-[100] bg-[#050812] overflow-hidden text-[#EAF2FF] select-none font-sans flex flex-col">
+    <div className="absolute inset-0 z-10 bg-[#050812] overflow-hidden text-[#EAF2FF] select-none font-sans flex flex-col pt-24">
       {/* Dynamic Background Noise */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tab-color)_0%,_transparent_60%)] opacity-30 blur-3xl animate-pulse" style={{ '--tab-color': currentTabColor } as any} />
@@ -124,21 +124,12 @@ export function OrbitiumNetwork({ onSelectElement, onNavigateHome }: OrbitiumNet
         </svg>
       </div>
 
-      {/* HEADER NAV */}
-      <div className="relative z-10 flex items-center justify-between p-6 md:p-8 bg-gradient-to-b from-[#0A0D1B] to-transparent">
-        <button 
-          onClick={onNavigateHome}
-          className="flex items-center gap-2 text-white/50 hover:text-white transition-colors border border-white/10 hover:border-white/30 px-4 py-2 rounded-sm bg-black/40 backdrop-blur-md cursor-pointer font-mono text-[10px] uppercase tracking-widest"
-        >
-          <ChevronRight className="w-4 h-4 rotate-180" /> OBSERVATORY
-        </button>
-
-        <div className="flex flex-col items-end">
-          <h1 className="text-2xl md:text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">
-            THE ORBITIUM NETWORK
-          </h1>
-          <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/40 mt-1">LIVING ECOSYSTEM OF MATTER</p>
-        </div>
+      {/* HEADER NAV / TITLE - Pushed down to exist in Zone 2 safely */}
+      <div className="relative z-10 flex flex-col items-start px-6 md:px-8 mb-6">
+        <h1 className="text-2xl md:text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">
+          THE ORBITIUM NETWORK
+        </h1>
+        <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/40 mt-1">LIVING ECOSYSTEM OF MATTER</p>
       </div>
 
       {/* TABS */}

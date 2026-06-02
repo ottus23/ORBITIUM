@@ -2,10 +2,6 @@ import React, { useState } from 'react';
 import { ChemicalElement } from '../types';
 import { ELEMENTS_DATA } from '../data';
 import { motion, AnimatePresence } from 'motion/react';
-import { SBlockRealmDetailed } from './SBlockRealmDetailed';
-import { PBlockRealmDetailed } from './PBlockRealmDetailed';
-import { DBlockRealmDetailed } from './DBlockRealmDetailed';
-import { FBlockRealmDetailed } from './FBlockRealmDetailed';
 import { Activity, Hexagon, Zap, Globe, ChevronRight, X, Atom, Orbit } from 'lucide-react';
 
 
@@ -149,47 +145,9 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
 
   return (
     <div 
-      className="absolute inset-0 z-[60] bg-[#040814]/95 backdrop-blur-2xl overflow-hidden pointer-events-auto text-white select-none"
+      className="absolute inset-0 z-10 bg-[#040814]/95 backdrop-blur-2xl overflow-hidden pointer-events-auto text-white select-none"
       onMouseMove={handleMouseMove}
     >
-      {/* Universal header navigation */}
-      <div className="absolute top-6 left-6 md:top-10 md:left-10 z-[70] flex items-center gap-4">
-        <button 
-          onClick={onNavigateHome}
-          className="flex items-center gap-2 text-white/50 hover:text-[#00FFB3] transition-colors border border-white/10 hover:border-[#00FFB3] px-3 py-1.5 rounded-sm bg-black/40 backdrop-blur-md cursor-pointer font-mono text-[9px] uppercase tracking-widest"
-        >
-          <ChevronRight className="w-3.5 h-3.5 rotate-180" /> OBSERVATORY
-        </button>
-        <button 
-          onClick={(e) => {
-             e.stopPropagation();
-             const uiEvent = new CustomEvent('request-change-app-mode', { detail: { mode: 'network' } });
-             window.dispatchEvent(uiEvent);
-          }}
-          className="flex items-center gap-2 text-[#EAF2FF] hover:bg-white hover:text-black transition-all border border-white/20 hover:border-white px-4 py-1.5 rounded-sm bg-black/40 backdrop-blur-md cursor-pointer font-sans text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.4)]"
-        >
-          <Globe className="w-3.5 h-3.5" /> ENTER ECOSYSTEM
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {!activeBlockId && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.3 } }}
-            className="absolute top-6 right-6 md:top-10 md:right-10 z-[70] flex flex-col items-end text-right px-4"
-          >
-             <h1 className="text-2xl md:text-4xl font-sans font-black tracking-tight text-white mb-2">
-               THE ARCHITECTURE OF MATTER
-             </h1>
-             <p className="max-w-[400px] text-[10px] md:text-xs text-white/50 font-mono tracking-wide leading-relaxed">
-               Four quantum realms dictate the structure, energy, and destiny of every element in the universe. Select a block to enter its domain.
-             </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* 3D Overview Space */}
       <div className="w-full h-full flex items-center justify-center [perspective:1400px]">
         <motion.div 
@@ -281,74 +239,7 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
 
                    {/* Content payload */}
                    <div className="relative z-10 p-6 flex-1 flex flex-col min-h-0 bg-[#0A0F1D]/90">
-                      {isActive ? (
-                         block.id === 's' ? (
-                            <SBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
-                         ) : block.id === 'p' ? (
-                            <PBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
-                         ) : block.id === 'd' ? (
-                            <DBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
-                         ) : block.id === 'f' ? (
-                            <FBlockRealmDetailed block={block} onSelectElement={onSelectElement} />
-                         ) : (
-                         <motion.div 
-                           initial={{ opacity: 0, y: 30 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           transition={{ delay: 0.3, duration: 0.5 }}
-                           className="flex flex-col md:flex-row h-full gap-8 overflow-y-auto custom-scrollbar"
-                         >
-                            {/* Left Column: Story & Science */}
-                            <div className="flex-1 flex flex-col gap-8 min-w-[300px]">
-                               <div>
-                                 <h3 className="text-xs font-mono text-white/40 uppercase tracking-widest mb-3">Scientific Authority</h3>
-                                 <p className="text-sm md:text-base leading-relaxed text-[#EAF2FF]/80 font-light">
-                                   {block.description}
-                                 </p>
-                               </div>
-
-                               <div>
-                                 <h3 className="text-xs font-mono text-white/40 uppercase tracking-widest mb-4">Core Principles</h3>
-                                 <div className="grid grid-cols-2 gap-3">
-                                   {block.features.map(f => (
-                                     <div key={f} className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-sm">
-                                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: block.color, boxShadow: `0 0 10px ${block.color}` }} />
-                                       <span className="text-[10px] uppercase font-mono tracking-wider text-white/90">{f}</span>
-                                     </div>
-                                   ))}
-                                 </div>
-                               </div>
-                            </div>
-
-                            {/* Right Column: Interactive Elements */}
-                            <div className="flex-1 flex flex-col min-w-[300px] border-l border-white/10 pl-0 md:pl-8">
-                               <h3 className="text-xs font-mono text-white/40 uppercase tracking-widest mb-4 flex items-center justify-between">
-                                 <span>{block.name} Elements</span>
-                                 <span className="text-white/20 font-sans tracking-normal">{block.elements.length} / 118</span>
-                               </h3>
-                               <div className="flex flex-wrap gap-2 auto-rows-max">
-                                 {block.elements.map(sym => {
-                                   const elData = ELEMENTS_DATA.find(e => e.symbol === sym);
-                                   if (!elData) return null;
-                                   return (
-                                     <button
-                                       key={sym}
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         onSelectElement(elData);
-                                       }}
-                                       className="w-12 h-14 md:w-14 md:h-16 flex flex-col items-center justify-center border border-white/10 bg-white/5 hover:bg-white/20 hover:scale-110 active:scale-95 transition-all outline-none rounded-sm cursor-pointer group relative overflow-hidden"
-                                     >
-                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: block.color }} />
-                                        <span className="text-[8px] font-mono text-white/40 group-hover:text-white/80 transition-colors uppercase select-none">{elData.number}</span>
-                                        <span className="font-sans font-black text-lg md:text-xl text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] select-none" style={{ color: block.color }}>{sym}</span>
-                                     </button>
-                                   );
-                                 })}
-                               </div>
-                            </div>
-                         </motion.div>
-                         )
-                      ) : (
+                      {!isActive && (
                          <div className="flex flex-col h-full">
                            <p className="text-xs text-white/50 line-clamp-3 leading-relaxed">
                              {block.description}
@@ -380,6 +271,86 @@ export function BlocksUniverse({ onSelectElement, onNavigateHome }: BlocksUniver
           })}
         </motion.div>
       </div>
+
+      {/* ZONE 3 & 4: Left & Right Rails for Active Block */}
+      <AnimatePresence>
+        {activeBlockData && (
+          <React.Fragment>
+            {/* Left Rail (Zone 3): Identity & Principles */}
+            <motion.div 
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="absolute left-6 top-24 bottom-24 w-[340px] pointer-events-auto flex flex-col justify-end z-30 space-y-4"
+            >
+               <div 
+                 className="bg-[#050812]/90 backdrop-blur-2xl border-l-[3px] shadow-[0_0_20px_rgba(0,0,0,0.8)] rounded-r-lg p-5 flex-1 flex flex-col"
+                 style={{ borderColor: activeBlockData.color }}
+               >
+                 <div className="text-[10px] font-mono tracking-[0.2em] mb-4 uppercase flex items-center gap-2" style={{ color: activeBlockData.color }}>
+                   <activeBlockData.icon className="w-3.5 h-3.5" /> SCIENTIFIC PRINCIPLES
+                 </div>
+                 
+                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4">
+                   <p className="text-xs leading-relaxed text-[#EAF2FF]/80 font-light mb-6">
+                     {activeBlockData.description}
+                   </p>
+                   
+                   <div className="flex flex-col gap-2">
+                     {activeBlockData.features.map(f => (
+                       <div key={f} className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-3 rounded-sm">
+                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeBlockData.color, boxShadow: `0 0 10px ${activeBlockData.color}` }} />
+                         <span className="text-[10px] uppercase font-mono tracking-wider text-white/90">{f}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               </div>
+            </motion.div>
+
+            {/* Right Rail (Zone 4): Elements Table */}
+            <motion.div 
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="absolute right-6 top-24 bottom-24 w-[400px] pointer-events-auto flex flex-col animate-fade-in-right z-40 pb-6"
+            >
+              <div 
+                className="bg-[#040814]/85 backdrop-blur-3xl border shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-lg overflow-hidden flex flex-col flex-1 h-[80%] max-h-[85vh] p-5 custom-scrollbar select-none"
+                style={{ borderColor: `${activeBlockData.color}40` }}
+              >
+                  <h3 className="text-[10px] font-mono uppercase tracking-widest mb-4 flex items-center justify-between" style={{ color: activeBlockData.color }}>
+                    <span>ATOMIC REGISTRY</span>
+                    <span className="text-white/20 font-sans tracking-normal">{activeBlockData.elements.length} / 118</span>
+                  </h3>
+                  
+                  <div className="flex flex-wrap gap-2 overflow-y-auto custom-scrollbar pr-2 pb-2 content-start">
+                    {activeBlockData.elements.map(sym => {
+                      const elData = ELEMENTS_DATA.find(e => e.symbol === sym);
+                      if (!elData) return null;
+                      return (
+                        <button
+                          key={sym}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectElement(elData);
+                          }}
+                          className="w-12 h-14 md:w-[3.25rem] md:h-[4rem] flex flex-col items-center justify-center border border-white/10 bg-[#0A0F1D] hover:bg-white/10 hover:scale-110 active:scale-95 transition-all outline-none rounded-sm cursor-pointer group relative overflow-hidden"
+                        >
+                           <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: activeBlockData.color }} />
+                           <span className="text-[8px] font-mono text-white/40 group-hover:text-white/80 transition-colors uppercase select-none">{elData.number}</span>
+                           <span className="font-sans font-black text-lg text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] select-none" style={{ color: activeBlockData.color }}>{sym}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+              </div>
+            </motion.div>
+          </React.Fragment>
+        )}
+      </AnimatePresence>
 
     </div>
   );

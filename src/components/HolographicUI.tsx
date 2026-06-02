@@ -27,7 +27,8 @@ import {
   ChevronUp,
   Orbit,
   Hexagon,
-  Network
+  Network,
+  Search
 } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { CATEGORY_COLORS, REACTION_CONFIGS, ELEMENTS_DATA } from '../data';
@@ -786,56 +787,45 @@ export default function HolographicUI({
       </div>
 
       {/* =======================================================
-          TOP LAYER NAVIGATION AND BRANDING
+          TOP LAYER NAVIGATION AND BRANDING (ZONE 1)
           ======================================================= */}
-      <header className="w-full flex flex-col md:flex-row justify-between items-center md:items-start gap-4 pointer-events-auto z-40">
+      <header className="w-full flex flex-col md:flex-row justify-between items-center gap-4 pointer-events-auto z-40 bg-[#0A0D1B]/50 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.5)]">
         {/* Logo and Tagline */}
-        <div id="orb-hud-brand" className="flex items-center gap-3 self-start">
-          <div 
-            onClick={() => onSelectElement(null)}
-            className="w-10 h-10 rounded-sm border border-[#00E5FF]/20 flex items-center justify-center bg-[#0B1020]/80 backdrop-blur-md cursor-pointer hover:border-[#00E5FF]/60 hover:shadow-[0_0_15px_rgba(0,229,255,0.15)] transition-all"
-          >
-            <Atom className="w-5.5 h-5.5 text-[#00E5FF] animate-spin" style={{ animationDuration: '10s' }} />
+        <div id="orb-hud-brand" className="flex items-center gap-3 self-start md:self-center cursor-pointer hover:opacity-80 transition-opacity flex-1" onClick={() => onChangeAppMode('explorer')}>
+          <div className="w-9 h-9 rounded-sm border border-[#00E5FF]/20 flex items-center justify-center bg-[#0B1020]/80 backdrop-blur-md hover:border-[#00E5FF]/60 hover:shadow-[0_0_15px_rgba(0,229,255,0.15)] transition-all">
+            <Atom className="w-5 h-5 text-[#00E5FF] animate-spin" style={{ animationDuration: '10s' }} />
           </div>
           <div>
             <div className="text-sm font-black tracking-[0.2em] text-[#EAF2FF]">ORBITIUM</div>
           </div>
         </div>
 
-        {/* Center App Mode Toggles */}
-        {isObsEntered && (
-          <div className="flex gap-1.5 p-1 bg-[#0A0D1A]/85 border border-[#00E5FF]/20 rounded-md shadow-[0_0_20px_rgba(0,229,255,0.1)] items-center backdrop-blur-md">
-            {[
-              { id: 'observatory', label: 'Observatory', icon: Orbit },
-              { id: 'explorer', label: 'Explorer', icon: Compass },
-              { id: 'molecular', label: 'Molecular Uni.', icon: Hexagon },
-              { id: 'bond_lab', label: '3D Bond Reactor', icon: Flame },
-              { id: 'timeline', label: 'Timeline History', icon: TrendingUp },
-              { id: 'blocks', label: 'Quantum Blocks', icon: Layers },
-              { id: 'network', label: 'Ecosystem', icon: Network }
-            ].map((tab) => {
-              const IconComp = tab.icon;
-              const isActive = appMode === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onChangeAppMode(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[9px] font-mono uppercase tracking-widest font-extrabold border transition-all duration-300 cursor-pointer rounded-sm ${
-                    isActive
-                      ? 'bg-[#00E5FF]/20 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.25)]'
-                      : 'bg-transparent border-transparent text-[#EAF2FF]/50 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <IconComp className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">{tab.label}</span>
-                </button>
-              );
-            })}
+        {/* Universal Search Bar */}
+        <div className="flex-1 w-full md:max-w-md">
+          <div className="relative flex items-center w-full">
+            <Search className="absolute left-3 w-4 h-4 text-[#00E5FF]/50" />
+            <input
+              type="text"
+              placeholder="SEARCH ELEMENT, SYMBOL, OR MATERIA..."
+              className="w-full bg-black/40 border border-white/10 text-white font-mono text-[10px] pl-10 pr-4 py-2.5 rounded focus:outline-none focus:border-[#00E5FF]/50 hover:border-white/20 transition-colors uppercase placeholder:text-white/30"
+              onChange={(e) => {
+                const query = e.target.value.toLowerCase();
+                if (query.trim() === '') return;
+                window.dispatchEvent(new CustomEvent('orbitium-search', { detail: { query } }));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                   const query = e.currentTarget.value.toLowerCase();
+                   const el = ELEMENTS_DATA.find(el => el.name.toLowerCase() === query || el.symbol.toLowerCase() === query);
+                   if (el) onSelectElement(el);
+                }
+              }}
+            />
           </div>
-        )}
+        </div>
 
-        {/* Dynamic status widgets and audio node toggle */}
-        <div className="flex gap-3 font-mono text-[10px] self-end md:self-start items-center">
+        {/* Dynamic status widgets and secondary toggles */}
+        <div className="flex gap-3 font-mono text-[10px] self-end md:self-center justify-end items-center flex-1">
           {isObsEntered && (
             <button
               id="btn-toggle-more-protocols"
@@ -853,7 +843,7 @@ export default function HolographicUI({
               title={isMoreActive ? "Collapse advanced controls" : "Reveal advanced observatory controls"}
             >
               <Sliders className={`w-3.5 h-3.5 ${isMoreActive ? 'animate-spin' : ''}`} style={isMoreActive ? { animationDuration: '6s' } : {}} />
-              <span className="hidden md:inline">{isMoreActive ? "COLLAPSE" : "MORE"}</span>
+              <span className="hidden md:inline">{isMoreActive ? "CLOSE MENU" : "MORE"}</span>
             </button>
           )}
 
@@ -932,6 +922,41 @@ export default function HolographicUI({
 
           {/* Content scroll area */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar scrollbar-thin">
+            
+            {/* 1. EXTENDED EXPLORATION MODES */}
+            <div className="border border-white/10 rounded-sm bg-white/[0.015] overflow-hidden shadow-lg">
+              <div className="w-full p-4 flex items-center justify-between font-mono text-[10px] uppercase text-[#00E5FF] tracking-widest bg-white/[0.02] border-b border-white/5">
+                <span className="flex items-center gap-2 font-black">
+                  <Globe className="w-4.5 h-4.5" /> EXPERIMENTAL ZONES
+                </span>
+              </div>
+              <div className="p-4 flex flex-col gap-2">
+                {[
+                  { id: 'timeline', label: 'Timeline History', icon: TrendingUp },
+                  { id: 'molecular', label: 'Molecular Universe', icon: Hexagon },
+                  { id: 'blocks', label: 'Quantum Blocks', icon: Layers },
+                  { id: 'observatory', label: 'Deep Space Observatory', icon: Orbit },
+                ].map((mode) => {
+                  const IconComp = mode.icon;
+                  const isActive = appMode === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      onClick={() => onChangeAppMode(mode.id as any)}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 text-[10px] font-mono uppercase tracking-widest font-extrabold border transition-all duration-300 cursor-pointer rounded-sm text-left ${
+                        isActive
+                          ? 'bg-[#00E5FF]/20 border-[#00E5FF] text-[#00E5FF] shadow-[0_0_12px_rgba(0,229,255,0.25)]'
+                          : 'bg-black/40 border-white/10 text-[#EAF2FF]/60 hover:text-white hover:bg-white/5 hover:border-white/20'
+                      }`}
+                    >
+                      <IconComp className="w-4 h-4" />
+                      <span>{mode.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* 3. ATOMIC EXPLORER PANEL CONTROLS */}
             {appMode === 'explorer' && (
               <>
@@ -1341,204 +1366,7 @@ export default function HolographicUI({
           </div>
         </div>
 
-        {/* MIDDLE OVERLAY (Active reaction notifications/simulations) */}
-        {isObsEntered && activeReaction && (
-          <div className="absolute z-40 select-none transition-all duration-700 ease-out flex flex-col items-center gap-4 w-[calc(100%-2rem)] max-w-sm sm:max-w-md md:max-w-lg px-0 bottom-4 left-4 md:bottom-12 md:left-12 pointer-events-auto">
-            {reactionStage === 'idle' ? (
-              <div className="w-full max-w-sm mx-auto p-4 sm:p-5 bg-[#040814]/95 border border-[#FF9100]/40 rounded-sm shadow-[0_0_50px_rgba(255,145,0,0.2)] backdrop-blur-3xl flex flex-col items-center text-center pointer-events-auto animate-fade-in hover:shadow-[0_0_65px_rgba(255,145,0,0.3)] transition-all duration-500 ease-out select-none relative group">
-                
-                {/* Corner Frame accents */}
-                <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-                <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-[#FF9100]/40 group-hover:border-[#FF9100] transition-colors" />
-
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="w-10 h-10 border border-[#FF9100]/30 rounded-full flex items-center justify-center relative shrink-0">
-                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#FF9100]/60 animate-spin" style={{ animationDuration: '4s' }} />
-                    <Flame className="w-5 h-5 text-[#FF9100] animate-pulse" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-[9px] sm:text-[10px] font-mono font-black tracking-[0.3em] text-[#FF9100] uppercase">
-                      CHAMBER ARMED
-                    </h3>
-                    <h1 className="text-xl sm:text-2xl font-black text-white tracking-widest mt-0.5">
-                      {activeReaction.reactants[0]} + {activeReaction.reactants[1]}
-                    </h1>
-                  </div>
-                </div>
-
-                <div className="text-[8px] sm:text-[9px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase shadow-[0_0_10px_rgba(0,229,255,0.1)] w-full mb-3">
-                  TARGET: <span className="font-extrabold text-[#00FFF0]">{activeReaction.productFormula}</span>
-                </div>
-
-                <p className="text-[10px] sm:text-[11px] text-[#EAF2FF]/85 leading-relaxed font-light mb-4 px-2">
-                  <span className="text-[#FF9100] font-bold">Drag and drop</span> the reactants into each other to initiate quantum bonding.
-                </p>
-
-                <button
-                  onClick={handleCancelReaction}
-                  className="w-full px-6 py-2 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[9px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
-                >
-                  ABORT SEQUENCE
-                </button>
-              </div>
-            ) : reactionStage === 'stable' ? (
-              <div className="fixed top-auto bottom-0 left-0 right-0 md:static md:w-80 lg:w-96 max-h-[50vh] md:max-h-[70vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-[#040814]/95 border border-[#00FFF0]/30 rounded-t-lg md:rounded-sm shadow-[0_0_80px_rgba(0,255,240,0.15)] backdrop-blur-3xl flex flex-col pointer-events-auto animate-fade-in-up md:animate-fade-in relative group transition-all duration-700 select-none">
-                
-                {/* Advanced Scientific UI subtle frames/accents */}
-                <div className="absolute top-0 left-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-l-2 border-[#00FFF0]/40 rounded-tl-lg md:rounded-tl-none" />
-                <div className="absolute top-0 right-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-r-2 border-[#00FFF0]/40 rounded-tr-lg md:rounded-tr-none" />
-                <div className="absolute bottom-0 left-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-l-2 border-[#00FFF0]/40 hidden md:block" />
-                <div className="absolute bottom-0 right-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-r-2 border-[#00FFF0]/40 hidden md:block" />
-                
-                <div className="flex flex-col gap-4 items-start w-full">
-                  <div className="flex flex-col items-start w-full border-b border-[#00FFF0]/20 pb-4">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-10 h-10 border border-[#00FFF0]/40 rounded-full flex items-center justify-center bg-[#00FFF0]/10 relative shrink-0">
-                        <div className="absolute inset-0 rounded-full border border-dashed border-[#00FFF0]/60 animate-spin" style={{ animationDuration: '6s' }} />
-                        <CheckCircle2 className="w-5 h-5 text-[#00FFF0]" />
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-mono font-black tracking-[0.3em] text-[#00FFF0] uppercase">SYNTHESIS COMPLETE</div>
-                        <div className="text-[#EAF2FF]/50 text-[8px] font-mono tracking-widest uppercase mt-0.5">Quantum Lock Established</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-baseline gap-4">
-                      <h1 className="text-3xl sm:text-4xl font-black tracking-widest text-[#00FFF0] drop-shadow-[0_0_20px_rgba(0,255,240,0.3)] mb-1 leading-none">
-                        {activeReaction.productFormula}
-                      </h1>
-                      <h2 className="text-lg sm:text-lg font-bold text-white uppercase tracking-wide">
-                        {activeReaction.productName}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 w-full overflow-x-auto pb-2 custom-scrollbar">
-                    {(['overview', 'reaction', 'products', 'applications', 'pathways'] as const).map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveReactionTab(tab)}
-                        className={`px-3 py-1.5 text-[9px] font-mono font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                          activeReactionTab === tab
-                            ? 'bg-[#00FFF0]/20 border-[#00FFF0] text-white shadow-[0_0_10px_rgba(0,255,240,0.2)]'
-                            : 'bg-black/30 border-white/5 text-white/40 hover:border-white/20 hover:text-white/80'
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="w-full flex-1 flex flex-col min-h-[150px]">
-                    {activeReactionTab === 'overview' && (
-                      <div className="animate-fade-in flex flex-col gap-4 w-full">
-                        <div className="bg-gradient-to-r from-[#00FFF0]/5 to-transparent border-l-2 border-[#00FFF0] p-3">
-                          <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] mb-2 uppercase font-black">SUMMARY</h3>
-                          <p className="text-xs text-[#EAF2FF]/85 leading-relaxed font-light">{activeReaction.description}</p>
-                        </div>
-                        <div className="flex gap-3 w-full">
-                          <div className="flex-1 bg-black/40 border border-[#00FFF0]/10 p-2.5 rounded-sm">
-                            <div className="text-[8px] font-mono text-[#00FFF0]/60 tracking-widest mb-1.5 uppercase font-bold">REACTION TYPE</div>
-                            <div className="text-[#00FFF0] text-[10px] uppercase font-black tracking-wider">{activeReaction.reactionType || activeReaction.visualType}</div>
-                          </div>
-                          <div className="flex-1 bg-black/40 border border-white/10 p-2.5 rounded-sm">
-                            <div className="text-[8px] font-mono text-white/50 tracking-widest mb-1.5 uppercase font-bold">STABILITY METRIC</div>
-                            <div className="text-white text-[10px] uppercase font-black tracking-wider">{activeReaction.stabilityMetric || 'UNKNOWN STABILITY'}</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {activeReactionTab === 'reaction' && (
-                      <div className="animate-fade-in flex flex-col gap-4 w-full">
-                        <div>
-                          <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-3 uppercase">THERMODYNAMIC CONDITIONS</h3>
-                          <p className="text-xs text-[#EAF2FF]/80 leading-relaxed font-light pl-2 border-l border-[#FF9100]/30 ml-1 py-1">
-                            {activeReaction.conditions || "Thermodynamic favorability naturally pulls these elements together into a lower energy state, releasing binding energy into the surrounding environment."}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {activeReactionTab === 'products' && (
-                      <div className="animate-fade-in flex flex-col gap-4 w-full">
-                        <div className="bg-[#00FFF0]/5 border border-[#00FFF0]/10 p-3 rounded-sm">
-                          <div className="text-xs text-white font-black mb-2 uppercase tracking-wide">{activeReaction.resultingMaterial || 'Novel Compound'}</div>
-                          {activeReaction.structure && (
-                            <div className="text-[10px] text-[#EAF2FF]/70 font-mono flex gap-1 border-b border-white/5 pb-2 mb-2 font-bold">
-                              <span className="text-[#00FFF0] shrink-0 font-black">LATTICE:</span> {activeReaction.structure}
-                            </div>
-                          )}
-                          {activeReaction.properties && activeReaction.properties.length > 0 && (
-                            <div>
-                              <div className="text-[8px] font-mono text-[#00FFF0]/70 mb-1.5 tracking-widest uppercase font-black">PROPERTIES</div>
-                              <ul className="text-[10px] text-[#EAF2FF]/80 space-y-1.5 ml-1">
-                                {activeReaction.properties.map((prop, i) => (
-                                  <li key={i} className="flex items-start gap-1.5">
-                                    <span className="text-[#00FFF0] mt-0.5 max-w-[6px] font-black">»</span>
-                                    <span className="font-light">{prop}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {activeReactionTab === 'applications' && (
-                      <div className="animate-fade-in flex flex-col gap-4 w-full">
-                        <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#00FFF0] bg-[#00FFF0]/10 border border-[#00FFF0]/20 inline-block px-2 py-1 mb-1 uppercase text-left w-fit">REAL WORLD DOMAIN</h3>
-                        <p className="text-xs text-[#EAF2FF]/80 leading-relaxed font-light mb-1 pl-2 border-l border-[#00FFF0]/30 ml-1">
-                          {activeReaction.whyItMatters || 'Crucial for future development.'}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5 ml-1 mt-2">
-                          {activeReaction.realWorldApplications?.map((app, i) => (
-                            <span key={i} className="bg-white/5 border border-white/10 px-2 py-1.5 text-[8.5px] font-mono text-[#EAF2FF] uppercase tracking-wider font-bold">
-                              {app}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {activeReactionTab === 'pathways' && (
-                      <div className="animate-fade-in flex flex-col gap-2.5 w-full">
-                        <h3 className="text-[9px] font-mono tracking-[0.2em] text-[#FF9100] bg-[#FF9100]/10 border border-[#FF9100]/20 inline-block px-2 py-1 mb-2 uppercase w-fit">INNOVATION PATHWAYS</h3>
-                        <div className="flex flex-col gap-1.5">
-                          {activeReaction.discoveryPathways?.map((pathway, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2.5 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
-                              <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
-                              <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">{pathway}</span>
-                            </div>
-                          ))}
-                          {(!activeReaction.discoveryPathways || activeReaction.discoveryPathways.length === 0) && (
-                            <div className="flex items-center gap-2 bg-[#FF9100]/5 border border-[#FF9100]/20 p-2.5 hover:bg-[#FF9100]/15 transition-colors cursor-pointer group">
-                              <ArrowRight className="w-3 h-3 text-[#FF9100] group-hover:translate-x-1 transition-transform" />
-                              <span className="text-[10px] font-mono text-[#FF9100] font-black group-hover:text-white uppercase tracking-wide">CONTINUE TO ADVANCED SYNTHESIS</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* BOTTOM ACTIONS */}
-                <div className="w-full flex justify-center mt-5 pt-5 border-t border-white/10">
-                  <button
-                    onClick={handleCancelReaction}
-                    className="w-full text-center py-3 bg-[#070B14] border border-[#00FFF0]/60 hover:bg-[#00FFF0]/15 text-[10px] uppercase font-mono font-black tracking-[0.2em] text-[#00FFF0] transition-all cursor-pointer rounded-sm shadow-[0_0_15px_rgba(0,255,240,0.15)] hover:shadow-[0_0_20px_rgba(0,255,240,0.4)] hover:border-[#00FFF0]"
-                  >
-                    RETURN TO CHAMBER
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
+        {/* MIDDLE OVERLAY DELETED - IT NOW LIVES IN ZONE 4 RIGHT RAIL FOR BOND LAB */}
 
         {/* SUBATOMIC SHELL ANALYZER REMOVED - integrated directly into ElementWorldUI array */}
 
@@ -1582,6 +1410,38 @@ export default function HolographicUI({
           />
         )}
 
+        {/* =======================================================
+            ZONE 3: HOME CONTEXT PANEL (QUICK EXPLORE)
+            ======================================================= */}
+        {isObsEntered && appMode === 'explorer' && !selectedElement && (
+          <div className="absolute left-6 top-24 bottom-24 w-[340px] pointer-events-auto flex flex-col animate-fade-in z-30 space-y-4 justify-end">
+            {/* Quick Explore Quick-Links */}
+            <div className="bg-[#050812]/90 backdrop-blur-2xl border-l-[3px] border-[#00E5FF]/40 shadow-[0_0_20px_rgba(0,0,0,0.8)] rounded-r-lg p-5 flex flex-col max-h-[85vh]">
+              <div className="text-[10px] font-mono tracking-[0.2em] text-[#00E5FF]/80 mb-3 uppercase flex items-center gap-2">
+                <Compass className="w-3.5 h-3.5" /> QUICK EXPLORE
+              </div>
+              <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 pb-2">
+                {[
+                  { label: "Life's Essentials (CHNOPS)", action: () => window.dispatchEvent(new CustomEvent('orbitium-search', { detail: { query: 'chnops' } })) },
+                  { label: "Noble Gases", action: () => window.dispatchEvent(new CustomEvent('orbitium-search', { detail: { query: 'noble' } })) },
+                  { label: "Precious Metals", action: () => window.dispatchEvent(new CustomEvent('orbitium-search', { detail: { query: 'precious' } })) },
+                  { label: "Radioactive Core", action: () => window.dispatchEvent(new CustomEvent('orbitium-search', { detail: { query: 'radioactive' } })) },
+                  { label: "Modern Semiconductors", action: () => window.dispatchEvent(new CustomEvent('orbitium-search', { detail: { query: 'semiconductor' } })) }
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={item.action}
+                    className="flex justify-between items-center text-left px-3 py-2.5 bg-white/5 hover:bg-[#00E5FF]/10 text-white/50 hover:text-white border border-white/5 hover:border-[#00E5FF]/30 transition-all rounded-sm cursor-pointer group"
+                  >
+                    <span className="font-mono text-[10px] uppercase tracking-wider">{item.label}</span>
+                    <ArrowRight className="w-3 h-3 text-white/20 group-hover:text-[#00E5FF] transition-colors -translate-x-2 group-hover:translate-x-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ELITE COCKPIT: SPATIAL HOLOGRAPHIC HUD PANELS (ELEMENT WORLD EXPERIENCE) */}
         {isObsEntered && selectedElement && !compareElement && (
           <div 
@@ -1604,12 +1464,14 @@ export default function HolographicUI({
 
 
         {/* =======================================================
-            UNIVERSAL KNOWLEDGE ZONE FOR TIMELINE / MOLECULAR / BOND LAB
+            UNIVERSAL KNOWLEDGE ZONE FOR TIMELINE / MOLECULAR / BOND LAB (ZONE 4)
             ======================================================= */}
         {!selectedElement && isObsEntered && (appMode === 'timeline' || appMode === 'bond_lab' || appMode === 'molecular') && (
-          <div className="absolute right-4 md:right-12 bottom-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 max-w-[280px] w-full sm:max-w-[340px] md:w-96 pointer-events-auto animate-fade-in-right z-40 bg-[#040814]/90 backdrop-blur-3xl border border-[#00FFF0]/20 p-5 rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar select-none">
-            {/* 1. DISCOVERY TIMELINE PANEL CONTROLS */}
-            {appMode === 'timeline' && (
+          <div className="absolute right-6 top-24 bottom-24 w-[480px] pointer-events-auto flex flex-col animate-fade-in-right z-40 pb-6">
+            <div className="bg-[#040814]/85 backdrop-blur-3xl border border-[#00E5FF]/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-lg overflow-hidden flex flex-col flex-1 h-[80%] max-h-[85vh] p-5 custom-scrollbar select-none">
+              
+              {/* 1. DISCOVERY TIMELINE PANEL CONTROLS */}
+              {appMode === 'timeline' && (
               <>
                 {/* Collapsible Panel 1: Chrono Metrics */}
                 <div className="border border-white/10 rounded-sm bg-white/[0.01] overflow-hidden">
@@ -1889,6 +1751,17 @@ export default function HolographicUI({
                           <span>REACTANT BETA:</span>
                           <span className="font-bold text-[#00E5FF]">{activeReaction.reactants[1]}</span>
                         </div>
+                        
+                        <div className="text-[8px] sm:text-[9px] font-mono bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-2 py-1 rounded-sm text-[#00E5FF]/90 tracking-widest uppercase shadow-[0_0_10px_rgba(0,229,255,0.1)] w-full my-1">
+                          TARGET: <span className="font-extrabold text-[#00FFF0]">{activeReaction.productFormula}</span>
+                        </div>
+
+                        {reactionStage === 'idle' && (
+                          <div className="text-[#FF9100] text-[8px] uppercase tracking-widest bg-[#FF9100]/10 p-1.5 text-center border border-[#FF9100]/30 rounded-sm mb-1 animate-pulse">
+                            Drag reactants together to fuse
+                          </div>
+                        )}
+
                         <div className="w-full h-[1px] bg-white/10 my-0.5" />
                         <div className="flex justify-between text-[#EAF2FF]/95">
                           <span>TETHER LINK CLAMP:</span>
@@ -1897,13 +1770,20 @@ export default function HolographicUI({
                           </span>
                         </div>
                         {liveDistance && (
-                          <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-0.5">
+                          <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-0.5 mb-2">
                             <div 
                               className={`h-full transition-all duration-100 ${liveDistance < 2.5 ? 'bg-red-500' : 'bg-[#00FFB3]'}`}
                               style={{ width: `${Math.max(0, Math.min(100, (1 - (liveDistance / 12)) * 100))}%` }}
                             />
                           </div>
                         )}
+                        
+                        <button
+                          onClick={handleCancelReaction}
+                          className="w-full px-4 py-1.5 bg-[#0C1123]/80 border border-red-500/40 hover:border-red-500 text-[8px] font-mono tracking-[0.2em] text-red-400 font-extrabold uppercase transition-all rounded-sm cursor-pointer hover:bg-red-500/15"
+                        >
+                          ABORT SEQUENCE
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2079,7 +1959,7 @@ export default function HolographicUI({
               </>
             )}
 
-
+            </div>
           </div>
         )}
 
@@ -2248,11 +2128,11 @@ export default function HolographicUI({
       {/* =======================================================
           BOTTOM HOVER CARD AND SYSTEM INDICATORS
           ======================================================= */}
-      <footer className="w-full pointer-events-auto z-40 select-none flex flex-col justify-end">
+      <footer className="w-full pointer-events-auto z-40 select-none flex flex-col justify-end mt-auto">
         
         {/* TIMELINE SLIDER SCALED OVERLAY */}
         {isObsEntered && appMode === 'timeline' && !selectedElement && (
-          <div id="timeline-hud-scrubber" className="w-full max-w-2xl mx-auto px-5 py-4 bg-[#0B1020]/95 backdrop-blur-md border border-[#00FFB3]/30 rounded-md text-left font-mono flex flex-col gap-3 shadow-[0_0_30px_rgba(0,255,179,0.15)] animate-fade-in absolute bottom-8 left-1/2 -translate-x-1/2">
+          <div id="timeline-hud-scrubber" className="w-full max-w-2xl mx-auto px-5 py-4 bg-[#0B1020]/95 backdrop-blur-md border border-[#00FFB3]/30 rounded-md text-left font-mono flex flex-col gap-3 shadow-[0_0_30px_rgba(0,255,179,0.15)] animate-fade-in absolute bottom-24 left-1/2 -translate-x-1/2">
             <div className="flex justify-between items-center mb-2">
                <div className="flex items-center gap-2">
                  <span className="text-[#00FFB3] font-bold text-xs tracking-wider">{timelineYear < 0 ? `${Math.abs(timelineYear)} BC` : `${timelineYear} AD`}</span>
@@ -2293,18 +2173,61 @@ export default function HolographicUI({
           </div>
         )}
 
-        {/* Selected element back indicator */}
-        <div className="w-full flex justify-between items-end pb-8">
-          {selectedElement ? (
+        {/* ZONE 5: ACTION BAR */}
+        <div className="w-full flex justify-center pb-6">
+          <div className="bg-[#050812]/90 backdrop-blur-2xl border border-[var(--primary-color,white)]/20 shadow-[0_0_20px_rgba(0,0,0,0.8)] rounded-lg px-2 py-2 flex items-center gap-2">
+            
+            {/* Core Navigation Controls */}
+            {selectedElement && (
+              <button
+                onClick={() => {
+                  onSelectElement(null);
+                  if (onSelectCompareElement) onSelectCompareElement(null);
+                  window.dispatchEvent(new CustomEvent('shell-probe-selected', { detail: { index: null } }));
+                }}
+                className="px-4 py-2 border-r border-white/10 hover:text-red-400 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 cursor-pointer text-white"
+              >
+                <X className="w-4 h-4" /> CLOSE
+              </button>
+            )}
+
             <button
-              onClick={() => onSelectElement(null)}
-              className="px-4 py-2 bg-[#0B1020]/70 border border-white/15 hover:border-[#00E5FF] hover:text-[#00E5FF] font-mono text-[10px] tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer"
+              onClick={() => onChangeAppMode('explorer')}
+              className={`px-4 py-2 border border-transparent hover:border-[#00E5FF]/50 hover:bg-[#00E5FF]/10 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer ${appMode === 'explorer' && !selectedElement ? 'text-[#00E5FF]' : 'text-white/60 hover:text-white'}`}
             >
-              ← RETREAT TO GRIDMAP
+              <Compass className="w-4 h-4" /> EXPLORE
             </button>
-          ) : (
-            <div className="hidden"></div>
-          )}
+
+            {selectedElement && !compareElement && (
+              <button
+                onClick={() => setCompareSelectorOpen(true)}
+                className="px-4 py-2 border border-transparent hover:border-[#FF9100]/50 hover:bg-[#FF9100]/10 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer text-white/60 hover:text-[#FF9100]"
+              >
+                <Share2 className="w-4 h-4" /> COMPARE
+              </button>
+            )}
+
+            {selectedElement && compareElement && (
+              <button
+                onClick={() => {
+                   onChangeAppMode('bond_lab');
+                   const reaction = analyzeReaction(selectedElement.symbol, compareElement.symbol);
+                   onTriggerReaction(reaction);
+                }}
+                className="px-4 py-2 border border-[#FF3366]/40 bg-[#FF3366]/20 hover:bg-[#FF3366]/40 hover:border-[#FF3366] shadow-[0_0_15px_rgba(255,51,102,0.3)] text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer text-white"
+              >
+                <Flame className="w-4 h-4 text-[#FF3366]" /> RUN REACTION
+              </button>
+            )}
+
+            <button
+              onClick={() => onChangeAppMode('network')}
+              className={`px-4 py-2 border border-transparent hover:border-[#7C4DFF]/50 hover:bg-[#7C4DFF]/10 text-[10px] font-mono tracking-widest uppercase transition-all flex items-center gap-2 rounded-sm cursor-pointer ${appMode === 'network' ? 'text-[#7C4DFF]' : 'text-white/60 hover:text-white'}`}
+            >
+              <Network className="w-4 h-4" /> VIEW NETWORK
+            </button>
+            
+          </div>
         </div>
       </footer>
     </div>
