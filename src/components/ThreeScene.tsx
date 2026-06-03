@@ -2980,7 +2980,7 @@ export default function ThreeScene({
     let lastAppMode = propsRef.current.appMode;
 
     // Adaptive Quality state and dynamic adjustments helper
-    let isLowPerfActive = false;
+    let isLowPerfActive = isMobile;
     let consecutiveLowFpsChecks = 0;
     let consecutiveHighFpsChecks = 0;
     let frameCount = 0;
@@ -3011,6 +3011,14 @@ export default function ThreeScene({
       purpleDirLight.intensity = isLow ? 0.6 : 1.8;
       spotLight.intensity = isLow ? 1.8 : 3.8;
     };
+
+    // Pre-apply quality adjustments immediately if mobile device
+    if (isMobile) {
+      setTimeout(() => {
+        applyQualityScaleDown(true);
+        propsRef.current.onLowPerfModeChange(true);
+      }, 50);
+    }
 
     const renderLoop = () => {
       frameId = requestAnimationFrame(renderLoop);
@@ -4738,63 +4746,68 @@ export default function ThreeScene({
       // 5. User cursor disturbance forces projected onto Z=0 workspace
       const cursor3D = new THREE.Vector3(mouse2D.x * 32, mouse2D.y * 22, 0);
 
+      // Device-aware particle update frequency throttle: Skip CPU->GPU array transfers on slow devices
+      const shouldUpdateParticles = !isLowPerfActive || (frameCount % 2 === 0);
+
       // (A) BACKGROUND SPACE DUST PARALLAX FORCE FIELD (Optimized Float32Array and Selective Disturbance Checking)
       const posAttr = spaceDust.geometry.attributes.position as THREE.BufferAttribute;
       const arr = posAttr.array as Float32Array;
       const count = posAttr.count;
       const checkDisturbance = (mouseActive || isDragging) && currentProps.isObsEntered;
 
-      if (checkDisturbance) {
-        for (let j = 0; j < count; j++) {
-          const bx = baseDustPositions[j * 3];
-          const by = baseDustPositions[j * 3 + 1];
+      if (shouldUpdateParticles) {
+        if (checkDisturbance) {
+          for (let j = 0; j < count; j++) {
+            const bx = baseDustPositions[j * 3];
+            const by = baseDustPositions[j * 3 + 1];
 
-          let currX = arr[j * 3];
-          let currY = arr[j * 3 + 1];
+            let currX = arr[j * 3];
+            let currY = arr[j * 3 + 1];
 
-          // Constant weightless downwards fall
-          let baseNewY = by - speeds[j] * 0.08 * simMultiplier;
-          if (baseNewY < -45) {
-            baseNewY = 45;
+            // Constant weightless downwards fall
+            let baseNewY = by - speeds[j] * 0.08 * simMultiplier;
+            if (baseNewY < -45) {
+              baseNewY = 45;
+            }
+            baseDustPositions[j * 3 + 1] = baseNewY; // Retain falling base
+
+            // Compute cursor proximity forces
+            const dx = currX - cursor3D.x;
+            const dy = currY - cursor3D.y;
+            const distSq = dx*dx + dy*dy;
+
+            let targetX = bx;
+            let targetY = baseNewY;
+
+            if (distSq < 132.25) { // 11.5 * 11.5 = 132.25
+              const dist = Math.sqrt(distSq);
+              // Soft magnetic orbital vortex swirl
+              const force = (11.5 - dist) / 11.5;
+              const swirlDirection = (j % 2 === 0 ? 1 : -1);
+              const swirlAngle = Math.atan2(dy, dx) + 0.35 * swirlDirection * force;
+              const expandRadius = dist + 2.0 * force * (1.0 + currentProps.reactiveIntensity * 0.5);
+
+              targetX = cursor3D.x + Math.cos(swirlAngle) * expandRadius;
+              targetY = cursor3D.y + Math.sin(swirlAngle) * expandRadius;
+            }
+
+            // Direct array writes avoiding expensive wrapper calls
+            arr[j * 3] += (targetX - currX) * 0.08;
+            arr[j * 3 + 1] += (targetY - currY) * 0.08;
           }
-          baseDustPositions[j * 3 + 1] = baseNewY; // Retain falling base
-
-          // Compute cursor proximity forces
-          const dx = currX - cursor3D.x;
-          const dy = currY - cursor3D.y;
-          const distSq = dx*dx + dy*dy;
-
-          let targetX = bx;
-          let targetY = baseNewY;
-
-          if (distSq < 132.25) { // 11.5 * 11.5 = 132.25
-            const dist = Math.sqrt(distSq);
-            // Soft magnetic orbital vortex swirl
-            const force = (11.5 - dist) / 11.5;
-            const swirlDirection = (j % 2 === 0 ? 1 : -1);
-            const swirlAngle = Math.atan2(dy, dx) + 0.35 * swirlDirection * force;
-            const expandRadius = dist + 2.0 * force * (1.0 + currentProps.reactiveIntensity * 0.5);
-
-            targetX = cursor3D.x + Math.cos(swirlAngle) * expandRadius;
-            targetY = cursor3D.y + Math.sin(swirlAngle) * expandRadius;
+        } else {
+          // High-speed drift bypass when there is no user cursor activity
+          for (let j = 0; j < count; j++) {
+            let baseNewY = baseDustPositions[j * 3 + 1] - speeds[j] * 0.08 * simMultiplier;
+            if (baseNewY < -45) {
+              baseNewY = 45;
+            }
+            baseDustPositions[j * 3 + 1] = baseNewY;
+            arr[j * 3 + 1] = baseNewY;
           }
-
-          // Direct array writes avoiding expensive wrapper calls
-          arr[j * 3] += (targetX - currX) * 0.08;
-          arr[j * 3 + 1] += (targetY - currY) * 0.08;
         }
-      } else {
-        // High-speed drift bypass when there is no user cursor activity
-        for (let j = 0; j < count; j++) {
-          let baseNewY = baseDustPositions[j * 3 + 1] - speeds[j] * 0.08 * simMultiplier;
-          if (baseNewY < -45) {
-            baseNewY = 45;
-          }
-          baseDustPositions[j * 3 + 1] = baseNewY;
-          arr[j * 3 + 1] = baseNewY;
-        }
+        posAttr.needsUpdate = true;
       }
-      posAttr.needsUpdate = true;
       spaceDust.rotation.y += 0.0007 * simMultiplier;
 
       // (B) FOREGROUND ATMOSPHERIC PLASMA NEBULA FLUID FIELD (Optimized Float32Array and Selective Disturbance Checking)
@@ -4802,62 +4815,65 @@ export default function ThreeScene({
       const plasmaArr = plasmaPosAttr.array as Float32Array;
       const plasmaCountActual = plasmaPosAttr.count;
 
-      if (checkDisturbance) {
-        for (let j = 0; j < plasmaCountActual; j++) {
-          const bx = basePlasmaPositions[j * 3];
-          const by = basePlasmaPositions[j * 3 + 1];
+      if (shouldUpdateParticles) {
+        if (checkDisturbance) {
+          for (let j = 0; j < plasmaCountActual; j++) {
+            const bx = basePlasmaPositions[j * 3];
+            const by = basePlasmaPositions[j * 3 + 1];
 
-          let currX = plasmaArr[j * 3];
-          let currY = plasmaArr[j * 3 + 1];
+            let currX = plasmaArr[j * 3];
+            let currY = plasmaArr[j * 3 + 1];
 
-          // Sinusoidal plasma swaying float
-          let baseNewY = by - plasmaSpeeds[j] * 0.05 * simMultiplier;
-          if (baseNewY < -30) {
-            baseNewY = 30;
+            // Sinusoidal plasma swaying float
+            let baseNewY = by - plasmaSpeeds[j] * 0.05 * simMultiplier;
+            if (baseNewY < -30) {
+              baseNewY = 30;
+            }
+            // Horizontal breathe sway
+            let baseNewX = bx + Math.sin(elapsed * 0.8 + j) * 0.05;
+            basePlasmaPositions[j * 3] = baseNewX;
+            basePlasmaPositions[j * 3 + 1] = baseNewY;
+
+            // Proximity calculation
+            const dx = currX - cursor3D.x;
+            const dy = currY - cursor3D.y;
+            const distSq = dx*dx + dy*dy;
+
+            let targetX = baseNewX;
+            let targetY = baseNewY;
+
+            if (distSq < 196) { // 14 * 14 = 196
+              const dist = Math.sqrt(distSq);
+              const force = (14 - dist) / 14;
+              // Soft fluid repulsive shockwave
+              const pushAngle = Math.atan2(dy, dx);
+              const pushDistance = dist + 3.8 * force * (1.0 + currentProps.reactiveIntensity * 0.3);
+
+              targetX = cursor3D.x + Math.cos(pushAngle) * pushDistance;
+              targetY = cursor3D.y + Math.sin(pushAngle) * pushDistance;
+            }
+
+            // Direct array writes avoiding expensive wrapper calls
+            plasmaArr[j * 3] += (targetX - currX) * 0.07;
+            plasmaArr[j * 3 + 1] += (targetY - currY) * 0.07;
           }
-          // Horizontal breathe sway
-          let baseNewX = bx + Math.sin(elapsed * 0.8 + j) * 0.05;
-          basePlasmaPositions[j * 3] = baseNewX;
-          basePlasmaPositions[j * 3 + 1] = baseNewY;
+        } else {
+          // High-speed drift bypass when there is no user cursor activity
+          for (let j = 0; j < plasmaCountActual; j++) {
+            let baseNewY = basePlasmaPositions[j * 3 + 1] - plasmaSpeeds[j] * 0.05 * simMultiplier;
+            if (baseNewY < -30) {
+              baseNewY = 30;
+            }
+            let baseNewX = basePlasmaPositions[j * 3] + Math.sin(elapsed * 0.8 + j) * 0.05;
+            basePlasmaPositions[j * 3] = baseNewX;
+            basePlasmaPositions[j * 3 + 1] = baseNewY;
 
-          // Proximity calculation
-          const dx = currX - cursor3D.x;
-          const dy = currY - cursor3D.y;
-          const distSq = dx*dx + dy*dy;
-
-          let targetX = baseNewX;
-          let targetY = baseNewY;
-
-          if (distSq < 196) { // 14 * 14 = 196
-            const dist = Math.sqrt(distSq);
-            const force = (14 - dist) / 14;
-            // Soft fluid repulsive shockwave
-            const pushAngle = Math.atan2(dy, dx);
-            const pushDistance = dist + 3.8 * force * (1.0 + currentProps.reactiveIntensity * 0.3);
-
-            targetX = cursor3D.x + Math.cos(pushAngle) * pushDistance;
-            targetY = cursor3D.y + Math.sin(pushAngle) * pushDistance;
+            plasmaArr[j * 3] = baseNewX;
+            plasmaArr[j * 3 + 1] = baseNewY;
           }
-
-          plasmaArr[j * 3] += (targetX - currX) * 0.07;
-          plasmaArr[j * 3 + 1] += (targetY - currY) * 0.07;
         }
-      } else {
-        // High-speed drift bypass when there is no user cursor activity
-        for (let j = 0; j < plasmaCountActual; j++) {
-          let baseNewY = basePlasmaPositions[j * 3 + 1] - plasmaSpeeds[j] * 0.05 * simMultiplier;
-          if (baseNewY < -30) {
-            baseNewY = 30;
-          }
-          let baseNewX = basePlasmaPositions[j * 3] + Math.sin(elapsed * 0.8 + j) * 0.05;
-          basePlasmaPositions[j * 3] = baseNewX;
-          basePlasmaPositions[j * 3 + 1] = baseNewY;
-
-          plasmaArr[j * 3] = baseNewX;
-          plasmaArr[j * 3 + 1] = baseNewY;
-        }
+        plasmaPosAttr.needsUpdate = true;
       }
-      plasmaPosAttr.needsUpdate = true;
       atmosphericPlasma.rotation.y += 0.0014 * simMultiplier;
 
       // Soft breathing atmospheric depth background fog exp density
@@ -4874,7 +4890,8 @@ export default function ThreeScene({
 
     renderLoop();
 
-    // --- RESIZING SUPPORT ---
+    // --- RESIZING SUPPORT WITH DEBOUNCED RESIZEOBSERVER ---
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     const handleResize = () => {
       if (!mountRef.current) return;
       const w = mountRef.current.clientWidth;
@@ -4885,12 +4902,22 @@ export default function ThreeScene({
       renderer.setSize(w, h);
     };
 
-    window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        handleResize();
+      }, 60);
+    });
+
+    if (mountRef.current) {
+      resizeObserver.observe(mountRef.current);
+    }
 
     // --- TEARDOWN ON DESTRUCT ---
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeObserver.disconnect();
       window.removeEventListener('reset-reactor', handleResetReactor);
       window.removeEventListener('reaction-stage', handleReactionStageEvent);
       window.removeEventListener('shell-probe-selected', handleShellProbeSelected);

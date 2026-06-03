@@ -99,7 +99,7 @@ const COSMIC_PIPELINE = [
   { id: 'TECHNOLOGY', type: 'system', desc: 'Manipulation of atoms' },
 ];
 
-export function OrbitiumNetwork({ onSelectElement, onNavigateHome }: OrbitiumNetworkProps) {
+export const OrbitiumNetwork = React.memo(function OrbitiumNetwork({ onSelectElement, onNavigateHome }: OrbitiumNetworkProps) {
   const [activeTab, setActiveTab] = useState<string>('blocks');
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   
@@ -342,4 +342,4 @@ export function OrbitiumNetwork({ onSelectElement, onNavigateHome }: OrbitiumNet
 
     </div>
   );
-}
+});
