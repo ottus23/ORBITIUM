@@ -34,9 +34,11 @@ export default function App() {
   const [adaptiveQuality, setAdaptiveQuality] = useState<boolean>(true);
   const [isLowPerfMode, setIsLowPerfMode] = useState<boolean>(false);
   const [currentFps, setCurrentFps] = useState<number>(60);
+  const [showOrbitals, setShowOrbitals] = useState<boolean>(false);
 
   // Sync React Router URL -> App State
   useEffect(() => {
+    setShowOrbitals(false); // Reset orbital visualization state when changing elements
     const path = location.pathname;
     if (path.startsWith('/element/')) {
       const sym = path.split('/')[2];
@@ -122,6 +124,8 @@ export default function App() {
           adaptiveQualityEnabled={adaptiveQuality}
           onLowPerfModeChange={setIsLowPerfMode}
           onFpsChange={setCurrentFps}
+          showOrbitals={showOrbitals}
+          onToggleOrbitals={setShowOrbitals}
         />
       </Suspense>
 
@@ -153,6 +157,8 @@ export default function App() {
         onChangeAdaptiveQuality={setAdaptiveQuality}
         isLowPerfMode={isLowPerfMode}
         currentFps={currentFps}
+        showOrbitals={showOrbitals}
+        onToggleOrbitals={setShowOrbitals}
       />
     </div>
   );

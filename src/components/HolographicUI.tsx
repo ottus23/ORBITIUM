@@ -69,6 +69,8 @@ interface HolographicUIProps {
   onChangeAdaptiveQuality: (active: boolean) => void;
   isLowPerfMode: boolean;
   currentFps: number;
+  showOrbitals?: boolean;
+  onToggleOrbitals?: (val: boolean) => void;
 }
 
 export function analyzeReaction(symA: string, symB: string): ReactionConfig {
@@ -307,6 +309,8 @@ export default React.memo(function HolographicUI({
   onChangeAdaptiveQuality,
   isLowPerfMode,
   currentFps,
+  showOrbitals = false,
+  onToggleOrbitals,
 }: HolographicUIProps) {
   const [reactionStage, setReactionStage] = useState<'idle' | 'mixing' | 'stable'>('idle');
   const [reactionCountDown, setReactionCountDown] = useState(0);

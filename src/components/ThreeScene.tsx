@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { Eye, Sparkles } from 'lucide-react';
 import { ChemicalElement, TableLayoutMode, ReactionConfig } from '../types';
 import { ELEMENTS_DATA, CATEGORY_COLORS } from '../data';
 import { buildProceduralAtomWorld } from '../utils/atomWorldGenerator';
@@ -30,6 +31,8 @@ interface ThreeSceneProps {
   adaptiveQualityEnabled: boolean;
   onLowPerfModeChange: (isLow: boolean) => void;
   onFpsChange: (fps: number) => void;
+  showOrbitals: boolean;
+  onToggleOrbitals?: (show: boolean) => void;
 }
 
 const BOND_ENERGIES: Record<string, { value: number; unit: string; color: string; maxLimit: number }> = {
@@ -65,6 +68,8 @@ export default function ThreeScene({
   adaptiveQualityEnabled,
   onLowPerfModeChange,
   onFpsChange,
+  showOrbitals,
+  onToggleOrbitals,
 }: ThreeSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -85,6 +90,8 @@ export default function ThreeScene({
     adaptiveQualityEnabled,
     onLowPerfModeChange,
     onFpsChange,
+    showOrbitals,
+    onToggleOrbitals,
   });
 
   useEffect(() => {
@@ -104,6 +111,8 @@ export default function ThreeScene({
       adaptiveQualityEnabled,
       onLowPerfModeChange,
       onFpsChange,
+      showOrbitals,
+      onToggleOrbitals,
     };
   }, [
     selectedElement,
@@ -119,6 +128,8 @@ export default function ThreeScene({
     adaptiveQualityEnabled,
     onLowPerfModeChange,
     onFpsChange,
+    showOrbitals,
+    onToggleOrbitals,
   ]);
 
   useEffect(() => {
@@ -137,7 +148,7 @@ export default function ThreeScene({
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = false;
     mountRef.current.appendChild(renderer.domElement);
 
     // --- 2. LIGHTS & ATMOSPHERIC GLOW ---
@@ -989,12 +1000,18 @@ export default function ThreeScene({
     const processTexturesChunk = () => {
        const BATCH_SIZE = 8;
        let end = Math.min(progressiveTextureLoadIndex + BATCH_SIZE, elementCards.length);
+       const isTimeline = propsRef.current.appMode === 'timeline';
+       const isLow = isMobile || isLowPerfActive;
        for (let i = progressiveTextureLoadIndex; i < end; i++) {
          const card = elementCards[i];
          const hex = CATEGORY_COLORS[card.element.category]?.hex || '#00E5FF';
-         card.standardTexture = createCardTexture(card.element, hex, false);
-         card.timelineTexture = createCardTexture(card.element, hex, true);
-         card.material.map = propsRef.current.appMode === 'timeline' ? card.timelineTexture : card.standardTexture;
+         if (isTimeline) {
+           card.timelineTexture = createCardTexture(card.element, hex, true, isLow);
+           card.material.map = card.timelineTexture;
+         } else {
+           card.standardTexture = createCardTexture(card.element, hex, false, isLow);
+           card.material.map = card.standardTexture;
+         }
          card.material.needsUpdate = true;
        }
        progressiveTextureLoadIndex = end;
@@ -1098,6 +1115,9 @@ export default function ThreeScene({
     const elementWorldGroup = new THREE.Group();
     atomGroup.add(elementWorldGroup);
     
+    const orbitalOverlayGroup = new THREE.Group();
+    elementWorldGroup.add(orbitalOverlayGroup);
+    
     let activeWorldAnimate: ((elapsed: number, delta: number, simMultiplier: number) => void) | null = null;
     let atomicRadiusSphere: THREE.Mesh | null = null;
     let atomicRadiusWireframe: THREE.Mesh | null = null;
@@ -1126,6 +1146,7 @@ export default function ThreeScene({
       while (elementWorldGroup.children.length > 0) {
         elementWorldGroup.remove(elementWorldGroup.children[0]);
       }
+      elementWorldGroup.add(orbitalOverlayGroup);
       atomicRadiusSphere = null;
       atomicRadiusWireframe = null;
       atomicRadiusSpawnTime = 0;
@@ -2268,6 +2289,327 @@ export default function ThreeScene({
       return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
+    const getOrbitalBlock = (el: ChemicalElement): 's' | 'p' | 'd' | 'f' => {
+      if (el.coreIdentity && el.coreIdentity.block) {
+        return el.coreIdentity.block;
+      }
+      const n = el.number;
+      if (n === 1 || n === 2 || n === 3 || n === 4 || n === 11 || n === 12 || n === 19 || n === 20 || n === 37 || n === 38 || n === 55 || n === 56 || n === 87 || n === 88) {
+        return 's';
+      }
+      if ((n >= 57 && n <= 71) || (n >= 89 && n <= 103)) {
+        return 'f';
+      }
+      if ((n >= 21 && n <= 30) || (n >= 39 && n <= 48) || (n >= 72 && n <= 80) || (n >= 104 && n <= 112)) {
+        return 'd';
+      }
+      return 'p';
+    };
+
+    const rebuildOrbitalOverlay = (show: boolean, el: ChemicalElement | null) => {
+      if (!orbitalOverlayGroup) return;
+      while (orbitalOverlayGroup.children.length > 0) {
+        const child = orbitalOverlayGroup.children[0];
+        orbitalOverlayGroup.remove(child);
+        if (child instanceof THREE.Mesh) {
+          if (child.geometry) child.geometry.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else if (child.material) {
+            child.material.dispose();
+          }
+        } else if (child instanceof THREE.Points) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material instanceof THREE.Material) child.material.dispose();
+        }
+      }
+
+      if (!show || !el) return;
+
+      const block = getOrbitalBlock(el);
+      const primaryHex = el.visual?.primaryColor || '#00E5FF';
+      const catColor = new THREE.Color(primaryHex);
+
+      const posColor = catColor.clone();
+      const negColor = new THREE.Color('#FF0099');
+
+      const meshOpacity = 0.22;
+      const wireOpacity = 0.08;
+
+      const createLobeMesh = (geom: THREE.BufferGeometry, color: THREE.Color, x: number, y: number, z: number, rX = 0, rY = 0, rZ = 0, sX = 1, sY = 1, sZ = 1) => {
+        const meshMat = new THREE.MeshPhongMaterial({
+          color: color,
+          emissive: color.clone().multiplyScalar(0.2),
+          transparent: true,
+          opacity: meshOpacity,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          shininess: 80,
+        });
+
+        const wireMat = new THREE.MeshBasicMaterial({
+          color: color,
+          wireframe: true,
+          transparent: true,
+          opacity: wireOpacity,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+
+        const mesh = new THREE.Mesh(geom, meshMat);
+        mesh.position.set(x, y, z);
+        mesh.rotation.set(rX, rY, rZ);
+        mesh.scale.set(sX, sY, sZ);
+
+        const wire = new THREE.Mesh(geom, wireMat);
+        mesh.add(wire);
+
+        orbitalOverlayGroup.add(mesh);
+        return mesh;
+      };
+
+      if (block === 's') {
+        const sphereGeom = new THREE.SphereGeometry(2.3, 32, 32);
+        createLobeMesh(sphereGeom, posColor, 0, 0, 0);
+
+        if (el.period > 1) {
+          const innerGeom = new THREE.SphereGeometry(1.2, 24, 24);
+          createLobeMesh(innerGeom, negColor, 0, 0, 0);
+        }
+
+        const numPoints = isLowPerfActive ? 150 : 400;
+        const positions = new Float32Array(numPoints * 3);
+        for (let i = 0; i < numPoints; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          const r = 2.3 + randn_bm() * 0.45;
+          positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+          positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+          positions[i * 3 + 2] = r * Math.cos(phi);
+        }
+        const pointGeom = new THREE.BufferGeometry();
+        pointGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const pointMat = new THREE.PointsMaterial({
+          size: 0.05,
+          color: posColor,
+          transparent: true,
+          opacity: 0.75,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const points = new THREE.Points(pointGeom, pointMat);
+        orbitalOverlayGroup.add(points);
+
+      } else if (block === 'p') {
+        const lobeGeom = new THREE.SphereGeometry(1.0, 32, 24);
+
+        // Px (along X axis)
+        createLobeMesh(lobeGeom, posColor, 1.6, 0, 0, 0, 0, 0, 1.4, 0.8, 0.8);
+        createLobeMesh(lobeGeom, negColor, -1.6, 0, 0, 0, 0, 0, 1.4, 0.8, 0.8);
+
+        // Py (along Y axis)
+        createLobeMesh(lobeGeom, posColor, 0, 1.6, 0, 0, 0, 0, 0.8, 1.4, 0.8);
+        createLobeMesh(lobeGeom, negColor, 0, -1.6, 0, 0, 0, 0, 0.8, 1.4, 0.8);
+
+        // Pz (along Z axis)
+        createLobeMesh(lobeGeom, posColor, 0, 0, 1.6, 0, 0, 0, 0.8, 0.8, 1.4);
+        createLobeMesh(lobeGeom, negColor, 0, 0, -1.6, 0, 0, 0, 0.8, 0.8, 1.4);
+
+        const numPoints = isLowPerfActive ? 250 : 600;
+        const positions = new Float32Array(numPoints * 3);
+        const colors = new Float32Array(numPoints * 3);
+        for (let i = 0; i < numPoints; i++) {
+          const rAxis = Math.floor(Math.random() * 3);
+          const orientation = Math.random() > 0.5 ? 1 : -1;
+          const lobeWeight = Math.pow(Math.cos(Math.random() * Math.PI), 2);
+          const rDist = 1.6 * (0.65 + lobeWeight * 0.8) + (randn_bm() * 0.2);
+
+          const spreadY = (Math.random() - 0.5) * 0.7;
+          const spreadZ = (Math.random() - 0.5) * 0.7;
+          let px = 0, py = 0, pz = 0;
+          if (rAxis === 0) {
+            px = rDist * orientation; py = spreadY; pz = spreadZ;
+          } else if (rAxis === 1) {
+            py = rDist * orientation; px = spreadY; pz = spreadZ;
+          } else {
+            pz = rDist * orientation; px = spreadY; py = spreadZ;
+          }
+
+          positions[i * 3] = px;
+          positions[i * 3 + 1] = py;
+          positions[i * 3 + 2] = pz;
+
+          const pColor = orientation > 0 ? posColor : negColor;
+          colors[i * 3] = pColor.r;
+          colors[i * 3 + 1] = pColor.g;
+          colors[i * 3 + 2] = pColor.b;
+        }
+
+        const pointGeom = new THREE.BufferGeometry();
+        pointGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        pointGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const pointMat = new THREE.PointsMaterial({
+          size: 0.05,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.7,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const points = new THREE.Points(pointGeom, pointMat);
+        orbitalOverlayGroup.add(points);
+
+      } else if (block === 'd') {
+        const lobeGeom = new THREE.SphereGeometry(0.85, 24, 20);
+
+        // Cloverleaf XY
+        createLobeMesh(lobeGeom, posColor, 1.4, 1.4, 0, 0, 0, 0.45, 1.3, 0.8, 0.8);
+        createLobeMesh(lobeGeom, posColor, -1.4, -1.4, 0, 0, 0, 0.45, 1.3, 0.8, 0.8);
+        createLobeMesh(lobeGeom, negColor, -1.4, 1.4, 0, 0, 0, -0.45, 1.3, 0.8, 0.8);
+        createLobeMesh(lobeGeom, negColor, 1.4, -1.4, 0, 0, 0, -0.45, 1.3, 0.8, 0.8);
+
+        // Z lobes
+        createLobeMesh(lobeGeom, posColor, 0, 0, 1.5, 0, 0, 0, 0.7, 0.7, 1.3);
+        createLobeMesh(lobeGeom, posColor, 0, 0, -1.5, 0, 0, 0, 0.7, 0.7, 1.3);
+
+        // Torus ring
+        const torusGeom = new THREE.TorusGeometry(1.15, 0.32, 16, 40);
+        const torusMat = new THREE.MeshPhongMaterial({
+          color: negColor,
+          emissive: negColor.clone().multiplyScalar(0.2),
+          transparent: true,
+          opacity: meshOpacity * 0.9,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+        const torusWireMat = new THREE.MeshBasicMaterial({
+          color: negColor,
+          wireframe: true,
+          transparent: true,
+          opacity: wireOpacity,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+
+        const torus = new THREE.Mesh(torusGeom, torusMat);
+        torus.rotation.x = Math.PI / 2;
+        const torusWire = new THREE.Mesh(torusGeom, torusWireMat);
+        torus.add(torusWire);
+        orbitalOverlayGroup.add(torus);
+
+        const numPoints = isLowPerfActive ? 300 : 700;
+        const positions = new Float32Array(numPoints * 3);
+        const colors = new Float32Array(numPoints * 3);
+        for (let i = 0; i < numPoints; i++) {
+          const rType = Math.random();
+          let px = 0, py = 0, pz = 0;
+          let pColor = posColor;
+
+          if (rType < 0.45) {
+            const theta = Math.random() * Math.PI * 2;
+            const lobeMod = Math.sin(2 * theta);
+            const r = 2.0 * Math.sqrt(Math.abs(lobeMod)) + randn_bm() * 0.15;
+            px = r * Math.cos(theta);
+            py = r * Math.sin(theta);
+            pz = (Math.random() - 0.5) * 0.5;
+            pColor = lobeMod >= 0 ? posColor : negColor;
+          } else if (rType < 0.75) {
+            const theta = Math.random() * Math.PI * 2;
+            const r = 1.15 + (Math.random() - 0.5) * 0.32;
+            px = r * Math.cos(theta);
+            pz = (Math.random() - 0.5) * 0.32;
+            py = r * Math.sin(theta);
+            pColor = negColor;
+          } else {
+            const rDist = (1.5 + randn_bm() * 0.3) * (Math.random() > 0.5 ? 1 : -1);
+            px = (Math.random() - 0.5) * 0.4;
+            py = (Math.random() - 0.5) * 0.4;
+            pz = rDist;
+            pColor = posColor;
+          }
+
+          positions[i * 3] = px;
+          positions[i * 3 + 1] = py;
+          positions[i * 3 + 2] = pz;
+
+          colors[i * 3] = pColor.r;
+          colors[i * 3 + 1] = pColor.g;
+          colors[i * 3 + 2] = pColor.b;
+        }
+
+        const pointGeom = new THREE.BufferGeometry();
+        pointGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        pointGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const pointMat = new THREE.PointsMaterial({
+          size: 0.05,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.7,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const points = new THREE.Points(pointGeom, pointMat);
+        orbitalOverlayGroup.add(points);
+
+      } else if (block === 'f') {
+        const lobeGeom = new THREE.SphereGeometry(0.72, 20, 16);
+
+        const offsets = [
+          { x: 1.15, y: 1.15, z: 1.15, phase: 1 },
+          { x: -1.15, y: 1.15, z: 1.15, phase: -1 },
+          { x: 1.15, y: -1.15, z: 1.15, phase: -1 },
+          { x: -1.15, y: -1.15, z: 1.15, phase: 1 },
+          { x: 1.15, y: 1.15, z: -1.15, phase: -1 },
+          { x: -1.15, y: 1.15, z: -1.15, phase: 1 },
+          { x: 1.15, y: -1.15, z: -1.15, phase: 1 },
+          { x: -1.15, y: -1.15, z: -1.15, phase: -1 },
+        ];
+
+        offsets.forEach((off) => {
+          const lColor = off.phase > 0 ? posColor : negColor;
+          const mesh = createLobeMesh(lobeGeom, lColor, off.x, off.y, off.z, 0, 0, 0, 0.9, 0.9, 0.9);
+          mesh.lookAt(0, 0, 0);
+          mesh.scale.set(0.9, 0.9, 1.45);
+        });
+
+        const numPoints = isLowPerfActive ? 400 : 900;
+        const positions = new Float32Array(numPoints * 3);
+        const colors = new Float32Array(numPoints * 3);
+        for (let i = 0; i < numPoints; i++) {
+          const off = offsets[Math.floor(Math.random() * 8)];
+          const t = 0.3 + Math.random() * 0.85;
+          const px = off.x * t + (Math.random() - 0.5) * 0.45;
+          const py = off.y * t + (Math.random() - 0.5) * 0.45;
+          const pz = off.z * t + (Math.random() - 0.5) * 0.45;
+
+          positions[i * 3] = px;
+          positions[i * 3 + 1] = py;
+          positions[i * 3 + 2] = pz;
+
+          const pColor = off.phase > 0 ? posColor : negColor;
+          colors[i * 3] = pColor.r;
+          colors[i * 3 + 1] = pColor.g;
+          colors[i * 3 + 2] = pColor.b;
+        }
+
+        const pointGeom = new THREE.BufferGeometry();
+        pointGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        pointGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const pointMat = new THREE.PointsMaterial({
+          size: 0.05,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.75,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const points = new THREE.Points(pointGeom, pointMat);
+        orbitalOverlayGroup.add(points);
+      }
+    };
+
     function getShellName(index: number): string {
       const names = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
       return names[index] || `Shell ${index + 1}`;
@@ -2468,7 +2810,7 @@ export default function ThreeScene({
 
       // Call our robust modular procedural world generator to build the custom atomic atmosphere!
       const pTexture = createCircularParticleTexture();
-      const generated = buildProceduralAtomWorld(el, elementWorldGroup, pTexture);
+      const generated = buildProceduralAtomWorld(el, elementWorldGroup, pTexture, isLowPerfActive);
 
       targetFogColor.copy(generated.targetFogColor);
       targetAmbientColor.copy(generated.targetAmbientColor);
@@ -2978,6 +3320,7 @@ export default function ThreeScene({
     let lastSelected: ChemicalElement | null = null;
     let lastLayout: TableLayoutMode = 'grid';
     let lastAppMode = propsRef.current.appMode;
+    let lastShowOrbitals = propsRef.current.showOrbitals;
 
     // Adaptive Quality state and dynamic adjustments helper
     let isLowPerfActive = isMobile;
@@ -3075,15 +3418,23 @@ export default function ThreeScene({
       }
 
       // 1. Detect dynamic layout swaps or selection changes
-      if (currentProps.layoutMode !== lastLayout || currentProps.selectedElement !== lastSelected || currentProps.appMode !== lastAppMode) {
+      const orbitalsToggledOnly = currentProps.selectedElement === lastSelected && currentProps.showOrbitals !== lastShowOrbitals;
+
+      if (currentProps.layoutMode !== lastLayout || currentProps.selectedElement !== lastSelected || currentProps.appMode !== lastAppMode || currentProps.showOrbitals !== lastShowOrbitals) {
         lastLayout = currentProps.layoutMode;
         lastSelected = currentProps.selectedElement;
         lastAppMode = currentProps.appMode;
+        lastShowOrbitals = currentProps.showOrbitals;
         
-        updateLayouts(currentProps.layoutMode, currentProps.selectedElement);
+        if (!orbitalsToggledOnly) {
+          updateLayouts(currentProps.layoutMode, currentProps.selectedElement);
+        }
         
         if (currentProps.selectedElement) {
-          updateSelectedElementAtom(currentProps.selectedElement);
+          if (!orbitalsToggledOnly) {
+            updateSelectedElementAtom(currentProps.selectedElement);
+          }
+          rebuildOrbitalOverlay(currentProps.showOrbitals, currentProps.selectedElement);
         } else {
           clearElementWorld();
           targetFogColor.set(defaultFogHex);
@@ -3598,8 +3949,20 @@ export default function ThreeScene({
           ci.mesh.quaternion.slerp(wobbleQ, layoutLerpFactor);
         }
 
-        // Select correct map texture depending on app mode
-        const desiredMap = currentProps.appMode === 'timeline' ? ci.timelineTexture : ci.standardTexture;
+        // Select correct map texture depending on app mode, loading on-demand if needed
+        const isTimelineMode = currentProps.appMode === 'timeline';
+        let desiredMap = isTimelineMode ? ci.timelineTexture : ci.standardTexture;
+        if (desiredMap === sharedDummyTexture) {
+          const hex = CATEGORY_COLORS[ci.element.category]?.hex || '#00E5FF';
+          const isLow = isMobile || isLowPerfActive;
+          if (isTimelineMode) {
+            ci.timelineTexture = createCardTexture(ci.element, hex, true, isLow);
+            desiredMap = ci.timelineTexture;
+          } else {
+            ci.standardTexture = createCardTexture(ci.element, hex, false, isLow);
+            desiredMap = ci.standardTexture;
+          }
+        }
         if (ci.material.map !== desiredMap) {
           ci.material.map = desiredMap;
           ci.material.needsUpdate = true;
@@ -4464,6 +4827,22 @@ export default function ThreeScene({
         // Pulsate PointLight source inside nucleus
         coreLight.intensity = (6.0 + Math.sin(elapsed * 8.0) * 2.5) * (1.0 + currentProps.reactiveIntensity * 0.3);
 
+        // Slow organic rotation and breathing wavefunction of orbitals
+        if (orbitalOverlayGroup && currentProps.showOrbitals) {
+          orbitalOverlayGroup.rotation.y += 0.003 * simMultiplier;
+          orbitalOverlayGroup.rotation.x += 0.001 * simMultiplier;
+          
+          const orbBreathe = 0.75 + Math.sin(elapsed * 2.2) * 0.18;
+          orbitalOverlayGroup.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.material) {
+              const mat = child.material as any;
+              if (mat.opacity !== undefined) {
+                mat.opacity = 0.22 * orbBreathe;
+              }
+            }
+          });
+        }
+
         // Update orbits and electron trail rings
         activeElectrons.forEach((el) => {
           // Progress orbits using Kepler's angle velocity (fast pericenter, slow apocenter)
@@ -4753,11 +5132,12 @@ export default function ThreeScene({
       const posAttr = spaceDust.geometry.attributes.position as THREE.BufferAttribute;
       const arr = posAttr.array as Float32Array;
       const count = posAttr.count;
+      const activeCount = isLowPerfActive ? Math.floor(count * 0.3) : count;
       const checkDisturbance = (mouseActive || isDragging) && currentProps.isObsEntered;
 
       if (shouldUpdateParticles) {
         if (checkDisturbance) {
-          for (let j = 0; j < count; j++) {
+          for (let j = 0; j < activeCount; j++) {
             const bx = baseDustPositions[j * 3];
             const by = baseDustPositions[j * 3 + 1];
 
@@ -4797,7 +5177,7 @@ export default function ThreeScene({
           }
         } else {
           // High-speed drift bypass when there is no user cursor activity
-          for (let j = 0; j < count; j++) {
+          for (let j = 0; j < activeCount; j++) {
             let baseNewY = baseDustPositions[j * 3 + 1] - speeds[j] * 0.08 * simMultiplier;
             if (baseNewY < -45) {
               baseNewY = 45;
@@ -4814,10 +5194,11 @@ export default function ThreeScene({
       const plasmaPosAttr = atmosphericPlasma.geometry.attributes.position as THREE.BufferAttribute;
       const plasmaArr = plasmaPosAttr.array as Float32Array;
       const plasmaCountActual = plasmaPosAttr.count;
+      const activePlasmaCount = isLowPerfActive ? Math.floor(plasmaCountActual * 0.3) : plasmaCountActual;
 
       if (shouldUpdateParticles) {
         if (checkDisturbance) {
-          for (let j = 0; j < plasmaCountActual; j++) {
+          for (let j = 0; j < activePlasmaCount; j++) {
             const bx = basePlasmaPositions[j * 3];
             const by = basePlasmaPositions[j * 3 + 1];
 
@@ -4859,7 +5240,7 @@ export default function ThreeScene({
           }
         } else {
           // High-speed drift bypass when there is no user cursor activity
-          for (let j = 0; j < plasmaCountActual; j++) {
+          for (let j = 0; j < activePlasmaCount; j++) {
             let baseNewY = basePlasmaPositions[j * 3 + 1] - plasmaSpeeds[j] * 0.05 * simMultiplier;
             if (baseNewY < -30) {
               baseNewY = 30;
@@ -5066,8 +5447,8 @@ export default function ThreeScene({
   }
 
   // Draw element card with high-end sci-fi HUD layouts on offscreen canvas
-  function createCardTexture(el: ChemicalElement, glowHex: string, forceTimeline: boolean = false): THREE.Texture {
-    const isMobileDevice = window.innerWidth < 768;
+  function createCardTexture(el: ChemicalElement, glowHex: string, forceTimeline: boolean = false, isLowRes: boolean = false): THREE.Texture {
+    const isMobileDevice = window.innerWidth < 768 || isLowRes;
     const canvas = document.createElement('canvas');
     canvas.width = isMobileDevice ? 128 : 256;
     canvas.height = isMobileDevice ? 160 : 320;
@@ -5183,11 +5564,100 @@ export default function ThreeScene({
     return texture;
   }
 
+  const isSelected = !!selectedElement && appMode === 'observatory';
+  const block = selectedElement ? (selectedElement.coreIdentity?.block || 's') : 's';
+  const primaryColor = selectedElement?.visual?.primaryColor || '#00E5FF';
+
+  let orbitalName = '';
+  let orbitalDesc = '';
+  if (block === 's') {
+    orbitalName = 'ψ (1s/2s) Spherical Shell';
+    orbitalDesc = 'Uniform phase standing boundary cloud. Higher periods contain nested concentric internal node envelopes.';
+  } else if (block === 'p') {
+    orbitalName = 'ψ (2p) Tri-Axial Dumbbells';
+    orbitalDesc = 'Three bi-polar coordinate lobes aligned with spatial axes (Px, Py, Pz), hosting central nodal planes.';
+  } else if (block === 'd') {
+    orbitalName = 'ψ (3d) Quadrant Cloverleafs';
+    orbitalDesc = 'Four quadrant planar cloverleaf arrays supplemented by the vertical toroidal dz² coordinate belt.';
+  } else if (block === 'f') {
+    orbitalName = 'ψ (4f) Cubic Octant Lobes';
+    orbitalDesc = 'Eight alternating positive/negative wave-function nodes oriented symmetrically in cubic octant spaces.';
+  }
+
   return (
-    <div
-      id="orbitium-canvas-container"
-      ref={mountRef}
-      className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing select-none"
-    />
+    <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
+      <div
+        id="orbitium-canvas-container"
+        ref={mountRef}
+        className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing select-none pointer-events-auto"
+      />
+      
+      {isSelected && (
+        <div 
+          className="absolute bottom-6 right-6 z-40 p-4 rounded-xl border border-white/10 bg-slate-950/85 backdrop-blur-md shadow-2xl flex flex-col gap-2 w-64 pointer-events-auto select-none"
+          style={{
+            borderColor: `${primaryColor}25`,
+            boxShadow: `0 10px 40px -10px rgba(0, 0, 0, 0.75), 0 0 20px -3px ${primaryColor}10`
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-white">
+              <Sparkles className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+              <span className="font-mono text-[10px] tracking-widest text-[#00E5FF]/90 uppercase">Quantum Overlay</span>
+            </div>
+            <span 
+              className="px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-widest uppercase border border-white/10"
+              style={{
+                color: primaryColor,
+                backgroundColor: `${primaryColor}12`,
+                borderColor: `${primaryColor}25`
+              }}
+            >
+              {block}-block
+            </span>
+          </div>
+
+          {/* Description */}
+          <div className="flex flex-col gap-1 my-1">
+            <span className="text-[11px] font-mono font-bold text-white tracking-wide">{orbitalName}</span>
+            <p className="text-[10px] leading-relaxed text-white/55 font-sans">{orbitalDesc}</p>
+          </div>
+
+          {/* Toggle Button */}
+          <div className="flex items-center justify-between bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-200 border border-white/5 rounded-lg p-2 mt-1">
+            <div className="flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-white/60" />
+              <span className="text-[10px] font-mono text-white/70">Visual Wavefunction</span>
+            </div>
+            <button
+              id="orbitals-toggle-btn"
+              onClick={() => onToggleOrbitals?.(!showOrbitals)}
+              className="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+              style={{ backgroundColor: showOrbitals ? primaryColor : '#1E293B' }}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full shadow transition duration-200 ease-in-out ${
+                  showOrbitals ? 'translate-x-4 bg-slate-950' : 'translate-x-0 bg-white'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Color Phase Guide */}
+          <div className="flex items-center gap-3 text-[9px] font-mono mt-1 pt-2 border-t border-white/5 justify-between">
+            <span className="text-white/30 text-[9px]">Wave Phase:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColor }} />
+              <span className="text-white/60">+ Phase</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#FF0099]" />
+              <span className="text-white/60">- Phase</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

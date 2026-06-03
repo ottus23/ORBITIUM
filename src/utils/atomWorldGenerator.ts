@@ -10,7 +10,8 @@ export interface GeneratedWorld {
 export function buildProceduralAtomWorld(
   el: ChemicalElement,
   elementWorldGroup: THREE.Group,
-  particleTexture: THREE.Texture
+  particleTexture: THREE.Texture,
+  isLowPerf: boolean = false
 ): GeneratedWorld {
   // Extract custom color profiles defined in our Core Element Data System
   const visualPrimary = new THREE.Color(el.visual?.primaryColor || '#00E5FF');
@@ -33,7 +34,7 @@ export function buildProceduralAtomWorld(
     targetFogColor.set('#010A15');
     targetAmbientColor.set('#1A0B2E');
 
-    const nebulaGeom = new THREE.SphereGeometry(18, 32, 32);
+    const nebulaGeom = isLowPerf ? new THREE.SphereGeometry(18, 12, 12) : new THREE.SphereGeometry(18, 32, 32);
     const nebulaMat = new THREE.MeshBasicMaterial({
       color: visualPrimary,
       transparent: true,
@@ -45,10 +46,10 @@ export function buildProceduralAtomWorld(
     const nebula = new THREE.Mesh(nebulaGeom, nebulaMat);
     elementWorldGroup.add(nebula);
 
-    const streamCount = 15;
+    const streamCount = isLowPerf ? 4 : 15;
     const streams: THREE.Mesh[] = [];
     for (let i = 0; i < streamCount; i++) {
-      const g = new THREE.TorusGeometry(3.5 + Math.random() * 4, 0.015 + Math.random() * 0.02, 3, 40);
+      const g = new THREE.TorusGeometry(3.5 + Math.random() * 4, 0.015 + Math.random() * 0.02, 3, isLowPerf ? 12 : 40);
       const m = new THREE.MeshBasicMaterial({
         color: Math.random() > 0.5 ? visualPrimary : visualSecondary,
         transparent: true,
@@ -83,8 +84,9 @@ export function buildProceduralAtomWorld(
     targetAmbientColor.set('#001530');
 
     const rings: THREE.Mesh[] = [];
-    for (let i = 0; i < 8; i++) {
-      const g = new THREE.TorusGeometry(2 + i * 0.6, 0.05, 16, 64);
+    const ringCount = isLowPerf ? 3 : 8;
+    for (let i = 0; i < ringCount; i++) {
+      const g = new THREE.TorusGeometry(2 + i * (isLowPerf ? 1.2 : 0.6), 0.05, 8, isLowPerf ? 16 : 64);
       const m = new THREE.MeshPhongMaterial({
         color: visualPrimary,
         emissive: visualSecondary.clone().multiplyScalar(0.5),
@@ -114,7 +116,7 @@ export function buildProceduralAtomWorld(
     targetFogColor.set('#020202');
     targetAmbientColor.set('#101010');
 
-    const latticeGeom = new THREE.IcosahedronGeometry(7, 2);
+    const latticeGeom = isLowPerf ? new THREE.IcosahedronGeometry(7, 0) : new THREE.IcosahedronGeometry(7, 2);
     const wireMat = new THREE.LineBasicMaterial({
       color: visualSecondary,
       transparent: true,
@@ -149,7 +151,7 @@ export function buildProceduralAtomWorld(
     targetFogColor.set('#050515');
     targetAmbientColor.set('#100A3A');
 
-    const stormCount = 800;
+    const stormCount = isLowPerf ? 100 : 800;
     const geom = new THREE.BufferGeometry();
     const pos = new Float32Array(stormCount * 3);
     for(let i=0; i<stormCount; i++) {
@@ -184,16 +186,16 @@ export function buildProceduralAtomWorld(
     targetAmbientColor.set('#002266');
 
     const core = new THREE.Mesh(
-       new THREE.SphereGeometry(3, 32, 32),
+       new THREE.SphereGeometry(3, isLowPerf ? 12 : 32, isLowPerf ? 12 : 32),
        new THREE.MeshBasicMaterial({ color: visualPrimary, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending })
     );
     elementWorldGroup.add(core);
 
-    const reactCount = 4;
+    const reactCount = isLowPerf ? 1 : 4;
     const reactors: THREE.Mesh[] = [];
     for(let i=0; i<reactCount; i++) {
       const r = new THREE.Mesh(
-        new THREE.RingGeometry(3.5 + i*0.8, 3.6 + i*0.8, 32),
+        new THREE.RingGeometry(3.5 + i*0.8, 3.6 + i*0.8, isLowPerf ? 16 : 32),
         new THREE.MeshBasicMaterial({ color: visualSecondary, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
       );
       r.rotation.x = Math.random() * Math.PI;
@@ -219,13 +221,13 @@ export function buildProceduralAtomWorld(
 
     // Electric lattice
     const cage = new THREE.Mesh(
-       new THREE.OctahedronGeometry(5, 2),
+       new THREE.OctahedronGeometry(5, isLowPerf ? 0 : 2),
        new THREE.MeshBasicMaterial({ color: visualPrimary, wireframe: true, transparent: true, opacity: 0.4 })
     );
     elementWorldGroup.add(cage);
 
     const coreMesh = new THREE.Mesh(
-       new THREE.SphereGeometry(1.5, 16, 16),
+       new THREE.SphereGeometry(1.5, isLowPerf ? 6 : 16, isLowPerf ? 6 : 16),
        new THREE.MeshBasicMaterial({ color: visualSecondary, wireframe: true })
     );
     elementWorldGroup.add(coreMesh);
@@ -245,7 +247,7 @@ export function buildProceduralAtomWorld(
     targetAmbientColor.set('#332600');
 
     const sparkGeom = new THREE.BufferGeometry();
-    const sparkCount = 300;
+    const sparkCount = isLowPerf ? 60 : 300;
     const pos = new Float32Array(sparkCount * 3);
     for(let i=0; i<sparkCount; i++) {
        pos[i*3] = (Math.random()-0.5)*10;
@@ -270,7 +272,7 @@ export function buildProceduralAtomWorld(
     targetFogColor.set('#001111');
     targetAmbientColor.set('#002222');
 
-    const gridGeom = new THREE.BoxGeometry(8, 8, 8, 4, 4, 4);
+    const gridGeom = isLowPerf ? new THREE.BoxGeometry(8, 8, 8, 1, 1, 1) : new THREE.BoxGeometry(8, 8, 8, 4, 4, 4);
     const gridEdges = new THREE.EdgesGeometry(gridGeom);
     const cyberGrid = new THREE.LineSegments(gridEdges, new THREE.LineBasicMaterial({
       color: visualPrimary, transparent: true, opacity: 0.4
@@ -280,7 +282,7 @@ export function buildProceduralAtomWorld(
     activeWorldAnimate = (time, dt, sm) => {
        cyberGrid.rotation.y += 0.1 * dt * sm;
        cyberGrid.rotation.x += 0.1 * dt * sm;
-    };
+     };
 
   } else if (el.symbol === 'Fe') {
     // IRON: Molten Core Magnetic Fields
@@ -290,11 +292,12 @@ export function buildProceduralAtomWorld(
     targetAmbientColor.set('#330A00');
 
     const magFields: THREE.Mesh[] = [];
-    for(let i=0; i<12; i++) {
-      const g = new THREE.TorusGeometry(4.5, 0.02, 3, 40);
+    const fieldCount = isLowPerf ? 4 : 12;
+    for(let i=0; i<fieldCount; i++) {
+      const g = new THREE.TorusGeometry(4.5, 0.02, 3, isLowPerf ? 16 : 40);
       const m = new THREE.MeshBasicMaterial({ color: visualPrimary, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
       const t = new THREE.Mesh(g, m);
-      t.rotation.x = (i / 12) * Math.PI;
+      t.rotation.x = (i / fieldCount) * Math.PI;
       elementWorldGroup.add(t);
       magFields.push(t);
     }
@@ -313,7 +316,7 @@ export function buildProceduralAtomWorld(
     targetAmbientColor.set('#0A330A');
 
     const cherenkov = new THREE.Mesh(
-       new THREE.SphereGeometry(3.5, 32, 32),
+       new THREE.SphereGeometry(3.5, isLowPerf ? 10 : 32, isLowPerf ? 10 : 32),
        new THREE.MeshBasicMaterial({ color: visualPrimary, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending })
     );
     elementWorldGroup.add(cherenkov);
@@ -326,7 +329,7 @@ export function buildProceduralAtomWorld(
 
   } else if (atmosphere === 'gas') {
     // GAS/NEBULA ATMOSPHERE: Swirling gas rings, orbital core winds, and gas clouds
-    const torusGeom1 = new THREE.TorusGeometry(3.2, 0.04, 4, 28);
+    const torusGeom1 = new THREE.TorusGeometry(3.2, 0.04, 3, isLowPerf ? 16 : 28);
     const torusMat1 = new THREE.MeshBasicMaterial({
       color: visualPrimary,
       transparent: true,
@@ -338,7 +341,7 @@ export function buildProceduralAtomWorld(
     torus1.rotation.x = Math.PI / 4;
     elementWorldGroup.add(torus1);
 
-    const torusGeom2 = new THREE.TorusGeometry(3.2, 0.025, 4, 28);
+    const torusGeom2 = new THREE.TorusGeometry(3.2, 0.025, 3, isLowPerf ? 16 : 28);
     const torusMat2 = new THREE.MeshBasicMaterial({
       color: visualSecondary,
       transparent: true,
@@ -351,7 +354,7 @@ export function buildProceduralAtomWorld(
     elementWorldGroup.add(torus2);
 
     // Dynamic gas particle cloud
-    const fSeedsCount = 60;
+    const fSeedsCount = isLowPerf ? 15 : 60;
     const fGeom = new THREE.BufferGeometry();
     const fPositions = new Float32Array(fSeedsCount * 3);
     const fSpeeds = new Float32Array(fSeedsCount);
@@ -359,13 +362,13 @@ export function buildProceduralAtomWorld(
     const fAngles = new Float32Array(fSeedsCount);
     
     for (let i = 0; i < fSeedsCount; i++) {
-      fAngles[i] = Math.random() * Math.PI * 2;
-      fRadii[i] = 1.8 + Math.random() * 2.8;
-      fSpeeds[i] = 0.6 + Math.random() * 1.4;
-      
-      fPositions[i * 3] = Math.cos(fAngles[i]) * fRadii[i];
-      fPositions[i * 3 + 1] = (Math.random() - 0.5) * 1.6;
-      fPositions[i * 3 + 2] = Math.sin(fAngles[i]) * fRadii[i];
+       fAngles[i] = Math.random() * Math.PI * 2;
+       fRadii[i] = 1.8 + Math.random() * 2.8;
+       fSpeeds[i] = 0.6 + Math.random() * 1.4;
+       
+       fPositions[i * 3] = Math.cos(fAngles[i]) * fRadii[i];
+       fPositions[i * 3 + 1] = (Math.random() - 0.5) * 1.6;
+       fPositions[i * 3 + 2] = Math.sin(fAngles[i]) * fRadii[i];
     }
     fGeom.setAttribute('position', new THREE.BufferAttribute(fPositions, 3));
     const fMat = new THREE.PointsMaterial({
@@ -387,19 +390,19 @@ export function buildProceduralAtomWorld(
       const posAttr = fusionPoints.geometry.attributes.position as THREE.BufferAttribute;
       const arr = posAttr.array as Float32Array;
       for (let i = 0; i < fSeedsCount; i++) {
-        fAngles[i] += fSpeeds[i] * dt * 1.1 * sm;
-        const dynamicRadius = fRadii[i] + Math.sin(time * 2.0 + i) * 0.35;
-        
-        arr[i * 3] = Math.cos(fAngles[i]) * dynamicRadius;
-        arr[i * 3 + 1] = Math.sin(time * 1.5 + i) * 0.45;
-        arr[i * 3 + 2] = Math.sin(fAngles[i]) * dynamicRadius;
+         fAngles[i] += fSpeeds[i] * dt * 1.1 * sm;
+         const dynamicRadius = fRadii[i] + Math.sin(time * 2.0 + i) * 0.35;
+         
+         arr[i * 3] = Math.cos(fAngles[i]) * dynamicRadius;
+         arr[i * 3 + 1] = Math.sin(time * 1.5 + i) * 0.45;
+         arr[i * 3 + 2] = Math.sin(fAngles[i]) * dynamicRadius;
       }
       posAttr.needsUpdate = true;
     };
 
   } else if (atmosphere === 'plasma' || el.category === 'noble-gas') {
     // PLASMA/DISCHARGE FIELD: Concentric highly energetic shells with high tension electric sparks
-    const pSphereG1 = new THREE.SphereGeometry(3.0, 14, 14);
+    const pSphereG1 = new THREE.SphereGeometry(3.0, isLowPerf ? 6 : 14, isLowPerf ? 6 : 14);
     const pSphereM1 = new THREE.MeshBasicMaterial({
       color: visualPrimary,
       transparent: true,
@@ -410,7 +413,7 @@ export function buildProceduralAtomWorld(
     const pSphere1 = new THREE.Mesh(pSphereG1, pSphereM1);
     elementWorldGroup.add(pSphere1);
 
-    const pSphereG2 = new THREE.SphereGeometry(2.0, 14, 14);
+    const pSphereG2 = new THREE.SphereGeometry(2.0, isLowPerf ? 6 : 14, isLowPerf ? 6 : 14);
     const pSphereM2 = new THREE.MeshBasicMaterial({
       color: visualSecondary,
       transparent: true,
@@ -423,8 +426,8 @@ export function buildProceduralAtomWorld(
 
     // Spark electrical nodes
     const sparkLines: THREE.Line[] = [];
-    const sparkCount = 8;
-    const sparkSegs = 6;
+    const sparkCount = isLowPerf ? 2 : 8;
+    const sparkSegs = isLowPerf ? 4 : 6;
     for (let s = 0; s < sparkCount; s++) {
       const sGeom = new THREE.BufferGeometry();
       const pts = [];
@@ -484,7 +487,7 @@ export function buildProceduralAtomWorld(
 
   } else if (atmosphere === 'crystal' || el.state === 'solid' || el.symbol === 'C') {
     // CRYSTAL: Sacred geometry, diamond sublattices, atomic cages
-    const crystalGeom = new THREE.IcosahedronGeometry(3.2, 1);
+    const crystalGeom = isLowPerf ? new THREE.IcosahedronGeometry(3.2, 0) : new THREE.IcosahedronGeometry(3.2, 1);
     const crystalMat = new THREE.MeshBasicMaterial({
       color: visualPrimary,
       transparent: true,
@@ -535,7 +538,7 @@ export function buildProceduralAtomWorld(
 
   } else if (atmosphere === 'liquid' || el.state === 'liquid' || el.symbol === 'Hg' || el.symbol === 'Br') {
     // LIQUID/FLUID/AMORPHOUS: Weightless blobs moving through orbital currents of tension
-    const mCount = 6;
+    const mCount = isLowPerf ? 2 : 6;
     const mMeshes: THREE.Mesh[] = [];
     const mWeights: number[] = [];
     const mRadii: number[] = [];
@@ -543,7 +546,7 @@ export function buildProceduralAtomWorld(
     const mAxes: THREE.Vector3[] = [];
     const mAngles: number[] = [];
 
-    const subGeom = new THREE.SphereGeometry(0.38, 12, 12);
+    const subGeom = new THREE.SphereGeometry(0.38, isLowPerf ? 6 : 12, isLowPerf ? 6 : 12);
     const subMat = new THREE.MeshPhongMaterial({
       color: visualPrimary,
       emissive: visualSecondary.clone().multiplyScalar(0.25),
@@ -581,7 +584,7 @@ export function buildProceduralAtomWorld(
 
   } else if (atmosphere === 'decay' || el.category === 'actinide' || el.number >= 89) {
     // DECAY/RADIOACTIVE: Highly energetic disintegration discharge ray bursts and a radioactive cloud mist
-    const rCount = 12;
+    const rCount = isLowPerf ? 3 : 12;
     const rLines: THREE.Line[] = [];
     const rPositions: THREE.Vector3[] = [];
     const rDirs: THREE.Vector3[] = [];
@@ -610,7 +613,7 @@ export function buildProceduralAtomWorld(
       rMaxAges.push(0.3 + Math.random() * 0.4);
     }
 
-    const mistCount = 50;
+    const mistCount = isLowPerf ? 12 : 50;
     const mistPos = new Float32Array(mistCount * 3);
     const mistRadii = new Float32Array(mistCount);
     const mistAngles = new Float32Array(mistCount);
@@ -681,12 +684,12 @@ export function buildProceduralAtomWorld(
 
   } else {
     // METALS/STABLE CORES: Concentric orbital structures moving smoothly
-    const ringCount = 3;
+    const ringCount = isLowPerf ? 1 : 3;
     const rings: THREE.Mesh[] = [];
     const speedsR: number[] = [];
 
     for (let i = 0; i < ringCount; i++) {
-      const rG = new THREE.TorusGeometry(3.0 + i * 1.5, 0.035, 4, 24);
+      const rG = new THREE.TorusGeometry(3.0 + i * 1.5, 0.035, 3, isLowPerf ? 12 : 24);
       const rM = new THREE.MeshBasicMaterial({
         color: visualPrimary,
         transparent: true,
